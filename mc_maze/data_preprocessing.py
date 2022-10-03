@@ -34,7 +34,7 @@ def main():
     spikes_per_trial_save_path = 'data/mc_maze/spikes_per_trial.h5'
     rates_per_trial_save_path = 'data/mc_maze/rates_per_trial_{}.npy'
     velocity_per_trial_save_path = 'data/mc_maze/velocity_per_trial_{}.npy'
-    trajectory_per_trial_save_path = 'data/mc_maze/trajectory_per_trial_{}.npy'
+    position_per_trial_save_path = 'data/mc_maze/position_per_trial_{}.npy'
 
     # Extract neural data and lagged hand velocity
     trial_info = dataset.trial_info.dropna()
@@ -75,8 +75,8 @@ def main():
     np.save(velocity_per_trial_save_path.format('val'), velocity_per_trial[:n_val_trials])
     np.save(velocity_per_trial_save_path.format('train'), velocity_per_trial[n_val_trials:])
 
-    np.save(trajectory_per_trial_save_path.format('val'), trajectory_per_trial[:n_val_trials])
-    np.save(trajectory_per_trial_save_path.format('train'), trajectory_per_trial[n_val_trials:])
+    np.save(position_per_trial_save_path.format('val'), trajectory_per_trial[:n_val_trials])
+    np.save(position_per_trial_save_path.format('train'), trajectory_per_trial[n_val_trials:])
 
     spikes_per_trial_h5 = h5py.File(spikes_per_trial_save_path, 'w')
     spikes_per_trial_h5.create_dataset(name='Y', data=spikes_per_trial[n_val_trials:])
