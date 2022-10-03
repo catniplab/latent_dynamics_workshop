@@ -30,11 +30,11 @@ def main():
     end = 450
     lag = 80
 
-    trial_info_save_path = 'data/mc_maze/info_per_trial_{}.pkl'
-    spikes_per_trial_save_path = 'data/mc_maze/spikes_per_trial.h5'
-    rates_per_trial_save_path = 'data/mc_maze/rates_per_trial_{}.npy'
-    velocity_per_trial_save_path = 'data/mc_maze/velocity_per_trial_{}.npy'
-    position_per_trial_save_path = 'data/mc_maze/position_per_trial_{}.npy'
+    trial_info_save_path = 'data/info_per_trial_{}.pkl'
+    spikes_per_trial_save_path = 'data/spikes_per_trial.h5'
+    rates_per_trial_save_path = 'data/rates_per_trial_{}.npy'
+    velocity_per_trial_save_path = 'data/velocity_per_trial_{}.npy'
+    position_per_trial_save_path = 'data/position_per_trial_{}.npy'
 
     # Extract neural data and lagged hand velocity
     trial_info = dataset.trial_info.dropna()
