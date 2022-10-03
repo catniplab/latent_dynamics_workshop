@@ -1,0 +1,3 @@
+[submodule "nlb_tools"]
+	path = nlb_tools
+	url = https://github.com/neurallatents/nlb_tools.git
