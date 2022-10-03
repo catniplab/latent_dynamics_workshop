@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import utils
 import h5py
 from nlb_tools.nwb_interface import NWBDataset
 from nlb_tools.make_tensors import make_train_input_tensors, make_eval_input_tensors, make_eval_target_tensors, save_to_h5
@@ -17,8 +16,6 @@ def get_spikes_from_dict(spike_dict):
 
 def main():
     # dandi download https://dandiarchive.org/dandiset/000138 for mc_maze 00128 for regular
-    # dandi download https://dandiarchive.org/dandiset/000130 for dmfc_rsg
-    # dandi download https://gui.dandiarchive.org/#/dandiset/000129 for mc_rtt 98 held in, 32 held out
     torch.set_default_dtype(torch.float64)
     dataset_name = 'mc_maze'
     datapath = 'data/000128/sub-Jenkins/'
@@ -58,14 +55,11 @@ def main():
     velocity_per_trial = velocity.reshape(n_trials, trial_length, -1)
     trajectory_per_trial = np.cumsum(velocity_per_trial, axis=1) * dataset.bin_width / 1000
 
-    C_weight, C_bias = utils.estimate_readout_matrix_from_spikes(
-        torch.tensor(spikes_per_trial).reshape(-1, spikes_per_trial.shape[2]).type(torch.float64), 5e-3, 2,
-        device='cpu', sigma=5)
-    high_fr_dx = torch.where(C_bias > 0.0)[0]
-    print(high_fr_dx.shape[0])
-
-    spikes_per_trial = spikes_per_trial[:, :, high_fr_dx]
-    rates_per_trial = rates_per_trial[:, :, high_fr_dx]
+    # high_fr_dx = torch.where(C_bias > 0.0)[0]
+    # print(high_fr_dx.shape[0])
+    #
+    # spikes_per_trial = spikes_per_trial[:, :, high_fr_dx]
+    # rates_per_trial = rates_per_trial[:, :, high_fr_dx]
 
     for dx, (row_id, row_ss) in enumerate(trial_info.iterrows()):
         reach_angle = np.arctan2(*trajectory_per_trial[dx, -1])
