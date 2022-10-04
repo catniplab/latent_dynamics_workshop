@@ -6,7 +6,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from scipy.integrate import odeint
-from process_generators.rotational_ar_process_generator import AutoRegressiveProcess
 
 
 def generate_van_der_pol(state0, t, system_parameters):
@@ -46,7 +45,8 @@ def generate_noisy_van_der_pol(state0, t, system_parameters):
 
 
 def main():
-    data_path = pathlib.Path(f'../linear_gaussian_filtering_complexity/data/observations/rotational_dynamics_poisson_obs.h5')
+    data_path = pathlib.Path(f'../van_der_pol_poisson_obs_hairplot/data/observations/noisy_van_der_pol_dynamics_poisson_obs.h5')
+    # data_path = pathlib.Path(f'../van_der_pol_poisson_obs/data/observations/noisy_van_der_pol_dynamics_poisson_obs.h5')
     data_path.parent.mkdir(parents=True, exist_ok=True)
 
     torch.manual_seed(1234)
@@ -55,36 +55,45 @@ def main():
     torch.set_default_dtype(torch.float64)
 
     delta = 5e-3  # time bin size
-    n_trials = 6  # total trials [1/3 train | 1/3 val | 1/3 test]
-    n_cutoff = 300  # cutoff bins at trial start (let transient settle)
+    n_trials = 30  # total trials [1/3 train | 1/3 val | 1/3 test]
     n_latents = 2
     n_neurons = 150
-    theta = np.pi / 16  # rotational velocity for gen data
-    damping_factor = 0.99  # pre-multiplier reduce eigenvalues of dynamics matrix
-    dynamics_noise_std = 0.05
-    n_time_bins = 25000 + n_cutoff
+    n_time_bins = 1000
+    n_cutoff_bins = 500
 
     system_parameters = {}
     system_parameters['mu'] = 1.5
     system_parameters['tau_1'] = 0.1
     system_parameters['tau_2'] = 0.1
-    system_parameters['sigma'] = 0.1
-    system_parameters['obs_noise'] = 0.5
+    system_parameters['sigma'] = 0.1  # noise add into euler integration
+    Q = np.diag(system_parameters['sigma'] * np.ones(n_latents))
 
-    R = system_parameters['obs_noise']**2 * torch.eye(n_neurons)
+    t = delta * torch.arange(n_time_bins)
     C = torch.randn((n_neurons, n_latents), dtype=torch.float64)
     C = (1 / np.sqrt(3)) * (C / torch.norm(C, dim=1).unsqueeze(1))
     b = torch.log(25 + 25 * torch.rand(n_neurons, dtype=torch.float64))  # 10 to 60 hz baseline
 
-    ar_proc = AutoRegressiveProcess(theta, C, b, delta, dynamics_noise_std, damping_factor)
-    X, Y, r = ar_proc.sample_trajectory(n_time_bins, n_trials)
-    print(Y.max())
+    X = torch.zeros(n_trials, n_time_bins, n_latents)
+    Y = torch.zeros(n_trials, n_time_bins, n_neurons)
+    r = torch.zeros(n_trials, n_time_bins, n_neurons)
 
-    fig, axs = plt.subplots(2, 1, figsize=(10, 3))
-    axs[0].plot(X[0, :, 0])
-    axs[1].plot(X[0, :, 1])
-    axs[0].set_title('example trajectory')
-    plt.show()
+    for trial in range(n_trials):
+        if trial < n_trials//2:
+            state00 = np.random.uniform(-0.5, 0.5)
+            state01 = np.random.uniform(-0.5, 0.5)
+        else:
+            state00 = np.random.uniform(-4.0, 4.0)
+            state01 = np.random.uniform(-4.0, 4.0)
+
+        state0 = (state00, state01)
+
+        states = generate_noisy_van_der_pol(state0, t, system_parameters)
+        states_torch = torch.tensor(0.4 * states)
+        r[trial] = delta * torch.exp(states_torch @ C.T + b)
+        X[trial] = states_torch
+        Y[trial] = torch.poisson(r[trial])
+
+        plt.plot(states_torch[:, 0], states_torch[:, 1])
 
     f = h5py.File(data_path, 'w')
     perm_trial_dx = torch.randperm(n_trials)
@@ -92,24 +101,22 @@ def main():
     test_trial_dx = perm_trial_dx[-n_trials // 3:]
     val_trial_dx = perm_trial_dx[n_trials // 3:-n_trials // 3]
 
-    A = ar_proc.A
-    Q = ar_proc.Q
-
-    f.create_dataset('R', data=R)
-    f.create_dataset('Q', data=Q)
-    f.create_dataset('A', data=A)
     f.create_dataset('C', data=C)
+    f.create_dataset('Q', data=Q)
     f.create_dataset('bias', data=b)
     f.create_dataset('delta', data=delta)
 
-    f.create_dataset('X', data=X[train_trial_dx, :, :])
-    f.create_dataset('Y', data=Y[train_trial_dx, :, :])
+    f.create_dataset('r', data=r[train_trial_dx, n_cutoff_bins:, :])
+    f.create_dataset('X', data=X[train_trial_dx, n_cutoff_bins:, :])
+    f.create_dataset('Y', data=Y[train_trial_dx, n_cutoff_bins:, :])
 
-    f.create_dataset('X_val', data=X[val_trial_dx, :, :])
-    f.create_dataset('Y_val', data=Y[val_trial_dx, :, :])
+    f.create_dataset('r_val', data=r[val_trial_dx, n_cutoff_bins:, :])
+    f.create_dataset('X_val', data=X[val_trial_dx, n_cutoff_bins:, :])
+    f.create_dataset('Y_val', data=Y[val_trial_dx, n_cutoff_bins:, :])
 
-    f.create_dataset('X_test', data=X[test_trial_dx, :, :])
-    f.create_dataset('Y_test', data=Y[test_trial_dx, :, :])
+    f.create_dataset('r_test', data=r[test_trial_dx, n_cutoff_bins:, :])
+    f.create_dataset('X_test', data=X[test_trial_dx, n_cutoff_bins:, :])
+    f.create_dataset('Y_test', data=Y[test_trial_dx, n_cutoff_bins:, :])
     f.close()
 
 
