@@ -22,11 +22,13 @@ Schedule: 11 October 2022
 ### Datasets:
 1. Vanderpol Oscillator
 
-2. Monkey reaching task
+1. Monkey reaching task
 
 ### Code setup:
 
-1. Use `git submodule update --init --recursive` to download the submodules
+1. Clone the repo using `git clone --recursive`
+
+1. If you missed the `--recursive` option, your `nlb_tools` folder will be empty. Use `git submodule update --init --recursive` to download the submodules
 
 1. Make a conda environment using the requirements.txt with 
     `conda env create -f env.yml`
