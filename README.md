@@ -9,6 +9,6 @@
 
 ### Code setup:
 1. Make a conda environment using the requirements.txt with 
-    conda create env -f env.yml
+    `conda env create -f env.yml`
 
 
