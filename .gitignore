@@ -184,3 +184,8 @@ fabric.properties
 
 # idea folder, uncomment if you don't need it
 # .idea
+
+# removing data folders
+vanderpol/data/*
+code_pack/scratch.py
+
