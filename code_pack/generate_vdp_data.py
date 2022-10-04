@@ -45,8 +45,7 @@ def generate_noisy_van_der_pol(state0, t, system_parameters):
 
 
 def main():
-    data_path = pathlib.Path(f'../vanderpol/data/vdp_noisy.h5')
-    # data_path = pathlib.Path(f'../van_der_pol_poisson_obs_hairplot/data/observations/noisy_van_der_pol_dynamics_poisson_obs.h5')
+    data_path = pathlib.Path(f'../vanderpol/data/poisson_obs.h5')
     data_path.parent.mkdir(parents=True, exist_ok=True)
 
     torch.manual_seed(1234)
@@ -55,7 +54,7 @@ def main():
     torch.set_default_dtype(torch.float64)
 
     delta = 5e-3  # time bin size
-    n_trials = 30  # total trials [1/3 train | 1/3 val | 1/3 test]
+    n_trials = 50  # total trials [1/3 train | 1/3 val | 1/3 test]
     n_latents = 2
     n_neurons = 150
     n_time_bins = 1000
@@ -106,27 +105,10 @@ def main():
     f.create_dataset('bias', data=b)
     f.create_dataset('delta', data=delta)
 
-    ## adding dataset params
-    f.create_dataset('n_trials', data=n_trials)
-    f.create_dataset('n_latents', data=n_latents)
-    f.create_dataset('n_neurons', data=n_neurons)
-    f.create_dataset('n_time_bins', data=n_time_bins)
-    f.create_dataset('mu', data=system_parameters['mu'])
-    f.create_dataset('tau_1', data=system_parameters['tau_1'])
-    f.create_dataset('tau_2', data=system_parameters['tau_2'])
-    f.create_dataset('sigma', data=system_parameters['sigma'])
+    f.create_dataset('r', data=r[:, n_cutoff_bins:, :])
+    f.create_dataset('X', data=X[:, n_cutoff_bins:, :])
+    f.create_dataset('Y', data=Y[:, n_cutoff_bins:, :])
 
-    f.create_dataset('r', data=r[train_trial_dx, n_cutoff_bins:, :])
-    f.create_dataset('X', data=X[train_trial_dx, n_cutoff_bins:, :])
-    f.create_dataset('Y', data=Y[train_trial_dx, n_cutoff_bins:, :])
-
-    f.create_dataset('r_val', data=r[val_trial_dx, n_cutoff_bins:, :])
-    f.create_dataset('X_val', data=X[val_trial_dx, n_cutoff_bins:, :])
-    f.create_dataset('Y_val', data=Y[val_trial_dx, n_cutoff_bins:, :])
-
-    f.create_dataset('r_test', data=r[test_trial_dx, n_cutoff_bins:, :])
-    f.create_dataset('X_test', data=X[test_trial_dx, n_cutoff_bins:, :])
-    f.create_dataset('Y_test', data=Y[test_trial_dx, n_cutoff_bins:, :])
     f.close()
 
 
