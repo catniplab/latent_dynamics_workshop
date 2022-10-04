@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def plot_two_d_vector_field_from_data(dynamics_func, axs, axs_range, P=None):
-    x = np.linspace(min(axs_range['x_min'], -2), max(axs_range['x_max'], 2), 100)
-    y = np.linspace(min(axs_range['y_min'], -2), max(axs_range['y_max'], 2), 100)
+    x = np.linspace(min(axs_range['x_min'], -2), max(axs_range['x_max'], 2), 25)
+    y = np.linspace(min(axs_range['y_min'], -2), max(axs_range['y_max'], 2), 25)
 
     X, Y = np.meshgrid(x, y)
     u, v = np.zeros(X.shape), np.zeros(Y.shape)
@@ -30,4 +30,10 @@ def plot_two_d_vector_field_from_data(dynamics_func, axs, axs_range, P=None):
     # axs.contourf(X, Y, std_output, cmap='seismic', alpha=0.2)
     axs.streamplot(X, Y, u, v, color='blue', linewidth=0.5, arrowsize=0.5)
 
-
+def raster_to_events(raster):
+    events = []
+    for i in range(raster.shape[1]):
+        row = raster[:, i]
+        rowidx = np.nonzero(row)[0]
+        events.append(rowidx)
+    return events
