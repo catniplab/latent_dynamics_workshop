@@ -2,12 +2,11 @@
 
 Neural recordings are high-dimensional and complex.
  We aim to find spatiotemporal structure in data in order to "understand" it better, but what is the right kind of structure to look for?
-In this workshop, I will introduce the statistical problem of inferring latent state trajectories from high-dimensional neural time series and how it is related to dimensionality reduction methods such as PCA.
-Subsequently, I will introduce the statistically more difficult, but theoretically more satisfying inference of the latent nonlinear dynamical system.
+In this workshop, we will introduce the statistical problem of inferring latent state trajectories from high-dimensional neural time series and how it is related to dimensionality reduction methods such as principal component analysis (PCA).
+Subsequently, we will introduce the statistically more difficult, but theoretically more satisfying inference of the latent nonlinear dynamical system.
 There will be hands-on components to try some of the methods.
 
-## Exercises and examples for the Latent Dynamics Workshop
-Schedule: 11 October 2022
+## Schedule: 11 October 2022
 
  - 13:30-14:30 Lecture 1: Latent state trajectories and dimensionality reduction
  - 14:30-14:45 Break & conda/python/code installation
