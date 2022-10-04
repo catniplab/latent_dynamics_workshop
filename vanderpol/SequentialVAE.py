@@ -5,18 +5,44 @@ import numpy as np
 from einops import rearrange, reduce, repeat
 
 
-class AugmentedNeuralDataSet(torch.utils.data.Dataset):
-    def __init__(self, y_tilde, y, x, intensity):
-        self.y_tilde = y_tilde
-        self.y = y
-        self.x = x
-        self.intensity = intensity
+class SeqDataLoader:
+    def __init__(self, data_tuple, batch_size, shuffle=False):
+        """
+        Constructor for fast data loader
+        :param data_tuple: a tuple of matrices, where element i is an (trial x time x features) vector
+        :param batch_size: batch size
+        """
+        self.shuffle = shuffle
+        self.data_tuple = data_tuple
+        self.batch_size = batch_size
+        self.dataset_len = self.data_tuple[0].shape[0]
+
+        # Calculate # batches
+        n_batches, remainder = divmod(self.dataset_len, self.batch_size)
+        if remainder > 0:
+            n_batches += 1
+        self.n_batches = n_batches
+
+    def __iter__(self):
+        if self.shuffle:
+            r = torch.randperm(self.dataset_len)
+        else:
+            r = torch.arange(self.dataset_len)
+
+        self.indices = [r[j * self.batch_size: (j * self.batch_size) + self.batch_size] for j in range(self.n_batches)]
+        self.i = 0
+        return self
+
+    def __next__(self):
+        if self.i >= self.n_batches:
+            raise StopIteration
+        idx = self.indices[self.i]
+        batch = tuple([x[idx, :, :] for x in self.data_tuple])
+        self.i += 1
+        return batch
 
     def __len__(self):
-        return self.y.shape[0]
-
-    def __getitem__(self, idx):
-        return self.y_tilde[idx, :, :], self.y[idx, :, :], self.x[idx, :, :], self.intensity[idx, :, :]
+        return self.n_batches
 
 
 class NeuralVAE(nn.Module):
@@ -25,7 +51,7 @@ class NeuralVAE(nn.Module):
 
         self.cfg = cfg
         self.device = torch.device(cfg.SYSTEM.DEVICE)
-        self.d_type = cfg.SYSTEM.D_TYPE[0]
+        self.d_type = torch.float32
 
         self.time_delta = torch.tensor(time_delta, dtype=self.d_type)
         self.dim_neurons = None
@@ -52,7 +78,7 @@ class NeuralVAE(nn.Module):
 
     def build_module(self):
         self.encoder = NeuralVAEEncoder(self.cfg, self.dim_latents, self.dim_in_features)
-        self.decoder = NeuralVAEDecoder(self.cfg, self.time_delta, self.dim_latents)
+        self.decoder = NeuralVAEDecoder(self.cfg, self.time_delta, self.dim_latents, self.dim_in_features)
 
     def forward(self, y_aux, y_spikes, beta):
         y_aux = y_aux.to(self.device)
@@ -218,15 +244,15 @@ class NeuralVAE(nn.Module):
 
 
 class NeuralVAEDecoder(nn.Module):
-    def __init__(self, cfg, time_delta, dim_latents):
+    def __init__(self, cfg, time_delta, dim_latents, dim_neurons):
         super(NeuralVAEDecoder, self).__init__()
 
         self.cfg = cfg
         self.device = torch.device(cfg.SYSTEM.DEVICE)
-        self.d_type = cfg.SYSTEM.D_TYPE[0]
+        self.d_type = torch.float32
 
-        self.dim_neurons = None
         self.time_delta = time_delta
+        self.dim_neurons = dim_neurons
         self.dim_latents = dim_latents
 
         # prior
@@ -239,6 +265,7 @@ class NeuralVAEDecoder(nn.Module):
 
         # likelihood
         self.C = None
+        self.build_module(self.dim_neurons)
 
     def build_module(self, dim_neurons):
         self.dim_neurons = dim_neurons
@@ -297,7 +324,7 @@ class NeuralVAEDecoder(nn.Module):
         self.C = torch.nn.Linear(self.dim_latents, self.dim_neurons, bias=True, dtype=self.d_type).to(self.device)
 
         # mlp markov transitions
-        self.p_mlp = self._build_nn_function(self.dim_latents, self.p_mlp_dim_hidden, torch.nn.ReLU).to(self.device)
+        self.p_mlp = self._build_nn_function(self.dim_latents, self.p_mlp_dim_hidden, torch.nn.SiLU).to(self.device)
 
         # linear transformation of hidden state to parameters of dynamics distribution
         self.p_fc_mu = torch.nn.Linear(self.p_mlp_dim_hidden[-1], self.dim_latents, dtype=self.d_type).to(self.device)
@@ -332,7 +359,7 @@ class NeuralVAEEncoder(nn.Module):
 
         self.cfg = cfg
         self.device = torch.device(cfg.SYSTEM.DEVICE)
-        self.d_type = cfg.SYSTEM.D_TYPE[0]
+        self.d_type = torch.float32
         self.dim_latents = dim_latents
         self.dim_in_features = dim_in_features
 
@@ -419,3 +446,55 @@ class NeuralVAEEncoder(nn.Module):
                                 torch.nn.init.orthogonal_(param.data[idx * mul:(idx + 1) * mul])
                     elif 'bias' in name:
                         param.data.fill_(0)
+
+
+
+def main():
+    import h5py
+    import torch
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    from config import get_cfg_defaults
+    from SequentialVAE import NeuralVAE
+
+    cfg = get_cfg_defaults()
+    data = h5py.File('data/poisson_obs.h5')
+    Y = torch.tensor(np.array(data['Y']), dtype=torch.float32)
+    X = torch.tensor(np.array(data['X']), dtype=torch.float32)
+    C = torch.tensor(np.array(data['C']), dtype=torch.float32)
+    b = torch.tensor(np.array(data['bias']), dtype=torch.float32)
+
+    n_epochs = 100
+    batch_size = 10
+    time_delta = 5e-3
+    n_latents = X.shape[2]
+    n_neurons = Y.shape[2]
+    n_time_bins = Y.shape[1]
+    vae = NeuralVAE(cfg, time_delta, n_neurons, n_latents, n_time_bins)
+    vae.manually_set_readout_params(C, b)
+
+    vae.decoder.C.bias.requires_grad_(False)
+    vae.decoder.C.weight.requires_grad_(False)
+    train_data_loader = SeqDataLoader((Y, X), batch_size)
+
+
+    opt = torch.optim.Adam(vae.parameters(), lr=1e-2)
+    for epoch in range(n_epochs):
+        for batch_idx, (y, x) in enumerate(train_data_loader):
+            loss, z, mu_t, log_var_t = vae(y, y, 1.0)
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(vae.parameters(), max_norm=1e-1, norm_type=2)
+            opt.step()
+            opt.zero_grad()
+            # print(batch_idx)
+
+        print(epoch)
+        if epoch % 5 == 0:
+            plt.plot(z[:, 0, 0].detach().numpy())
+            plt.plot(x[0, :, 0].detach().numpy())
+            plt.show()
+
+
+if __name__ == '__main__':
+    main()
