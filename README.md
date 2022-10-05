@@ -17,18 +17,7 @@ There will be hands-on components to try some of the methods.
  - 18:15-18:30 Summary and discussions
 
 ---
-
-### Datasets:
-1. Van der Pol Oscillator
-- To setup this dataset move to the code pack folder using `cd code_pack/` then run `python generate_vdp_data.py` 
-
-1. Monkey reaching task
-- To setup the dataset install dandi using either `pip install dandi` or 
-    `conda install -c conda-forge dandi`
-- Then navigate to the data folder in the repo `cd mc_maze/data/`
-- Download the data using `dandi download https://dandiarchive.org/dandiset/000128`
-
-### Code setup:
+## Code setup:
 
 1. Clone the repo using `git clone --recursive`
 
@@ -36,6 +25,17 @@ There will be hands-on components to try some of the methods.
 
 1. Make a conda environment using the requirements.txt with 
     `conda env create -f env.yml`
+
+## Datasets
+### Van der Pol Oscillator
+
+  - To setup this dataset move to the code pack folder using `cd code_pack/` then run `python generate_vdp_data.py`
+
+### Monkey reaching task
+
+  - To setup the dataset install dandi using either `pip install dandi` or `conda install -c conda-forge dandi`
+  - Then navigate to the data folder in the repo `cd mc_maze/data/`
+  - Download the data using `dandi download https://dandiarchive.org/dandiset/000128`
 
 ---
 Contributors
