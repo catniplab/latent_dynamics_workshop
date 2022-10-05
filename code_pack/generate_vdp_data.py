@@ -54,9 +54,9 @@ def main():
     torch.set_default_dtype(torch.float64)
 
     delta = 5e-3  # time bin size
-    n_trials = 50  # total trials [1/3 train | 1/3 val | 1/3 test]
+    n_trials = 250  # total trials [1/3 train | 1/3 val | 1/3 test]
     n_latents = 2
-    n_neurons = 150
+    n_neurons = 250
     n_time_bins = 1000
     n_cutoff_bins = 500
 
@@ -69,7 +69,7 @@ def main():
 
     t = delta * torch.arange(n_time_bins)
     C = torch.randn((n_neurons, n_latents), dtype=torch.float64)
-    C = (1 / np.sqrt(3)) * (C / torch.norm(C, dim=1).unsqueeze(1))
+    C = (1 / np.sqrt(2)) * (C / torch.norm(C, dim=1).unsqueeze(1))
     b = torch.log(25 + 25 * torch.rand(n_neurons, dtype=torch.float64))  # 10 to 60 hz baseline
 
     X = torch.zeros(n_trials, n_time_bins, n_latents)
