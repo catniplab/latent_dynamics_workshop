@@ -19,10 +19,10 @@ There will be hands-on components to try some of the methods.
 ---
 
 ### Datasets:
-1. Vanderpol Oscillator
+1. Van der Pol Oscillator
 - To setup this dataset move to the code pack folder using `cd code_pack/` then run `python generate_vdp_data.py` 
 
-2. Monkey reaching task
+1. Monkey reaching task
 - To setup the dataset install dandi using either `pip install dandi` or 
     `conda install -c conda-forge dandi`
 - Then navigate to the data folder in the repo `cd mc_maze/data/`
