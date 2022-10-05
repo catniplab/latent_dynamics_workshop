@@ -187,5 +187,6 @@ fabric.properties
 
 # removing data folders
 vanderpol/data/*
+mc_maze/data/*
 code_pack/scratch.py
 

@@ -15,10 +15,10 @@ def get_spikes_from_dict(spike_dict):
 
 
 def main():
-    # dandi download https://dandiarchive.org/dandiset/000138 for mc_maze 00128 for regular
+    # dandi download https://dandiarchive.org/dandiset/000138 for mc_maze_large or 00128 for regular
     torch.set_default_dtype(torch.float64)
     dataset_name = 'mc_maze'
-    datapath = 'data/000128/sub-Jenkins/'
+    datapath = 'data/000138/sub-Jenkins/' #NOTE: we have used the large dataset here
     dataset = NWBDataset(datapath)
 
     # Extract neural data and lagged hand velocity
