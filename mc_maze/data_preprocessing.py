@@ -62,7 +62,7 @@ def main():
     # rates_per_trial = rates_per_trial[:, :, high_fr_dx]
 
     for dx, (row_id, row_ss) in enumerate(trial_info.iterrows()):
-        reach_angle = np.arctan2(*trajectory_per_trial[dx, -1])
+        reach_angle = np.arctan2(*trajectory_per_trial[dx-1, -1])
         trial_info.at[row_id, 'color'] = plt.cm.hsv(reach_angle / (2 * np.pi) + 0.5)
         trial_info.at[row_id, 'position_id'] = int(row_ss['trial_type'])
 
