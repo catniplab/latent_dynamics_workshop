@@ -327,8 +327,12 @@ class NeuralVAEDecoder(nn.Module):
         self.p_mlp = self._build_nn_function(self.dim_latents, self.p_mlp_dim_hidden, torch.nn.SiLU).to(self.device)
 
         # linear transformation of hidden state to parameters of dynamics distribution
+        self.p_log_var = torch.nn.Parameter(torch.log(torch.ones(self.dim_latents)))
         self.p_fc_mu = torch.nn.Linear(self.p_mlp_dim_hidden[-1], self.dim_latents, dtype=self.d_type).to(self.device)
         self.p_fc_log_var = torch.nn.Linear(self.p_mlp_dim_hidden[-1], self.dim_latents, dtype=self.d_type).to(self.device)
+
+    def p_fc_log_var(self, arg):
+        return torch.ones((arg.shape[0], arg.shape[1], self.dim_latents)) * self.p_log_var
 
     def _build_nn_function(self, dim_input, dim_hidden_layers, nonlinearity_fn):
         nn_modules = []
