@@ -24,7 +24,7 @@ def plot_two_d_vector_field_from_data(dynamics_func, axs, axs_range, P=None):
             else:
                 s = (vec_out - vec_in) @ np.transpose(P)
 
-            u[i, j] = s[0]
+            u[i, j] = np.array(s[0])
             v[i, j] = s[1]
 
     # axs.contourf(X, Y, std_output, cmap='seismic', alpha=0.2)
