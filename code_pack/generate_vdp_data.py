@@ -43,22 +43,15 @@ def generate_noisy_van_der_pol(state0, t, system_parameters):
 
     return states
 
-def generate_poisson_observations_exp(states_torch, n_neurons, n_latents):
-    C = torch.randn((n_neurons, n_latents), dtype=torch.float64)
-    C = (1 / np.sqrt(2)) * (C / torch.norm(C, dim=1).unsqueeze(1))
-    b = torch.log(25 + 25 * torch.rand(n_neurons, dtype=torch.float64))  # 10 to 60 hz baseline
+def generate_poisson_observations_exp(states_torch, C, b):
     rates = torch.exp(states_torch @ C.T + b)
-    return rates, C, b
+    return rates
 
-def generate_poisson_observations_softplus(states_torch, n_neurons, n_latents):
-    C = torch.randn((n_neurons, n_latents), dtype=torch.float64)
-    C = (1 / np.sqrt(2)) * (C / torch.norm(C, dim=1).unsqueeze(1))
-    b = torch.log(25 + 25 * torch.rand(n_neurons, dtype=torch.float64))  # 10 to 60 hz baseline
+def generate_poisson_observations_softplus(states_torch, C, b):
     rates = torch.nn.functional.softplus(states_torch @ C.T + b)
-    return rates, C, b
+    return rates
 
-def generate_poisson_observations_axis_aligned(states_torch, n_neurons, n_latents):
-    C = torch.randn((n_neurons, n_latents), dtype=torch.float64)
+def generate_poisson_observations_axis_aligned(states_torch, C, b, n_neurons, n_latents):
     neurons_per_latent = n_neurons // n_latents
 
     for l in range(n_latents):
@@ -70,10 +63,8 @@ def generate_poisson_observations_axis_aligned(states_torch, n_neurons, n_latent
             C[:l*neurons_per_latent, l] = 0
             C[(l+1)*neurons_per_latent+1:, l] = 0
 
-    C = (1 / np.sqrt(2)) * (C / torch.norm(C, dim=1).unsqueeze(1))
-    b = torch.log(25 + 25 * torch.rand(n_neurons, dtype=torch.float64))  # 10 to 60 hz baseline
     rates = torch.exp(states_torch @ C.T + b)
-    return rates, C, b
+    return rates, C
 
 def main():
     data_path = pathlib.Path(f'../vanderpol/data/poisson_obs.h5')
@@ -96,12 +87,13 @@ def main():
     system_parameters['tau_1'] = 0.1
     system_parameters['tau_2'] = 0.1
     system_parameters['sigma'] = 0.1  # noise add into euler integration
+
     Q = np.diag(system_parameters['sigma'] * np.ones(n_latents))
+    C = torch.randn((n_neurons, n_latents), dtype=torch.float64)
+    C = (1 / np.sqrt(2)) * (C / torch.norm(C, dim=1).unsqueeze(1))
+    b = torch.log(25 + 25 * torch.rand(n_neurons, dtype=torch.float64))  # 10 to 60 hz baseline
 
     t = delta * torch.arange(n_time_bins)
-
-
-
     X = torch.zeros(n_trials, n_time_bins, n_latents)
     Y = torch.zeros(n_trials, n_time_bins, n_neurons)
     r = torch.zeros(n_trials, n_time_bins, n_neurons)
@@ -118,9 +110,9 @@ def main():
 
         states = generate_noisy_van_der_pol(state0, t, system_parameters)
         states_torch = torch.tensor(0.4 * states)
-        rates, C, b = generate_poisson_observations_exp(states_torch, n_neurons, n_latents)
-        # rates, C, b = generate_poisson_observations_softplus(states_torch, n_neurons, n_latents)
-        # rates, C, b = generate_poisson_observations_axis_aligned(states_torch, n_neurons, n_latents)
+        rates = generate_poisson_observations_exp(states_torch, C, b)
+        # rates = generate_poisson_observations_softplus(states_torch, C, b)
+        # rates, C = generate_poisson_observations_axis_aligned(states_torch, C, b, n_neurons, n_latents)
 
         r[trial] = delta * rates
         X[trial] = states_torch
