@@ -30,16 +30,17 @@ def generate_noisy_van_der_pol(state0, t, system_parameters):
     tau_2 = system_parameters['tau_2']
     sigma = system_parameters['sigma']
 
+    scale = 1.0 / 0.4
     states = np.zeros((T, 2))
     states[0, 0] = state0[0]
     states[0, 1] = state0[1]
 
     for dx in range(1, T):
-        x_next = states[dx - 1, 0] + (delta / tau_1) * states[dx - 1, 1]
-        y_next = states[dx - 1, 1] + (delta / tau_2) * (mu * (1 - states[dx - 1, 0]**2) * states[dx - 1, 1] - states[dx - 1, 0])
+        x_next = states[dx - 1, 0] + (1 / scale) * (delta / tau_1) * scale * states[dx - 1, 1]
+        y_next = states[dx - 1, 1] + (1 / scale) * (delta / tau_2) * (mu * (1 - scale**2 * states[dx - 1, 0]**2) * scale * states[dx - 1, 1] - scale * states[dx - 1, 0])
 
-        states[dx, 0] = x_next + sigma * np.random.randn()
-        states[dx, 1] = y_next + sigma * np.random.randn()
+        states[dx, 0] = x_next + (sigma / scale) * np.random.randn()
+        states[dx, 1] = y_next + (sigma / scale) * np.random.randn()
 
     return states
 
@@ -87,10 +88,11 @@ def main():
     system_parameters['tau_1'] = 0.1
     system_parameters['tau_2'] = 0.1
     system_parameters['sigma'] = 0.1  # noise add into euler integration
+    system_parameters['scale'] = 0.4
 
     Q = np.diag(system_parameters['sigma'] * np.ones(n_latents))
     C = torch.randn((n_neurons, n_latents), dtype=torch.float64)
-    C = (1 / np.sqrt(2)) * (C / torch.norm(C, dim=1).unsqueeze(1))
+    C = (1 / np.sqrt(3)) * (C / torch.norm(C, dim=1).unsqueeze(1))
     b = torch.log(25 + 25 * torch.rand(n_neurons, dtype=torch.float64))  # 10 to 60 hz baseline
 
     t = delta * torch.arange(n_time_bins)
@@ -103,16 +105,14 @@ def main():
             state00 = np.random.uniform(-0.5, 0.5)
             state01 = np.random.uniform(-0.5, 0.5)
         else:
-            state00 = np.random.uniform(-4.0, 4.0)
-            state01 = np.random.uniform(-4.0, 4.0)
+            state00 = np.random.uniform(-1.0, 1.0)
+            state01 = np.random.uniform(-1.0, 1.0)
 
         state0 = (state00, state01)
 
         states = generate_noisy_van_der_pol(state0, t, system_parameters)
-        states_torch = torch.tensor(0.4 * states)
+        states_torch = torch.tensor(states)
         rates = generate_poisson_observations_exp(states_torch, C, b)
-        # rates = generate_poisson_observations_softplus(states_torch, C, b)
-        # rates, C = generate_poisson_observations_axis_aligned(states_torch, C, b, n_neurons, n_latents)
 
         r[trial] = delta * rates
         X[trial] = states_torch
@@ -124,10 +124,6 @@ def main():
     print("mean firing rate: {}".format(np.mean(np.array(r))/delta))
 
     f = h5py.File(data_path, 'w')
-    perm_trial_dx = torch.randperm(n_trials)
-    train_trial_dx = perm_trial_dx[:n_trials // 3]
-    test_trial_dx = perm_trial_dx[-n_trials // 3:]
-    val_trial_dx = perm_trial_dx[n_trials // 3:-n_trials // 3]
 
     f.create_dataset('C', data=C)
     f.create_dataset('Q', data=Q)
@@ -147,6 +143,7 @@ def main():
     f.create_dataset('tau_1', data=system_parameters['tau_1'])
     f.create_dataset('tau_2', data=system_parameters['tau_2'])
     f.create_dataset('sigma', data=system_parameters['sigma'])
+    f.create_dataset('scale', data=system_parameters['scale'])
 
     f.close()
 
