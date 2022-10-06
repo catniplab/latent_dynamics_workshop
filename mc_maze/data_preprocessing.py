@@ -2,6 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import h5py
+
+import sys
+sys.path.append("../nlb_tools/")
 from nlb_tools.nwb_interface import NWBDataset
 from nlb_tools.make_tensors import make_train_input_tensors, make_eval_input_tensors, make_eval_target_tensors, save_to_h5
 
