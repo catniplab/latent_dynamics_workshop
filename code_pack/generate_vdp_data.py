@@ -29,8 +29,8 @@ def generate_noisy_van_der_pol(state0, t, system_parameters):
     tau_1 = system_parameters['tau_1']
     tau_2 = system_parameters['tau_2']
     sigma = system_parameters['sigma']
+    scale = system_parameters['scale']
 
-    scale = 1.0 / 0.4
     states = np.zeros((T, 2))
     states[0, 0] = state0[0]
     states[0, 1] = state0[1]
