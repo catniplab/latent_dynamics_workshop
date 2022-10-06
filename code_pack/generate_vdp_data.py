@@ -128,6 +128,9 @@ def main():
 
         plt.plot(states_torch[:, 0], states_torch[:, 1])
 
+    print("min rates: {}, max rates: {}".format(np.min(np.array(r))/delta, np.max(np.array(r))/delta))
+    print("mean firing rate: {}".format(np.mean(np.array(r))/delta))
+
     f = h5py.File(data_path, 'w')
     perm_trial_dx = torch.randperm(n_trials)
     train_trial_dx = perm_trial_dx[:n_trials // 3]
@@ -142,6 +145,16 @@ def main():
     f.create_dataset('r', data=r[:, n_cutoff_bins:, :])
     f.create_dataset('X', data=X[:, n_cutoff_bins:, :])
     f.create_dataset('Y', data=Y[:, n_cutoff_bins:, :])
+
+    # adding dataset params
+    f.create_dataset('n_trials', data=n_trials)
+    f.create_dataset('n_latents', data=n_latents)
+    f.create_dataset('n_neurons', data=n_neurons)
+    f.create_dataset('n_time_bins', data=n_time_bins)
+    f.create_dataset('mu', data=system_parameters['mu'])
+    f.create_dataset('tau_1', data=system_parameters['tau_1'])
+    f.create_dataset('tau_2', data=system_parameters['tau_2'])
+    f.create_dataset('sigma', data=system_parameters['sigma'])
 
     f.close()
 
