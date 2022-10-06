@@ -88,7 +88,7 @@ def main():
     system_parameters['tau_1'] = 0.1
     system_parameters['tau_2'] = 0.1
     system_parameters['sigma'] = 0.1  # noise add into euler integration
-    system_parameters['scale'] = 0.4
+    system_parameters['scale'] = 1 / 0.4
 
     Q = np.diag(system_parameters['sigma'] * np.ones(n_latents))
     C = torch.randn((n_neurons, n_latents), dtype=torch.float64)
