@@ -98,6 +98,9 @@ def main():
     t = delta * torch.arange(n_time_bins)
     X = torch.zeros(n_trials, n_time_bins, n_latents)
     Y = torch.zeros(n_trials, n_time_bins, n_neurons)
+    Y_axis = torch.zeros(n_trials, n_time_bins, n_neurons)
+    Y_softplus = torch.zeros(n_trials, n_time_bins, n_neurons)
+
     r = torch.zeros(n_trials, n_time_bins, n_neurons)
 
     for trial in range(n_trials):
@@ -112,11 +115,17 @@ def main():
 
         states = generate_noisy_van_der_pol(state0, t, system_parameters)
         states_torch = torch.tensor(states)
+
         rates = generate_poisson_observations_exp(states_torch, C, b)
+        rates_axis = generate_poisson_observations_axis_aligned(states_torch, C, b)
+        rates_softplus = generate_poisson_observations_softplus(states_torch, C, b)
 
         r[trial] = delta * rates
         X[trial] = states_torch
         Y[trial] = torch.poisson(r[trial])
+        Y_axis[trial] = torch.poisson(rates_axis[trial])
+        Y_softplus[trial] = torch.poisson(rates_softplus[trial])
+
 
         plt.plot(states_torch[:, 0], states_torch[:, 1])
 
@@ -133,6 +142,9 @@ def main():
     f.create_dataset('r', data=r[:, n_cutoff_bins:, :])
     f.create_dataset('X', data=X[:, n_cutoff_bins:, :])
     f.create_dataset('Y', data=Y[:, n_cutoff_bins:, :])
+    f.create_dataset('Y_axis', data=Y[:, n_cutoff_bins:, :])
+    f.create_dataset('Y_softplus', data=Y[:, n_cutoff_bins:, :])
+
 
     # adding dataset params
     f.create_dataset('n_trials', data=n_trials)
