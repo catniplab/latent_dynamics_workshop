@@ -26,7 +26,13 @@ There will be hands-on components to try some of the methods.
 1. Make a conda environment using the requirements.txt with 
     `conda env create -f env.yml`
 
+1. Activate the conda environment using `conda activate lvmworkshop`
+
 ## Datasets
+We will be focusing on two datasets – a toy dataset of spiking data with low dimensional dynamics governed by
+a Van der Pol Oscillator and electrophysiological recordings from the motor cortex (M1) and dorsal premotor cortex (PMd) 
+of a monkey during a delayed reaching task.
+
 ### Van der Pol Oscillator
 
   - To setup this dataset move to the code pack folder using `cd code_pack/` then run `python generate_vdp_data.py`
