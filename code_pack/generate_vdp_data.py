@@ -44,13 +44,16 @@ def generate_noisy_van_der_pol(state0, t, system_parameters):
 
     return states
 
+
 def generate_poisson_observations_exp(states_torch, C, b):
     rates = torch.exp(states_torch @ C.T + b)
     return rates
 
+
 def generate_poisson_observations_softplus(states_torch, C, b):
     rates = torch.nn.functional.softplus(states_torch @ C.T + b)
     return rates
+
 
 def generate_poisson_observations_axis_aligned(states_torch, C, b, n_neurons, n_latents):
     C_tilde = C.detach().clone()
@@ -65,8 +68,9 @@ def generate_poisson_observations_axis_aligned(states_torch, C, b, n_neurons, n_
             C_tilde[:l*neurons_per_latent, l] = 0
             C_tilde[(l+1)*neurons_per_latent+1:, l] = 0
 
-    rates = torch.exp(states_torch @ C.T + b)
+    rates = torch.exp(states_torch @ C_tilde.T + b)
     return rates, C_tilde
+
 
 def main():
     data_path = pathlib.Path(f'../vanderpol/data/poisson_obs.h5')
@@ -94,7 +98,7 @@ def main():
     Q = np.diag(system_parameters['sigma'] * np.ones(n_latents))
     C = torch.randn((n_neurons, n_latents), dtype=torch.float64)
     C = (1 / np.sqrt(3)) * (C / torch.norm(C, dim=1).unsqueeze(1))
-    b = torch.log(25 + 25 * torch.rand(n_neurons, dtype=torch.float64))  # 10 to 60 hz baseline
+    b = torch.log(5 + 15 * torch.rand(n_neurons, dtype=torch.float64))  # 10 to 60 hz baseline
 
     t = delta * torch.arange(n_time_bins)
     X = torch.zeros(n_trials, n_time_bins, n_latents)
@@ -124,8 +128,8 @@ def main():
         r[trial] = delta * rates
         X[trial] = states_torch
         Y[trial] = torch.poisson(r[trial])
-        Y_axis[trial] = torch.poisson(rates_axis)
-        Y_softplus[trial] = torch.poisson(rates_softplus)
+        Y_axis[trial] = torch.poisson(delta * rates_axis)
+        Y_softplus[trial] = torch.poisson(delta * rates_softplus)
 
 
         plt.plot(states_torch[:, 0], states_torch[:, 1])
@@ -143,9 +147,8 @@ def main():
     f.create_dataset('r', data=r[:, n_cutoff_bins:, :])
     f.create_dataset('X', data=X[:, n_cutoff_bins:, :])
     f.create_dataset('Y', data=Y[:, n_cutoff_bins:, :])
-    f.create_dataset('Y_axis', data=Y[:, n_cutoff_bins:, :])
-    f.create_dataset('Y_softplus', data=Y[:, n_cutoff_bins:, :])
-
+    f.create_dataset('Y_axis', data=Y_axis[:, n_cutoff_bins:, :])
+    f.create_dataset('Y_softplus', data=Y_softplus[:, n_cutoff_bins:, :])
 
     # adding dataset params
     f.create_dataset('n_trials', data=n_trials)
