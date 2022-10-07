@@ -131,9 +131,6 @@ def main():
         Y_axis[trial] = torch.poisson(delta * rates_axis)
         Y_softplus[trial] = torch.poisson(delta * rates_softplus)
 
-
-        plt.plot(states_torch[:, 0], states_torch[:, 1])
-
     print("min rates: {}, max rates: {}".format(np.min(np.array(r))/delta, np.max(np.array(r))/delta))
     print("mean firing rate: {}".format(np.mean(np.array(r))/delta))
 
