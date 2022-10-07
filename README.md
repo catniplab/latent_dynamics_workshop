@@ -28,6 +28,13 @@ There will be hands-on components to try some of the methods.
 
 1. Activate the conda environment using `conda activate lvmworkshop`
 
+1. Further install 
+ `pip install git+https://github.com/catniplab/vjf.git`
+ and 
+ `pip install git+https://github.com/yuanz271/vlgpax.git`
+### Warning
+On Windows computers jaxlib cannot be installed (easily).
+
 ## Datasets
 We will be focusing on two datasets – a toy dataset of spiking data with low dimensional dynamics governed by
 a Van der Pol Oscillator and electrophysiological recordings from the motor cortex (M1) and dorsal premotor cortex (PMd) 
@@ -47,6 +54,7 @@ of a monkey during a delayed reaching task.
 ## Starting Jupyter Notebook or JupyterLab
 Start Jupyter Notebook by typing `jupyter notebook`
 or JupyterLab by typing `jupyter lab`
+
 
 ---
 Contributors
