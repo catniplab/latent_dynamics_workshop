@@ -38,6 +38,11 @@ There will be hands-on components to try some of the methods.
   - Download the data using `dandi download https://dandiarchive.org/dandiset/000128`
 
 ---
+## Starting Jupyter Notebook or JupyterLab
+Start Jupyter Notebook by typing `jupyter notebook`
+or JupyterLab by typing `jupyter lab`
+
+---
 Contributors
 
  - Matt Dowling
