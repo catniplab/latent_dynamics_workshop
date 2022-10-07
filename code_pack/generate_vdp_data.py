@@ -53,19 +53,20 @@ def generate_poisson_observations_softplus(states_torch, C, b):
     return rates
 
 def generate_poisson_observations_axis_aligned(states_torch, C, b, n_neurons, n_latents):
+    C_tilde = C.detach().clone()
     neurons_per_latent = n_neurons // n_latents
 
     for l in range(n_latents):
         if(l==0):
-            C[neurons_per_latent+1:, 0] = 0
+            C_tilde[neurons_per_latent+1:, 0] = 0
         elif(l==n_latents-1):
-            C[:l*neurons_per_latent, l] = 0
+            C_tilde[:l*neurons_per_latent, l] = 0
         else:
-            C[:l*neurons_per_latent, l] = 0
-            C[(l+1)*neurons_per_latent+1:, l] = 0
+            C_tilde[:l*neurons_per_latent, l] = 0
+            C_tilde[(l+1)*neurons_per_latent+1:, l] = 0
 
     rates = torch.exp(states_torch @ C.T + b)
-    return rates, C
+    return rates, C_tilde
 
 def main():
     data_path = pathlib.Path(f'../vanderpol/data/poisson_obs.h5')
@@ -117,14 +118,14 @@ def main():
         states_torch = torch.tensor(states)
 
         rates = generate_poisson_observations_exp(states_torch, C, b)
-        rates_axis = generate_poisson_observations_axis_aligned(states_torch, C, b)
         rates_softplus = generate_poisson_observations_softplus(states_torch, C, b)
+        rates_axis, C_tilde = generate_poisson_observations_axis_aligned(states_torch, C, b, n_neurons, n_latents)
 
         r[trial] = delta * rates
         X[trial] = states_torch
         Y[trial] = torch.poisson(r[trial])
-        Y_axis[trial] = torch.poisson(rates_axis[trial])
-        Y_softplus[trial] = torch.poisson(rates_softplus[trial])
+        Y_axis[trial] = torch.poisson(rates_axis)
+        Y_softplus[trial] = torch.poisson(rates_softplus)
 
 
         plt.plot(states_torch[:, 0], states_torch[:, 1])
