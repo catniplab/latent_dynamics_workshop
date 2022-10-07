@@ -108,6 +108,7 @@ def main():
 
     r = torch.zeros(n_trials, n_time_bins, n_neurons)
 
+    print("Generating data")
     for trial in range(n_trials):
         if trial < n_trials//2:
             state00 = np.random.uniform(-0.5, 0.5)
@@ -137,6 +138,7 @@ def main():
     f = h5py.File(data_path, 'w')
 
     f.create_dataset('C', data=C)
+    f.create_dataset('C_tilde', data=C_tilde)
     f.create_dataset('Q', data=Q)
     f.create_dataset('bias', data=b)
     f.create_dataset('delta', data=delta)
@@ -159,7 +161,7 @@ def main():
     f.create_dataset('scale', data=system_parameters['scale'])
 
     f.close()
-
+    print("Data saved")
 
 if __name__ == '__main__':
     main()
