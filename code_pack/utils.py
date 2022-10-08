@@ -11,9 +11,8 @@ def expected_ll_poisson(Y, m, P, C, delta):
     return log_prob
 def best_fit_transformation(X, X_lat, n_trials, n_time_bins, n_latents):
     # regress to account for invariance
-    X_hat = rearrange(np.stack(X_lat, 0), 'trials lat time -> (trials time) lat')
-    S = np.linalg.pinv(X_hat) @ X.reshape(n_trials * n_time_bins, n_latents)
-    X_hat_tilde = X_hat @ S
+    S = np.linalg.pinv(X_lat) @ X.reshape(n_trials * n_time_bins, n_latents)
+    X_hat_tilde = X_lat @ S
     X_hat_tilde = X_hat_tilde.reshape(n_trials, n_time_bins, n_latents)
 
     return X_hat_tilde
