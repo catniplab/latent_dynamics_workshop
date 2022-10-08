@@ -1,7 +1,5 @@
 # my_project/config.py
 from yacs.config import CfgNode as CN
-import torch
-
 
 _C = CN()
 
@@ -26,11 +24,11 @@ _C.ENCODER.RNN.HIDDEN_SZ = 16
 _C.ENCODER.RNN.HIDDEN_NUM_LAYERS = 1
 
 _C.ENCODER.MLP = CN()
-_C.ENCODER.MLP.HIDDEN_SZ = [32]
+_C.ENCODER.MLP.HIDDEN_SZ = [16]
 
 _C.DECODER = CN()
 _C.DECODER.MLP = CN()
-_C.DECODER.MLP.HIDDEN_SZ = [32]
+_C.DECODER.MLP.HIDDEN_SZ = [16]
 
 
 def get_cfg_defaults():
