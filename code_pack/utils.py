@@ -1,4 +1,6 @@
 import torch
+import numpy as np
+from einops import rearrange
 
 
 def expected_ll_poisson(Y, m, P, C, delta, dtype=torch.float32):
@@ -12,6 +14,18 @@ def expected_ll_poisson(Y, m, P, C, delta, dtype=torch.float32):
     log_prob = likelihood_pdf.log_prob(Y_t)
 
     return torch.mean(log_prob)
+
+    return log_prob
+
+
+def best_fit_transformation(X, X_lat, n_trials, n_time_bins, n_latents):
+    # regress to account for invariance
+    X_hat = rearrange(np.stack(X_lat, 0), 'trials lat time -> (trials time) lat')
+    S = np.linalg.pinv(X_hat) @ X.reshape(n_trials * n_time_bins, n_latents)
+    X_hat_tilde = X_hat @ S
+    X_hat_tilde = X_hat_tilde.reshape(n_trials, n_time_bins, n_latents)
+
+    return X_hat_tilde
 
 
 def estimate_readout_matrix(Y, m, P, delta, n_iter=2500):
