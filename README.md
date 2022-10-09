@@ -8,12 +8,13 @@ There will be hands-on components to try some of the methods.
 
 ## Schedule: 11 October 2022
 
- - 13:30-14:30 Lecture 1: Latent state trajectories and dimensionality reduction
- - 14:30-14:45 Break & conda/python/code installation
- - 14:45-16:00 Exercise session 1: dimensionality reduction
- - 16:00-17:00 Lecture 2: Latent state dynamics
- - 17:00-17:15 Break
- - 17:15-18:15 Exercise session 2: inferring latent dynamics
+ - 13:30-13:45 Conda/python/code installation
+ - 13:45-14:30 Lecture 1: Latent state trajectories and dimensionality reduction
+ - 14:30-14:45 Break 1
+ - 14:45-16:00 Hands-on 1: dimensionality reduction
+ - 16:00-17:00 Lecture 2: Latent neural dynamics theory and algorithms
+ - 17:00-17:15 Break 2
+ - 17:15-18:15 Hands-on 2: inferring latent dynamics
  - 18:15-18:30 Summary and discussions
 
 ---
