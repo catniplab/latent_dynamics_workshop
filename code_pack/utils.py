@@ -13,9 +13,11 @@ def expected_ll_poisson(Y, m, P, C, delta, dtype=torch.float32):
     likelihood_pdf = torch.distributions.Independent(likelihood_pdf, 2)
     log_prob = likelihood_pdf.log_prob(Y_t)
 
-    return torch.mean(log_prob)
+    null_likelihood_pdf = torch.distributions.Poisson(delta * torch.exp(C.bias) * torch.ones_like(log_rate))
+    null_likelihood_pdf = torch.distributions.Independent(null_likelihood_pdf, 2)
+    null_likelihood_log_prob = null_likelihood_pdf.log_prob(Y_t)
 
-    return log_prob
+    return torch.mean((log_prob - null_likelihood_log_prob) / np.log(2.0))
 
 
 def best_fit_transformation(X, X_lat, n_trials, n_time_bins, n_latents):
