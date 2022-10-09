@@ -17,6 +17,12 @@ There will be hands-on components to try some of the methods.
  - 18:15-18:30 Summary and discussions
 
 ---
+## Conda installation
+For installation of conda follow the instructions here: https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html#
+
+## Git installation
+
+---
 ## Code setup:
 
 1. Clone the repo using `git clone --recursive`
@@ -27,11 +33,6 @@ There will be hands-on components to try some of the methods.
     `conda env create -f env.yml`
 
 1. Activate the conda environment using `conda activate lvmworkshop`
-
-1. Further install VJF and vLGP:
-
- - `pip install git+https://github.com/catniplab/vjf.git`
- - `pip install git+https://github.com/yuanz271/vlgpax.git`
 
 ### Warning
 On Windows, jaxlib cannot be installed (easily), hence `vlgpax` won't function properly.
