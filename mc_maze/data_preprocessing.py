@@ -96,10 +96,8 @@ def main():
         ds[:] = spikes_per_trial[:n_val_trials]
         ds = f.create_dataset('rates-train', rates_per_trial[:n_val_trials].shape)
         ds[:] = rates_per_trial[:n_val_trials]
-        ds = f.create_dataset('colors-train', trial_info[:n_val_trials, 'color'].shape)
-        ds[:] = trial_info[:n_val_trials, 'color']
-        ds = f.create_dataset('posid-train', trial_info[:n_val_trials, 'position_id'].shape)
-        ds[:] = trial_info[:n_val_trials, 'position_id']
+        ds = f.create_dataset('colors-train', data=np.stack(trial_info.iloc[:n_val_trials]['color'].values))
+        ds = f.create_dataset('posid-train', data=np.stack(trial_info.iloc[:n_val_trials]['position_id'].values))
 
         ds = f.create_dataset('pos-val', trajectory_per_trial[n_val_trials:].shape)
         ds[:] = trajectory_per_trial[n_val_trials:]
@@ -109,10 +107,8 @@ def main():
         ds[:] = spikes_per_trial[n_val_trials:]
         ds = f.create_dataset('rates-val', rates_per_trial[n_val_trials:].shape)
         ds[:] = rates_per_trial[n_val_trials:]
-        ds = f.create_dataset('colors-val', trial_info[n_val_trials:, 'color'].shape)
-        ds[:] = trial_info[n_val_trials:, 'color']
-        ds = f.create_dataset('posid-val', trial_info[n_val_trials:, 'position_id'].shape)
-        ds[:] = trial_info[n_val_trials:, 'position_id']
+        ds = f.create_dataset('colors-val', data=np.stack(trial_info.iloc[n_val_trials:]['color'].values))
+        ds = f.create_dataset('posid-val', data=np.stack(trial_info.iloc[n_val_trials:]['position_id'].values))
 
 
 if __name__ == '__main__':
