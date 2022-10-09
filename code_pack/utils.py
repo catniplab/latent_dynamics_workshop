@@ -1,7 +1,5 @@
 import torch
 import numpy as np
-from einops import rearrange
-
 
 def expected_ll_poisson(Y, m, P, C, delta, dtype=torch.float32):
     m_t = torch.tensor(m, dtype=dtype)
@@ -14,8 +12,6 @@ def expected_ll_poisson(Y, m, P, C, delta, dtype=torch.float32):
     log_prob = likelihood_pdf.log_prob(Y_t)
 
     return torch.mean(log_prob)
-
-    return log_prob
 
 
 def best_fit_transformation(X, X_lat, n_trials, n_time_bins, n_latents):
