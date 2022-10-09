@@ -22,6 +22,7 @@ There will be hands-on components to try some of the methods.
 For installation of conda follow the instructions here: https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html#
 
 ## Git installation
+For installing git, see: https://git-scm.com/downloads
 
 ---
 ## Code setup:
