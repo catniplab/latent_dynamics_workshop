@@ -34,7 +34,7 @@ def main():
     end = 450
     lag = 80
 
-    trial_info_save_path = 'data/info_per_trial_{}.pkl'
+    trial_info_save_path = 'data/info_per_trial_{}.h5'
     spikes_per_trial_save_path = 'data/spikes_per_trial.h5'
     rates_per_trial_save_path = 'data/rates_per_trial_{}.npy'
     velocity_per_trial_save_path = 'data/velocity_per_trial_{}.npy'
@@ -70,8 +70,8 @@ def main():
         trial_info.at[row_id, 'color'] = plt.cm.hsv(reach_angle / (2 * np.pi) + 0.5)
         trial_info.at[row_id, 'position_id'] = int(row_ss['trial_type'])
 
-    trial_info.iloc[:n_val_trials].to_pickle(trial_info_save_path.format('val'))
-    trial_info.iloc[n_val_trials:].to_pickle(trial_info_save_path.format('train'))
+    trial_info.iloc[:n_val_trials].to_hdf(trial_info_save_path.format('val'), key='df')
+    trial_info.iloc[n_val_trials:].to_hdf(trial_info_save_path.format('train'), key='df')
 
     np.save(rates_per_trial_save_path.format('val'), rates_per_trial[:n_val_trials])
     np.save(rates_per_trial_save_path.format('train'), rates_per_trial[n_val_trials:])
