@@ -73,19 +73,46 @@ def main():
     trial_info.iloc[:n_val_trials].to_hdf(trial_info_save_path.format('val'), key='df')
     trial_info.iloc[n_val_trials:].to_hdf(trial_info_save_path.format('train'), key='df')
 
-    np.save(rates_per_trial_save_path.format('val'), rates_per_trial[:n_val_trials])
-    np.save(rates_per_trial_save_path.format('train'), rates_per_trial[n_val_trials:])
+    # np.save(rates_per_trial_save_path.format('val'), rates_per_trial[:n_val_trials])
+    # np.save(rates_per_trial_save_path.format('train'), rates_per_trial[n_val_trials:])
+    #
+    # np.save(velocity_per_trial_save_path.format('val'), velocity_per_trial[:n_val_trials])
+    # np.save(velocity_per_trial_save_path.format('train'), velocity_per_trial[n_val_trials:])
+    #
+    # np.save(position_per_trial_save_path.format('val'), trajectory_per_trial[:n_val_trials])
+    # np.save(position_per_trial_save_path.format('train'), trajectory_per_trial[n_val_trials:])
+    #
+    # spikes_per_trial_h5 = h5py.File(spikes_per_trial_save_path, 'w')
+    # spikes_per_trial_h5.create_dataset(name='Y', data=spikes_per_trial[n_val_trials:])
+    # spikes_per_trial_h5.create_dataset(name='Y_val', data=spikes_per_trial[:n_val_trials])
+    # spikes_per_trial_h5.close()
 
-    np.save(velocity_per_trial_save_path.format('val'), velocity_per_trial[:n_val_trials])
-    np.save(velocity_per_trial_save_path.format('train'), velocity_per_trial[n_val_trials:])
+    with h5py.File('monkey.hdf5', 'w') as f:
+        ds = f.create_dataset('pos-train', trajectory_per_trial[:n_val_trials].shape)
+        ds[:] = trajectory_per_trial[:n_val_trials]
+        ds = f.create_dataset('vel-train', velocity_per_trial[:n_val_trials].shape)
+        ds[:] = velocity_per_trial[:n_val_trials]
+        ds = f.create_dataset('spk-train', spikes_per_trial[:n_val_trials].shape)
+        ds[:] = spikes_per_trial[:n_val_trials]
+        ds = f.create_dataset('rates-train', rates_per_trial[:n_val_trials].shape)
+        ds[:] = rates_per_trial[:n_val_trials]
+        ds = f.create_dataset('colors-train', trial_info[:n_val_trials, 'color'].shape)
+        ds[:] = trial_info[:n_val_trials, 'color']
+        ds = f.create_dataset('posid-train', trial_info[:n_val_trials, 'position_id'].shape)
+        ds[:] = trial_info[:n_val_trials, 'position_id']
 
-    np.save(position_per_trial_save_path.format('val'), trajectory_per_trial[:n_val_trials])
-    np.save(position_per_trial_save_path.format('train'), trajectory_per_trial[n_val_trials:])
-
-    spikes_per_trial_h5 = h5py.File(spikes_per_trial_save_path, 'w')
-    spikes_per_trial_h5.create_dataset(name='Y', data=spikes_per_trial[n_val_trials:])
-    spikes_per_trial_h5.create_dataset(name='Y_val', data=spikes_per_trial[:n_val_trials])
-    spikes_per_trial_h5.close()
+        ds = f.create_dataset('pos-val', trajectory_per_trial[n_val_trials:].shape)
+        ds[:] = trajectory_per_trial[n_val_trials:]
+        ds = f.create_dataset('vel-val', velocity_per_trial[n_val_trials:].shape)
+        ds[:] = velocity_per_trial[n_val_trials:]
+        ds = f.create_dataset('spk-val', spikes_per_trial[n_val_trials:].shape)
+        ds[:] = spikes_per_trial[n_val_trials:]
+        ds = f.create_dataset('rates-val', rates_per_trial[n_val_trials:].shape)
+        ds[:] = rates_per_trial[n_val_trials:]
+        ds = f.create_dataset('colors-val', trial_info[n_val_trials:, 'color'].shape)
+        ds[:] = trial_info[n_val_trials:, 'color']
+        ds = f.create_dataset('posid-val', trial_info[n_val_trials:, 'position_id'].shape)
+        ds[:] = trial_info[n_val_trials:, 'position_id']
 
 
 if __name__ == '__main__':
