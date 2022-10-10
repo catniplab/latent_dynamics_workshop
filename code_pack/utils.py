@@ -7,17 +7,20 @@ def expected_ll_poisson(Y, m, P, C, delta, dtype=torch.float32):
     m_t = torch.tensor(m, dtype=dtype)
     P_t = torch.tensor(P, dtype=dtype)
     Y_t = torch.tensor(Y, dtype=dtype)
+    spk_count_per_trial = Y_t.sum(dim=1)
 
     log_rate = C(m_t) + 0.5 * torch.einsum('nl, btl, nl -> btn', C.weight, P_t, C.weight)
     likelihood_pdf = torch.distributions.Poisson(delta * torch.exp(log_rate))
-    likelihood_pdf = torch.distributions.Independent(likelihood_pdf, 2)
     log_prob = likelihood_pdf.log_prob(Y_t)
+    log_prob = log_prob.sum(dim=1)
 
     null_likelihood_pdf = torch.distributions.Poisson(delta * torch.exp(C.bias) * torch.ones_like(log_rate))
-    null_likelihood_pdf = torch.distributions.Independent(null_likelihood_pdf, 2)
     null_likelihood_log_prob = null_likelihood_pdf.log_prob(Y_t)
+    null_likelihood_log_prob = null_likelihood_log_prob.sum(dim=1)
 
-    return torch.mean((log_prob - null_likelihood_log_prob) / np.log(2.0))
+    nats_batch_per_spk = torch.sum((log_prob - null_likelihood_log_prob) * (1 / spk_count_per_trial), dim=1)
+
+    return torch.mean(nats_batch_per_spk) / np.log(2.0)
 
 
 def best_fit_transformation(X, X_lat, n_trials, n_time_bins, n_latents):
@@ -54,3 +57,21 @@ def estimate_readout_matrix(Y, m, P, delta, n_iter=2500):
         loss_log.append(loss.item())
 
     return C_hat
+#
+#
+# def main():
+#     n_trials = 5
+#     n_latents = 2
+#     n_neurons = 150
+#     n_time_bins = 500
+#
+#     Y = torch.randint(3, (n_trials, n_time_bins, n_neurons))**2
+#     m = torch.randn((n_trials, n_time_bins, n_latents))
+#     P = torch.randn((n_trials, n_time_bins, n_latents))**2
+#     C = torch.nn.Linear(n_latents, n_neurons)
+#
+#     expected_ll_poisson(Y, m, P, C, 5e-3)
+#
+#
+# if __name__ == '__main__':
+#     main()
