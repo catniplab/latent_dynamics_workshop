@@ -1,0 +1,28 @@
+name: lvmworkshop
+channels:
+  # - defaults
+  - conda-forge
+  - pytorch
+    #- anaconda
+dependencies:
+  - python==3.9
+  - yacs
+  - config
+  - einops
+  - ipykernel
+  - ipython
+  - jupyter
+  - jupyterlab
+  - numpy
+  - pytorch
+  - pandas
+  - scikit-learn
+  - scipy
+  - matplotlib
+  - h5py
+  - pip
+  - pytables
+  - pip:
+      - elephant[extras]
+      - git+https://github.com/catniplab/vjf.git
+
