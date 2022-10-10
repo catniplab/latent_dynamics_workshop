@@ -41,7 +41,7 @@ def estimate_readout_matrix(Y, m, P, delta, n_iter=2500):
     C_hat = torch.nn.Linear(n_latent, n_neuron, bias=True)
 
     for n in range(n_trials):
-        M[n] = torch.tensor(m[n])
+        M[n] = torch.tensor(m[n].detach().clone())
 
     opt = torch.optim.Adam(C_hat.parameters(), lr=1e-2)
     loss_log = []
