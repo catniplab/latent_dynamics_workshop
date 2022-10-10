@@ -17,7 +17,10 @@ def plot_two_d_vector_field_from_data(dynamics_func, axs, axs_range, P=None):
 
             vec_in = np.array([x, y])
             # ode always needs 0th time point, so we take the first mapping which is not 0
-            vec_out = dynamics_func(vec_in)[1]
+            try:
+                vec_out = dynamics_func(vec_in)[1]
+            except:
+                vec_out = dynamics_fn(vec_in)
 
             if P is None:
                 s = (vec_out - vec_in)
