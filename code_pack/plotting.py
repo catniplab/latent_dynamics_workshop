@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 
 def plot_two_d_vector_field_from_data(dynamics_func, axs, axs_range, P=None):
     x = np.linspace(min(axs_range['x_min'], -2), max(axs_range['x_max'], 2), 25)
@@ -16,8 +17,13 @@ def plot_two_d_vector_field_from_data(dynamics_func, axs, axs_range, P=None):
             y = Y[i, j]
 
             vec_in = np.array([x, y])
-            # ode always needs 0th time point, so we take the first mapping which is not 0
-            vec_out = dynamics_func(vec_in)[1]
+
+            if('torch.nn.modules' in str(type(dynamics_func))):
+                vec_out = np.asarray(dynamics_func(torch.tensor(vec_in, dtype=torch.float32)))
+            else:
+                # ode always needs 0th time point, so we take the first mapping which is not 0
+                vec_out = dynamics_func(vec_in)[1]
+
 
             if P is None:
                 s = (vec_out - vec_in)
