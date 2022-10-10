@@ -33,12 +33,11 @@ For installing git, see: https://git-scm.com/downloads
 1. If you missed the `--recursive` option, your `nlb_tools` folder will be empty. Use `git submodule update --init --recursive` to download the submodules
 
 1. Make a conda environment using the requirements.txt with 
-    `conda env create -f env.yml`
+    - For Linux and MacOS use   `conda env create -f env.yml`
+    - For Windows use `conda env create -f env_windows.yml` and then 
+        `pip install jax==0.3.13 https://whls.blob.core.windows.net/unstable/cuda111/jaxlib-0.3.7+cuda11.cudnn82-cp39-none-win_amd64.whl`
 
 1. Activate the conda environment using `conda activate lvmworkshop`
-
-### Warning
-On Windows, jaxlib cannot be installed (easily), hence `vlgpax` won't function properly.
 
 ## Datasets
 We will be focusing on two datasets – a toy dataset of spiking data with low dimensional dynamics governed by
