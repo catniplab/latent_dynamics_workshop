@@ -34,9 +34,11 @@ For installing git, see: https://git-scm.com/downloads
 
 1. Make a conda environment using the requirements.txt with 
     - For Linux and MacOS use   `conda env create -f env.yml`
-    - For Windows use `conda env create -f env_windows.yml` and then 
-        `pip install jax==0.3.13 https://whls.blob.core.windows.net/unstable/cuda111/jaxlib-0.3.7+cuda11.cudnn82-cp39-none-win_amd64.whl`
-        and
+    - For Windows use `conda env create -f env_windows.yml` and then \
+        GPU: `pip install jax==0.3.13 https://whls.blob.core.windows.net/unstable/cuda111/jaxlib-0.3.7+cuda11.cudnn82-cp39-none-win_amd64.whl` \
+        or \
+        CPU: `pip install "jax[cpu]===0.3.14" -f https://whls.blob.core.windows.net/unstable/index.html --use-deprecated legacy-resolver` \
+        and finally
         `pip install git+https://github.com/yuanz271/vlgpax.git`
 
 1. Activate the conda environment using `conda activate lvmworkshop`
