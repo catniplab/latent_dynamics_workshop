@@ -1,3 +1,5 @@
+import matplotlib
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -66,12 +68,14 @@ def main():
     # rates_per_trial = rates_per_trial[:, :, high_fr_dx]
 
     for dx, (row_id, row_ss) in enumerate(trial_info.iterrows()):
-        reach_angle = np.arctan2(*trajectory_per_trial[dx-1, -1])
+        reach_angle = np.arctan2(*trajectory_per_trial[dx, -1])
         trial_info.at[row_id, 'color'] = plt.cm.hsv(reach_angle / (2 * np.pi) + 0.5)
         trial_info.at[row_id, 'position_id'] = int(row_ss['trial_type'])
+        if(dx==n_trials-1):
+            break
 
-    trial_info.iloc[:n_val_trials].to_hdf(trial_info_save_path.format('val'), key='df')
-    trial_info.iloc[n_val_trials:].to_hdf(trial_info_save_path.format('train'), key='df')
+    # trial_info.iloc[:n_val_trials].to_hdf(trial_info_save_path.format('val'), key='df')
+    # trial_info.iloc[n_val_trials:].to_hdf(trial_info_save_path.format('train'), key='df')
 
     # np.save(rates_per_trial_save_path.format('val'), rates_per_trial[:n_val_trials])
     # np.save(rates_per_trial_save_path.format('train'), rates_per_trial[n_val_trials:])
@@ -87,7 +91,7 @@ def main():
     # spikes_per_trial_h5.create_dataset(name='Y_val', data=spikes_per_trial[:n_val_trials])
     # spikes_per_trial_h5.close()
 
-    with h5py.File('monkey.hdf5', 'w') as f:
+    with h5py.File('data/monkey.hdf5', 'w') as f:
         ds = f.create_dataset('pos-train', trajectory_per_trial[:n_val_trials].shape)
         ds[:] = trajectory_per_trial[:n_val_trials]
         ds = f.create_dataset('vel-train', velocity_per_trial[:n_val_trials].shape)
@@ -109,6 +113,15 @@ def main():
         ds[:] = rates_per_trial[n_val_trials:]
         ds = f.create_dataset('colors-val', data=np.stack(trial_info.iloc[n_val_trials:]['color'].values))
         ds = f.create_dataset('posid-val', data=np.stack(trial_info.iloc[n_val_trials:]['position_id'].values))
+
+
+    fig, axs = plt.subplots(1, 1, figsize=(5, 5))
+    colors = np.stack(trial_info.iloc[:n_val_trials]['color'].values)
+    traj = trajectory_per_trial[:n_val_trials]
+    for i in range(n_val_trials):
+        line_color = colors[i]
+        axs.plot(traj[i,:,0],traj[i,:,1], color=line_color)
+    plt.show()
 
 
 if __name__ == '__main__':
