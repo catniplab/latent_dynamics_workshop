@@ -21,7 +21,8 @@ There will be hands-on components to try some of the methods.
 ## Conda installation
 For installation of conda follow the instructions here: https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html#
 
-## Git installation
+## Git installation (for Windows)
+Windows users would need to install and work in the Git BASH terminal.
 For installing git, see: https://git-scm.com/downloads
 
 ---
