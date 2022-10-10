@@ -2,13 +2,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
+
 def plot_two_d_vector_field_from_data(dynamics_func, axs, axs_range, P=None):
     x = np.linspace(min(axs_range['x_min'], -2), max(axs_range['x_max'], 2), 25)
     y = np.linspace(min(axs_range['y_min'], -2), max(axs_range['y_max'], 2), 25)
 
     X, Y = np.meshgrid(x, y)
     u, v = np.zeros(X.shape), np.zeros(Y.shape)
-    std_output = np.zeros_like(X)
+    speed = np.zeros(X.shape)
     NI, NJ = Y.shape
 
     for i in range(NI):
@@ -32,9 +33,11 @@ def plot_two_d_vector_field_from_data(dynamics_func, axs, axs_range, P=None):
 
             u[i, j] = np.array(s[0])
             v[i, j] = s[1]
+            speed[i, j] = torch.norm(s).cpu().data.numpy()
 
-    # axs.contourf(X, Y, std_output, cmap='seismic', alpha=0.2)
-    axs.streamplot(X, Y, u, v, color='blue', linewidth=0.5, arrowsize=0.5)
+    # speed = speed / speed.max()
+    axs.streamplot(X, Y, u, v, color=speed, linewidth=0.5, arrowsize=0.3)
+
 
 def raster_to_events(raster):
     events = []
