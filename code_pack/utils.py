@@ -18,9 +18,10 @@ def expected_ll_poisson(Y, m, P, C, delta, dtype=torch.float32):
     null_likelihood_log_prob = null_likelihood_pdf.log_prob(Y_t)
     null_likelihood_log_prob = null_likelihood_log_prob.sum(dim=1)
 
-    nats_batch_per_spk = torch.sum((log_prob - null_likelihood_log_prob) * (1 / spk_count_per_trial), dim=1)
+    bidx = spk_count_per_trial != 0 # exclude (neurons x trials) with no spikes
+    nats_array = torch.mean((log_prob[bidx] - null_likelihood_log_prob[bidx]) * (1 / spk_count_per_trial[bidx]))
 
-    return torch.mean(nats_batch_per_spk) / np.log(2.0)
+    return nats_array / np.log(2.0) # bits/spike/neuron
 
 
 def best_fit_transformation(X, X_lat, n_trials, n_time_bins, n_latents):
