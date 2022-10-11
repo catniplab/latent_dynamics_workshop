@@ -10,27 +10,25 @@ There will be hands-on components to try some of the methods.
 
  - 13:30-13:45 Conda/python/code installation
  - 13:45-14:30 Lecture 1: Latent state trajectories and dimensionality reduction
- - 14:30-14:45 Break 1
- - 14:45-16:00 Hands-on 1: dimensionality reduction
- - 16:00-17:00 Lecture 2: Latent neural dynamics theory and algorithms
- - 17:00-17:15 Break 2
- - 17:15-18:15 Hands-on 2: inferring latent dynamics
- - 18:15-18:30 Summary and discussions
+ - 14:30-15:15 Hands-on 1: dimensionality reduction
+ - 15:15-15:45 Lecture 2: Latent neural dynamics theory and algorithms
+ - 15:45-16:15 Hands-on 2: inferring latent dynamics
+ - 16:15-16:30 Summary and discussions
 
 ---
 ## Conda installation
+
 For installation of conda follow the instructions here: https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html#
 
 ## Git installation (for Windows)
+
 Windows users would need to install and work in the Git BASH terminal.
 For installing git, see: https://git-scm.com/downloads
 
 ---
 ## Code setup:
 
-1. Clone the repo using `git clone --recursive`
-
-1. If you missed the `--recursive` option, your `nlb_tools` folder will be empty. Use `git submodule update --init --recursive` to download the submodules
+1. Clone or download this repo.
 
 1. Make a conda environment using the requirements.txt with 
     - For Linux and MacOS use   `conda env create -f env.yml`
@@ -44,6 +42,7 @@ For installing git, see: https://git-scm.com/downloads
 1. Activate the conda environment using `conda activate lvmworkshop`
 
 ## Datasets
+
 We will be focusing on two datasets – a toy dataset of spiking data with low dimensional dynamics governed by
 a Van der Pol Oscillator and electrophysiological recordings from the motor cortex (M1) and dorsal premotor cortex (PMd)
 of a monkey during a delayed reaching task.
