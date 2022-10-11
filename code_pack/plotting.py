@@ -33,7 +33,7 @@ def plot_two_d_vector_field_from_data(dynamics_func, axs, axs_range, P=None):
 
             u[i, j] = np.array(s[0])
             v[i, j] = s[1]
-            speed[i, j] = torch.norm(s).cpu().data.numpy()
+            speed[i, j] = torch.norm(torch.tensor(s)).cpu().data.numpy()
 
     # speed = speed / speed.max()
     axs.streamplot(X, Y, u, v, color=speed, linewidth=0.5, arrowsize=0.3)
