@@ -73,7 +73,7 @@ def generate_poisson_observations_axis_aligned(states_torch, C, b, n_neurons, n_
 
 
 def main():
-    data_path = pathlib.Path(f'../vanderpol/data/poisson_obs.h5')
+    data_path = pathlib.Path(f'../latent_dynamics_workshop/vanderpol/data/poisson_obs.h5')
     data_path.parent.mkdir(parents=True, exist_ok=True)
 
     torch.manual_seed(1234)
