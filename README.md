@@ -28,7 +28,9 @@ For installing git, see: https://git-scm.com/downloads
 ---
 ## Code setup:
 
-1. Clone or download this repo.
+1. Clone or download this repo.\
+   Use this command to clone the repo along with all its submodules, ensuring you get the full project, including any nested dependencies:
+   `git clone --recurse-submodules <repo-url>`
 
 1. Make a conda environment using the requirements.txt with 
     - For Linux and MacOS use   `conda env create -f env.yml`
