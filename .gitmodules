@@ -1,3 +1,6 @@
 [submodule "nlb_tools"]
 	path = nlb_tools
 	url = https://github.com/neurallatents/nlb_tools.git
+[submodule "xfads"]
+	path = xfads
+	url = https://github.com/catniplab/xfads.git
