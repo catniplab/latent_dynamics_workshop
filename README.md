@@ -43,7 +43,7 @@ For installing git, see: https://git-scm.com/downloads
 
 3. Activate the conda environment using `conda activate lvmworkshop`
 
-4. cd to the project main directory (`cd latent_dynamics_workshop`), after cloning the repo, and run the following command in the terminal to install [XFADS](https://github.com/catniplab/xfads/) (eXponential FAmily Dynamical Systems), [Dowling, Zhao, Park. 2024](https://arxiv.org/abs/2403.01371,  and its dependencies \
+4. cd to the project main directory (`cd latent_dynamics_workshop`), after cloning the repo, and run the following command in the terminal to install [XFADS](https://github.com/catniplab/xfads/) (eXponential FAmily Dynamical Systems), [Dowling, Zhao, Park. 2024](https://arxiv.org/abs/2403.01371),  and its dependencies \
    `pip install -e xfads/` \
    (`xfads/` is the submodule folder that contains the `pyproject.toml` file and the `xfads` package folder)
 
