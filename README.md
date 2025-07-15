@@ -32,7 +32,7 @@ For installing git, see: https://git-scm.com/downloads
    Use this command to clone the repo along with all its submodules, ensuring you get the full project, including any nested dependencies: \
    `git clone --recurse-submodules <repo-url>`
 
-1. Make a conda environment using the requirements.txt with 
+2. Make a conda environment using the requirements.txt with 
     - For Linux and MacOS use   `conda env create -f env.yml`
     - For Windows use `conda env create -f env_windows.yml` and then \
         GPU: `pip install jax==0.3.13 https://whls.blob.core.windows.net/unstable/cuda111/jaxlib-0.3.7+cuda11.cudnn82-cp39-none-win_amd64.whl` \
@@ -41,7 +41,11 @@ For installing git, see: https://git-scm.com/downloads
         and finally
         `pip install git+https://github.com/yuanz271/vlgpax.git`
 
-1. Activate the conda environment using `conda activate lvmworkshop`
+3. Activate the conda environment using `conda activate lvmworkshop`
+
+4. cd to the project main directory after cloning the repo (`cd latent_dynamics_workshop`) and run the following command to install [XFADS](https://github.com/catniplab/xfads/) (eXponential FAmily Dynamical Systems) and its dependencies \
+   `pip install -e xfads/` \
+   (`xfads/` is the submodule folder that contains the `pyproject.toml` file and the xfads package folder)
 
 ## Datasets
 
