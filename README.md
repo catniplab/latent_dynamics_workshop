@@ -6,15 +6,6 @@ In this workshop, we will introduce the statistical problem of inferring latent 
 Subsequently, we will introduce the statistically more difficult, but theoretically more satisfying inference of the latent nonlinear dynamical system.
 There will be hands-on components to try some of the methods.
 
-## Schedule: 11 October 2022
-
- - 13:30-13:45 Conda/python/code installation
- - 13:45-14:30 Lecture 1: Latent state trajectories and dimensionality reduction
- - 14:30-15:15 Hands-on 1: dimensionality reduction
- - 15:15-15:45 Lecture 2: Latent neural dynamics theory and algorithms
- - 15:45-16:15 Hands-on 2: inferring latent dynamics
- - 16:15-16:30 Summary and discussions
-
 ---
 ## Conda installation
 
@@ -74,3 +65,4 @@ Contributors
  - Tushar Arora
  - Ayesha Vermani
  - Abel Sagodi
+ - Mahmoud Elmakki
