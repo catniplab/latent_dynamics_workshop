@@ -73,7 +73,8 @@ def generate_poisson_observations_axis_aligned(states_torch, C, b, n_neurons, n_
 
 
 def main():
-    data_path = pathlib.Path(f'../latent_dynamics_workshop/vanderpol/data/poisson_obs.h5')
+    repo_root = pathlib.Path(__file__).resolve().parents[1]
+    data_path = repo_root / 'vanderpol' / 'data' / 'poisson_obs.h5'
     data_path.parent.mkdir(parents=True, exist_ok=True)
 
     torch.manual_seed(1234)
@@ -143,11 +144,17 @@ def main():
     f.create_dataset('bias', data=b)
     f.create_dataset('delta', data=delta)
 
-    f.create_dataset('r', data=r[:, n_cutoff_bins:, :])
-    f.create_dataset('X', data=X[:, n_cutoff_bins:, :])
-    f.create_dataset('Y', data=Y[:, n_cutoff_bins:, :])
-    f.create_dataset('Y_axis', data=Y_axis[:, n_cutoff_bins:, :])
-    f.create_dataset('Y_softplus', data=Y_softplus[:, n_cutoff_bins:, :])
+    # Store the large arrays compactly: spike counts are small non-negative
+    # integers (uint8, range 0-255), rates/latents keep float32 precision, all
+    # gzip-compressed. This shrinks the file from ~1 GB to ~120 MB without
+    # changing any values. uint8 (not int8) avoids silent wrap-around to
+    # negatives if firing rates or bin widths are ever increased.
+    gz = dict(compression='gzip', compression_opts=4)
+    f.create_dataset('r', data=r[:, n_cutoff_bins:, :].numpy().astype(np.float32), **gz)
+    f.create_dataset('X', data=X[:, n_cutoff_bins:, :].numpy().astype(np.float32), **gz)
+    f.create_dataset('Y', data=Y[:, n_cutoff_bins:, :].numpy().astype(np.uint8), **gz)
+    f.create_dataset('Y_axis', data=Y_axis[:, n_cutoff_bins:, :].numpy().astype(np.uint8), **gz)
+    f.create_dataset('Y_softplus', data=Y_softplus[:, n_cutoff_bins:, :].numpy().astype(np.uint8), **gz)
 
     # adding dataset params
     f.create_dataset('n_trials', data=n_trials)

@@ -1,6 +1,9 @@
-[submodule "nlb_tools"]
-	path = nlb_tools
+[submodule "external/nlb_tools"]
+	path = external/nlb_tools
 	url = https://github.com/neurallatents/nlb_tools.git
-[submodule "xfads"]
-	path = xfads
+[submodule "external/xfads"]
+	path = external/xfads
 	url = https://github.com/catniplab/xfads.git
+[submodule "external/neurofisherSNR"]
+	path = external/neurofisherSNR
+	url = https://github.com/catniplab/neurofisherSNR.git

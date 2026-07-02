@@ -1,0 +1,4 @@
+# Repo-wide jupytext settings.
+# Pair every notebook to a py:percent script (also set per-notebook metadata).
+# Drop the jupytext_version stamp so paired files don't churn across contributor versions.
+notebook_metadata_filter = "-jupytext.text_representation.jupytext_version"

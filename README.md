@@ -7,26 +7,60 @@ Subsequently, we will introduce the statistically more difficult, but theoretica
 There will be hands-on components to try some of the methods.
 
 ---
-## Conda installation
-
-For installation of conda follow the instructions here: https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html#
-
----
 ## Code setup:
 
-1. Clone or download this repo. \
-   Use this command to clone the repo along with all its submodules, ensuring you get the full project, including any nested dependencies: \
-   `git clone --recurse-submodules https://github.com/catniplab/latent_dynamics_workshop.git`
+We use [uv](https://docs.astral.sh/uv/) to manage the environment. Prefer conda?
+See [INSTALL_conda.md](INSTALL_conda.md).
 
-2. Make a conda environment using the requirements.txt with 
-    - For Linux and MacOS use `conda env create -f env.yml`
-    - For Windows use `conda env create -f env_windows.yml`
+1. Install uv (one line, no admin needed):
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh   # macOS / Linux
+   ```
+   Windows and other options: https://docs.astral.sh/uv/getting-started/installation/
 
-3. Activate the conda environment using `conda activate lvmworkshop`
+2. Clone this repo **with submodules** (required for XFADS, neurofisherSNR, and NLB tools):
+   ```bash
+   git clone --recurse-submodules https://github.com/catniplab/latent_dynamics_workshop.git
+   cd latent_dynamics_workshop
+   ```
+   If you already cloned without submodules, initialize them with:
+   ```bash
+   git submodule update --init --recursive
+   ```
 
-4. cd to the project main directory (`cd latent_dynamics_workshop`), after cloning the repo, and run the following command in the terminal to install [XFADS](https://github.com/catniplab/xfads/) (eXponential FAmily Dynamical Systems), [Dowling, Zhao, Park. 2024](https://arxiv.org/abs/2403.01371),  and its dependencies \
-   `pip install -e xfads/` \
-   (`xfads/` is the submodule folder that contains the `pyproject.toml` file and the `xfads` package folder)
+3. Create the environment. `UV_TORCH_BACKEND=auto` lets uv detect your hardware
+   (NVIDIA CUDA, Apple Silicon, or CPU) and fetch the matching PyTorch build:
+   ```bash
+   UV_TORCH_BACKEND=auto uv sync           # macOS / Linux
+   ```
+   On Windows PowerShell, set the variable separately:
+   ```powershell
+   $env:UV_TORCH_BACKEND="auto"; uv sync
+   ```
+   This creates `.venv/` with all dependencies, including editable installs of
+   the `external/` packages:
+   - [XFADS](https://github.com/catniplab/xfads/) — [Dowling, Zhao, Park. 2024](https://arxiv.org/abs/2403.01371)
+   - [neurofisherSNR](https://github.com/catniplab/neurofisherSNR) — Fisher-information SNR bounds
+
+   Run commands in the environment with `uv run`, e.g. `uv run jupyter lab`, or
+   activate it directly with `source .venv/bin/activate`.
+
+4. (Contributors only) This repo strips notebook outputs on commit via
+   [nbstripout](https://github.com/kynan/nbstripout). After cloning, register the
+   filter locally once so `*.ipynb` diffs stay clean:
+   ```bash
+   uv tool install nbstripout
+   nbstripout --install
+   ```
+
+5. (Contributors only) Each notebook is paired to a `py:percent` script via
+   [jupytext](https://jupytext.readthedocs.io/) (see `jupytext.toml`), so you can
+   edit the `.py` in an editor or the `.ipynb` in Jupyter and keep them in sync.
+   jupytext ships with the environment (`uv sync`), so just run:
+   ```bash
+   uv run jupytext --sync 00_state_space_intuition.ipynb   # sync after editing either file
+   ```
+   Commit both the `.ipynb` and its paired `.py`.
 
 ## Datasets
 
@@ -34,20 +68,23 @@ We will be focusing on two datasets – a toy dataset of spiking data with low d
 a simulated system and electrophysiological recordings from the motor cortex (M1) and dorsal premotor cortex (PMd) of a monkey during a delayed reaching task.
 The simulated system is a continuous attractor system with a ring topology in 2D - i.e., an abstract ring attractor system.
 
+Notebook 00 expects pre-generated Van der Pol data at `vanderpol/data/poisson_obs.h5`. Generate it with:
+```bash
+uv run python code_pack/generate_vdp_data.py
+```
+
 ---
 ## Starting Jupyter Notebook or JupyterLab
-Start Jupyter Notebook by typing `jupyter notebook`
-or JupyterLab by typing `jupyter lab`
+Start JupyterLab with `uv run jupyter lab` (or `uv run jupyter notebook`).
+If you activated the environment (`source .venv/bin/activate`), you can drop the
+`uv run` prefix.
 
 ---
 ## Contributors
 
- - Matt Dowling
- - Tushar Arora
- - Ayesha Vermani
- - Abel Sagodi
- - Mahmoud Elmakki
+Matt Dowling, Tushar Arora, Ayesha Vermani, Abel Sagodi, Mahmoud Elmakki, Hyungju Jeon
 
 ## Lecture history
- - Cajal course on Neuro-AI (2025)
+ - Cajal course: Computational Neuroscience (2026)
+ - Cajal course: Neuro-AI (2025)
  - Neural Latent State and Dynamics Inference Workshop (2022)
