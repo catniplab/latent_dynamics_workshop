@@ -1,0 +1,42 @@
+[project]
+name = "latent-dynamics-workshop"
+version = "0.1.0"
+description = "Neural Latent State and Dynamics Inference Workshop"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    # Local packages from external/ (git submodules), installed editable.
+    "xfads",
+    "neurofisherSNR",
+    # Scientific stack imported directly by the notebooks. Bounds are kept loose
+    # and open-ended (no upper caps) so the workshop stays installable as these
+    # packages evolve; exact versions are pinned in uv.lock for reproducibility.
+    # xfads already sets meaningful floors for torch/numpy/scipy/sklearn/etc.
+    "torch",
+    "numpy",
+    "scipy",
+    "pandas",
+    "scikit-learn",
+    "matplotlib",
+    "h5py",
+    "tables",
+    "einops",
+    "yacs",
+    "rich",
+    # Notebook tooling. jupytext pairs each .ipynb to a py:percent script.
+    "jupyter",
+    "jupyterlab",
+    "jupytext",
+    "ipykernel",
+    "ipython",
+]
+
+[tool.uv]
+# This is an environment, not a distributable package - don't build/install it.
+package = false
+# New deps added via `uv add` get a lower-bound (>=) constraint.
+add-bounds = "lower"
+
+[tool.uv.sources]
+xfads = { path = "external/xfads", editable = true }
+neurofisherSNR = { path = "external/neurofisherSNR", editable = true }

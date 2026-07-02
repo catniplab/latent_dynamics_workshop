@@ -7,14 +7,18 @@ Subsequently, we will introduce the statistically more difficult, but theoretica
 There will be hands-on components to try some of the methods.
 
 ---
-## Conda installation
-
-For installation of conda follow the instructions here: https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html#
-
----
 ## Code setup:
 
-1. Clone this repo **with submodules** (required for XFADS, neurofisherSNR, and NLB tools):
+We use [uv](https://docs.astral.sh/uv/) to manage the environment. Prefer conda?
+See [INSTALL_conda.md](INSTALL_conda.md).
+
+1. Install uv (one line, no admin needed):
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh   # macOS / Linux
+   ```
+   Windows and other options: https://docs.astral.sh/uv/getting-started/installation/
+
+2. Clone this repo **with submodules** (required for XFADS, neurofisherSNR, and NLB tools):
    ```bash
    git clone --recurse-submodules https://github.com/catniplab/latent_dynamics_workshop.git
    cd latent_dynamics_workshop
@@ -24,36 +28,33 @@ For installation of conda follow the instructions here: https://docs.conda.io/pr
    git submodule update --init --recursive
    ```
 
-2. Create the conda environment (Linux, macOS, and Windows):
+3. Create the environment. `UV_TORCH_BACKEND=auto` lets uv detect your hardware
+   (NVIDIA CUDA, Apple Silicon, or CPU) and fetch the matching PyTorch build:
    ```bash
-   conda env create -f env.yml
+   UV_TORCH_BACKEND=auto uv sync
    ```
-
-3. Activate the environment: `conda activate lvmworkshop`
-
-   The environment installs editable packages from `external/`:
+   This creates `.venv/` with all dependencies, including editable installs of
+   the `external/` packages:
    - [XFADS](https://github.com/catniplab/xfads/) — [Dowling, Zhao, Park. 2024](https://arxiv.org/abs/2403.01371)
    - [neurofisherSNR](https://github.com/catniplab/neurofisherSNR) — Fisher-information SNR bounds
 
-   If pip editable installs failed during env creation, run manually from the repo root:
-   ```bash
-   pip install -e external/xfads/ -e external/neurofisherSNR/
-   ```
+   Run commands in the environment with `uv run`, e.g. `uv run jupyter lab`, or
+   activate it directly with `source .venv/bin/activate`.
 
 4. (Contributors only) This repo strips notebook outputs on commit via
    [nbstripout](https://github.com/kynan/nbstripout). After cloning, register the
    filter locally once so `*.ipynb` diffs stay clean:
    ```bash
-   pip install nbstripout   # or: uv tool install nbstripout
+   uv tool install nbstripout
    nbstripout --install
    ```
 
 5. (Contributors only) Each notebook is paired to a `py:percent` script via
    [jupytext](https://jupytext.readthedocs.io/) (see `jupytext.toml`), so you can
-   edit the `.py` in an editor or the `.ipynb` in Jupyter and keep them in sync:
+   edit the `.py` in an editor or the `.ipynb` in Jupyter and keep them in sync.
+   jupytext ships with the environment (`uv sync`), so just run:
    ```bash
-   pip install jupytext   # or: uv tool install jupytext
-   jupytext --sync <notebook>.ipynb   # sync after editing either file
+   uv run jupytext --sync <notebook>.ipynb   # sync after editing either file
    ```
    Commit both the `.ipynb` and its paired `.py`.
 
@@ -65,13 +66,14 @@ The simulated system is a continuous attractor system with a ring topology in 2D
 
 Notebook 00 expects pre-generated Van der Pol data at `vanderpol/data/poisson_obs.h5`. Generate it with:
 ```bash
-python code_pack/generate_vdp_data.py
+uv run python code_pack/generate_vdp_data.py
 ```
 
 ---
 ## Starting Jupyter Notebook or JupyterLab
-Start Jupyter Notebook by typing `jupyter notebook`
-or JupyterLab by typing `jupyter lab`
+Start JupyterLab with `uv run jupyter lab` (or `uv run jupyter notebook`).
+If you activated the environment (`source .venv/bin/activate`), you can drop the
+`uv run` prefix.
 
 ---
 ## Contributors
