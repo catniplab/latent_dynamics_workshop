@@ -40,6 +40,14 @@ For installation of conda follow the instructions here: https://docs.conda.io/pr
    pip install -e external/xfads/ -e external/neurofisherSNR/
    ```
 
+4. (Contributors only) This repo strips notebook outputs on commit via
+   [nbstripout](https://github.com/kynan/nbstripout). After cloning, register the
+   filter locally once so `*.ipynb` diffs stay clean:
+   ```bash
+   pip install nbstripout   # or: uv tool install nbstripout
+   nbstripout --install
+   ```
+
 ## Datasets
 
 We will be focusing on two datasets – a toy dataset of spiking data with low dimensional dynamics governed by
