@@ -78,12 +78,9 @@ If you activated the environment (`source .venv/bin/activate`), you can drop the
 ---
 ## Contributors
 
- - Matt Dowling
- - Tushar Arora
- - Ayesha Vermani
- - Abel Sagodi
- - Mahmoud Elmakki
+Matt Dowling, Tushar Arora, Ayesha Vermani, Abel Sagodi, Mahmoud Elmakki, Hyungju Jeon
 
 ## Lecture history
- - Cajal course on Neuro-AI (2025)
+ - Cajal course: Computational Neuroscience (2026)
+ - Cajal course: Neuro-AI (2025)
  - Neural Latent State and Dynamics Inference Workshop (2022)
