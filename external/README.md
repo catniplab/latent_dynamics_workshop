@@ -12,4 +12,6 @@ git submodule update --init --recursive
 | `neurofisherSNR/` | Fisher-information SNR bounds | notebook 00 |
 | `nlb_tools/` | Neural Latents Benchmark data tools | `mc_maze/data_preprocessing.py` |
 
-Installed editable via `env.yml` (`xfads`, `neurofisherSNR`). `nlb_tools` is on the Python path where needed.
+`xfads` and `neurofisherSNR` are installed editable by the environment: `uv sync`
+reads `pyproject.toml` (see `[tool.uv.sources]`), and the conda fallback installs
+them via `env.yml`. `nlb_tools` is added to the Python path where needed.
