@@ -42,7 +42,7 @@
 \addbibresource{references.bib}
 
 % override catniplab's default "manuscript in preparation" running header
-\setheadercenter{Latent variable models: PPCA and factor analysis}
+\setheadercenter{Linear-Gaussian latent variable models}
 
 \title{Latent Dynamics: Lecture Notes}
 \author{I.~Memming Park}
@@ -54,7 +54,8 @@
 \begin{abstract}
 Notes on two classical linear-Gaussian latent variable models---probabilistic
 PCA \parencite{Tipping1999-cv} and factor analysis---with the Gaussian identities
-their derivations rely on. Throughout, $\vy \in \reals^m$ is the observed vector, $\vx \in \reals^d$
+their derivations rely on, plus a final section that carries the same toolkit
+into time to derive the Kalman filter. Throughout, $\vy \in \reals^m$ is the observed vector, $\vx \in \reals^d$
 the latent vector ($m \geq d$, typically $d \ll m$), and $C \in \reals^{m
 \times d}$ the loading matrix.
 \end{abstract}
@@ -106,7 +107,10 @@ Both PPCA and factor analysis are \emph{linear-Gaussian}: the observation is a
 linear image of a Gaussian latent, plus independent Gaussian noise. Remarkably,
 two facts do all the work---how a Gaussian survives an affine map, and how a
 jointly Gaussian pair marginalizes and conditions. Gaussians are the friendly
-distribution: push them through linear algebra and they stay Gaussian.
+distribution: push them through linear algebra and they stay Gaussian. That
+closure---that the result is \emph{still} Gaussian---is the standard property we
+take as given (it follows cleanly from characteristic functions); the proofs
+below then just pin down the resulting mean and covariance.
 
 \begin{funfact}[Affine maps keep Gaussians Gaussian]\label{fact:affine}
 Let $\vx \sim \Normal(\vm, \Sigma)$ and $\vy = A\vx + \vb$ for a fixed matrix
@@ -364,7 +368,8 @@ maximum \parencite{Tipping1999-cv}:
 with $U_d$ and $\Lambda_d$ the top-$d$ eigenvectors and eigenvalues of $S$ just
 defined, and $R$ any $d \times d$ orthogonal matrix. That $R$ is the rotation ambiguity we
 already saw: $C \mapsto CR$ leaves $C C\trp$, hence the likelihood, unchanged.
-The noise variance is the average of the \emph{discarded} eigenvalues,
+The noise variance is the average of the $m-d$ \emph{discarded} eigenvalues (so
+the reduction assumes $d < m$),
 \begin{equation}\label{eq:ppca-sigmaML}
     \sigma^2_{\mathrm{ML}} = \frac{1}{m - d}\sum_{j = d+1}^{m} \lambda_j ,
 \end{equation}
@@ -375,29 +380,17 @@ variance folded into $\sigma^2$. As $\sigma^2 \to 0$ the loadings collapse onto
 the scaled principal axes and PPCA reduces to classical PCA.
 
 \paragraph{PPCA is PCA, made probabilistic.}
-The two methods return the \emph{same subspace}. Classical PCA keeps the span of
-the top $d$ eigenvectors of $S$, namely $\col(U_d)$. The PPCA loading
-\eqref{eq:ppca-ML} is $U_d$ right-multiplied by $(\Lambda_d - \sigma^2 I_d)^{1/2}R$---a
-diagonal matrix times an orthogonal one, hence an invertible $d \times d$
-matrix (the retained $\lambda_1, \dots, \lambda_d$ exceed the average tail
-eigenvalue $\sigma^2$, so the square root is real). Right-multiplying by an
-invertible matrix never changes the column space, so
-\begin{equation}\label{eq:ppca-samespace}
-    \col(C_{\mathrm{ML}}) = \col(U_d) :
-\end{equation}
-the PPCA loadings span the principal subspace \emph{exactly}. The two methods
-differ only in how they coordinatize that subspace: PCA scales axis $k$ by
-$\sqrt{\lambda_k}$ and pins the orientation, whereas PPCA scales by
-$\sqrt{\lambda_k - \sigma^2}$ (shrinking each axis by the noise floor it strips
-off) and leaves the orientation free through $R$. As $\sigma^2 \to 0$ even the
-scalings coincide (in the PCA convention $R = I_d$): the \emph{reconstruction}
-$C\,\E[\vx \mid \vy] \to U_d U_d\trp \vy$ is exactly the orthogonal projection of
-$\vy$ onto the principal subspace $\col(U_d)$, while the posterior mean itself,
-$\E[\vx \mid \vy] \to \Lambda_d^{-1/2} U_d\trp \vy$, returns the
-principal-component scores $U_d\trp\vy$ (whitened by $\Lambda_d^{-1/2}$, the price
-of our unit-variance latent). In short, PPCA
-is a probabilistic model whose maximum-likelihood fit \emph{is} PCA: it recasts
-what PCA computes as inference in a linear-Gaussian latent variable model.
+Both return the \emph{same subspace}. The PPCA loading \eqref{eq:ppca-ML} is $U_d$
+times an invertible $d \times d$ matrix (given a spectral gap $\lambda_d >
+\sigma^2$), and right-multiplication never changes the column space, so
+$\col(C_{\mathrm{ML}}) = \col(U_d)$: the loadings span the principal subspace
+exactly. They differ only in coordinates---PCA scales axis $k$ by
+$\sqrt{\lambda_k}$, PPCA by $\sqrt{\lambda_k - \sigma^2}$ (stripping the noise
+floor), orientation free through $R$. As $\sigma^2 \to 0$ they coincide: the
+reconstruction $C\,\E[\vx \mid \vy] \to U_d U_d\trp \vy$ is PCA's orthogonal
+projection onto $\col(U_d)$ (the posterior mean itself is the whitened score
+$\Lambda_d^{-1/2} U_d\trp \vy$). In short, PPCA's maximum-likelihood fit \emph{is}
+PCA, recast as inference in a linear-Gaussian model.
 
 \paragraph{Two caveats, and the road to factor analysis.}
 The equivalence cuts both ways, with a caveat in each direction. First, PCA is
@@ -567,27 +560,17 @@ full. Factor analysis adopts no ordering-or-orthogonality convention at all, so
 the entire rotation group is left open---which is why the ambiguity is felt most
 sharply there.
 
-\paragraph{A bug turned into a feature.} Since any rotation leaves the fit
-untouched \eqref{eq:rotation-invariance}, one is free to \emph{choose} the
-rotation that makes the loadings easiest to interpret---ideally each observed
-variable loading on only a few factors. This is the classical practice of
-\emph{factor rotation}: criteria such as \emph{varimax} search for an orthogonal
-$R$ that concentrates each column's weight onto a handful of coordinates (a
-``simple structure''). The model, the fit, and the likelihood do not change; only
-the description does. (\emph{Oblique} rotations go further, allowing a general
-invertible mixing at the cost of correlated factors---i.e.\ a non-identity latent
-prior.)
-
-The lesson is a cautionary one: an individual factor carries no intrinsic
-meaning. It is defined only up to rotation, so meaning must be \emph{imposed from
-outside} the model, in one of two ways. One is to fix a rotation convention
-(varimax and its relatives above), declaring a particular loading geometry
-canonical. The other is to anchor the factors to something meaningful external to
-the fit---regressing the inferred latents against known covariates (a stimulus, a
-behavior, a condition label) post hoc, and interpreting or rotating the factors
-by how they relate to those. Either way, ``what factor $k$ represents'' is a
-statement about a chosen convention or an external reference, never about the
-latent model alone.
+\paragraph{A bug turned into a feature.} Since rotation leaves the fit untouched
+\eqref{eq:rotation-invariance}, one can \emph{choose} the rotation that makes the
+loadings interpretable---ideally each variable loading on only a few factors.
+This is \emph{factor rotation} (e.g.\ \emph{varimax}, which drives each column
+toward a ``simple structure''); it changes the description, never the fit. The
+lesson is a cautionary one: an individual factor has no intrinsic meaning.
+Defined only up to rotation, its meaning must come from \emph{outside} the
+model---either by fixing a rotation convention or by anchoring the factors to
+known covariates (a stimulus, behavior, or condition) through post-hoc
+regression. ``What factor $k$ represents'' is always a statement about that
+external choice, not about the latent model alone.
 
 \section{Units and scale: PCA versus factor analysis}\label{sec:scale}
 
@@ -624,6 +607,107 @@ The practical upshot: when the observed coordinates are commensurable (same
 units, comparable scales), PCA and PPCA are natural. When they are not (different
 sensors, different neurons, heterogeneous features), factor analysis---by soaking
 each coordinate's scale into its own $\sigma_i^2$---is the better-posed model.
+
+\section{The Kalman filter: a latent that moves}\label{sec:kalman}
+
+So far the latent was static---one hidden cause per observation. Let it now
+\emph{evolve in time}. The same linear-Gaussian machinery, made sequential, is
+the workhorse of latent \emph{dynamics}.
+
+Take the simplest case: one hidden state $x_t \in \reals$ that drifts, watched by
+a noisy scalar sensor,
+\begin{equation}\label{eq:kf-model}
+  x_t = a\,x_{t-1} + e_t, \quad e_t \sim \Normal(0, Q),
+  \qquad
+  y_t = x_t + v_t, \quad v_t \sim \Normal(0, R),
+\end{equation}
+with the process noise, sensor noise, and initial state all mutually independent.
+Here $Q$ is how unpredictably the state moves and $R$ how badly the sensor
+corrupts it; $a=1$ makes $x_t$ a random walk,
+and $y_t = x_t + v_t$ is again ``signal plus noise,'' now one scalar at a time.
+
+We track the \emph{belief} $p(x_t \mid y_{1:t})$: all we know about the state
+given the readings so far. Every arrow in \eqref{eq:kf-model} is linear-Gaussian,
+so the belief stays Gaussian (fun facts \ref{fact:affine}--\ref{fact:cond}) and we
+carry only a mean and a variance, $x_t \mid y_{1:t} \sim \Normal(\mu_t, P_t)$. Two
+moves per step update them. (We write $\mu_t^-, P_t^-$ for the \emph{predicted}
+belief before seeing $y_t$; the worksheet writes these $\mu_t^m, P_t^m$, and
+$\mu_b, P_b$ in its single-measurement warm-up.)
+
+\paragraph{Predict.} Push the belief through the dynamics---an affine map
+(\cref{fact:affine}) plus independent noise (\cref{fact:sum}):
+\begin{equation}\label{eq:kf-predict}
+  \mu_t^- = a\,\mu_{t-1}, \qquad P_t^- = a^2 P_{t-1} + Q.
+\end{equation}
+Process noise $Q$ always adds uncertainty; the drift scales the prior spread by
+$a^2$ (inflating it when $|a|>1$, shrinking it when $|a|<1$). For the worksheet's
+random walk $a=1$, prediction simply grows the variance by $Q$.
+
+\paragraph{Update.} Condition on $y_t$. We hold a Gaussian prior
+$x_t \sim \Normal(\mu_t^-, P_t^-)$ and a Gaussian likelihood
+$y_t \mid x_t \sim \Normal(x_t, R)$; Bayes multiplies them. The cleanest reading:
+\emph{precisions (inverse variances) add}, and the mean is their precision-weighted
+average,
+\begin{equation}\label{eq:kf-bayes}
+  \frac{1}{P_t} = \frac{1}{P_t^-} + \frac{1}{R},
+  \qquad
+  \mu_t = P_t\!\left(\frac{\mu_t^-}{P_t^-} + \frac{y_t}{R}\right).
+\end{equation}
+Rearranged into the classic \emph{gain} form,
+\begin{equation}\label{eq:kf-update}
+  K_t = \frac{P_t^-}{P_t^- + R},
+  \qquad
+  \mu_t = \mu_t^- + K_t\,(y_t - \mu_t^-),
+  \qquad
+  P_t = (1 - K_t)\,P_t^-.
+\end{equation}
+
+\paragraph{The gain is trust.} The innovation $y_t - \mu_t^-$ is the surprise;
+the gain $K_t \in [0,1]$ is the fraction of it we believe. Precise sensor ($R$
+small) or vague state ($P_t^-$ large) sends $K_t \to 1$---jump to the reading;
+noisy sensor or confident state sends $K_t \to 0$---ignore it. Either way the
+belief sharpens, $P_t = (1-K_t)P_t^- \le P_t^-$: a measurement can only help. That
+is the entire idea; the accompanying worksheet works it on numbers.
+
+\paragraph{Vector form.} Nothing new in higher dimensions. For
+$\vx_t = A\vx_{t-1} + \ve_t$ and $\vy_t = C\vx_t + \vv_t$ (noise covariances $Q,
+R$),
+\begin{equation}
+\begin{aligned}
+  \vmu_t^- &= A\vmu_{t-1}, &\quad P_t^- &= A P_{t-1} A\trp + Q, \\
+  K_t &= P_t^- C\trp (C P_t^- C\trp + R)^{-1}, &\quad
+  \vmu_t &= \vmu_t^- + K_t(\vy_t - C\vmu_t^-),
+\end{aligned}
+\qquad P_t = (I - K_t C)P_t^-.
+\end{equation}
+The bracketed factor $S_t = C P_t^- C\trp + R$ is the \emph{innovation covariance}
+and $\vd_t = \vy_t - C\vmu_t^-$ the \emph{innovation}, so $K_t = P_t^- C\trp
+S_t^{-1}$. Scalars became matrices and $1/(P^-+R)$ became $S_t^{-1}$;
+predict-then-update, gain-weighted innovation, shrinking covariance---all
+identical. With $C=I$ and diagonal matrices it splits into independent 1D
+filters: the worksheet's 2D case, where $S_t = P_t^- + R$ and (because $y$ is a
+coordinate there) the measurement is written $\vz_t$, so $\vd_t = \vz_t -
+\vmu_t^-$.
+
+\paragraph{Least squares, and model mismatch.} As with PCA, one recursion has two
+readings. The Bayesian one above is \emph{exact when the model is
+linear-Gaussian}: \eqref{eq:kf-update} is the true posterior. But the same
+equations are also the \emph{linear minimum-mean-squared-error} (LMMSE)
+estimator: given the linear model \eqref{eq:kf-model} and the noise
+covariances---whatever the underlying noise distribution---they return the best
+estimate of $x_t$ among all \emph{linear} functions of the data. So when
+Gaussianity fails the filter degrades gracefully: it is no longer the full
+posterior, nor the best nonlinear estimate, but it is still the best linear one.
+Bayes gives the clean derivation; least squares explains why the filter is
+trusted well outside the world it was derived in---exactly the PCA parallel.
+
+\paragraph{Numerical stability (secondary).} The update $P_t = (I - K_tC)P_t^-$ is
+the clearest form but not the most stable: in finite precision it can lose
+symmetry or positive-definiteness. Production filters use the equivalent
+\emph{Joseph form}
+$P_t = (I - K_tC)P_t^-(I - K_tC)\trp + K_t R K_t\trp$, which stays symmetric
+positive-\emph{semi}definite, or propagate a Cholesky square root of $P_t$. These change the
+arithmetic, not the estimate.
 
 \printbibliography
 
