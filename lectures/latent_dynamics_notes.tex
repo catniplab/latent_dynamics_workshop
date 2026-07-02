@@ -30,6 +30,7 @@
 \newcommand{\E}{\mathbb{E}}
 \newcommand{\veta}{\bm{\eta}}
 \newcommand{\Normal}{\mathcal{N}}
+\newcommand{\vmu}{\bm{\mu}}
 \DeclareMathOperator{\rank}{rank}
 \DeclareMathOperator{\col}{col}
 
@@ -402,6 +403,184 @@ forced to carry the \emph{same} private noise variance. Real measurements rarely
 oblige---different sensors, neurons, or features have different noise scales.
 Relaxing $\sigma^2 I_m$ to a general diagonal noise covariance is exactly factor
 analysis, the subject of the next section.
+
+\section{Factor analysis}\label{sec:fa}
+
+Factor analysis keeps everything about PPCA except the noise: rather than one
+shared variance $\sigma^2$, every observed coordinate gets its own $\sigma_i^2$.
+The generative model is
+\begin{equation}\label{eq:fa-latent}
+    \vx \sim \Normal(\mathbf 0, I_d), \qquad \vy = C\vx + \veta,
+\end{equation}
+with $\vx$ and $\veta$ independent, where the noise is zero-mean Gaussian with a
+\emph{diagonal} covariance,
+\begin{equation}\label{eq:fa-obs}
+    \veta \sim \Normal(\mathbf 0,\ \Sigma_{\veta}),
+    \qquad
+    \Sigma_{\veta} = \diag(\sigma_1^2, \dots, \sigma_m^2) =
+    \begin{bmatrix}
+        \sigma_1^2 & 0 & \cdots & 0 \\
+        0 & \sigma_2^2 & \cdots & 0 \\
+        \vdots & \vdots & \ddots & \vdots \\
+        0 & 0 & \cdots & \sigma_m^2
+    \end{bmatrix}.
+\end{equation}
+The zeros off the diagonal say the noise in different coordinates is
+uncorrelated; the diagonal entries $\sigma_i^2$ let each coordinate be exactly as
+noisy as it needs to be. In the classical vocabulary the latent $\vx$ are the
+\emph{common factors} (shared across all coordinates), the loading columns
+$\vc_k$ say how strongly each factor drives each coordinate, and $\veta$ is the
+\emph{unique} (or specific) noise, private to each coordinate.
+
+The marginal follows from the same two fun facts,
+\begin{equation}\label{eq:fa-marginal}
+    \vy \sim \Normal\!\left(\mathbf 0,\; C C\trp + \Sigma_{\veta}\right).
+\end{equation}
+The only change from PPCA's \eqref{eq:ppca-marginal} is $\sigma^2 I_m \mapsto
+\Sigma_{\veta}$: the isotropic noise floor becomes a diagonal one, with PPCA the
+special case $\sigma_1^2 = \cdots = \sigma_m^2$. The shared signal is still the
+low-rank $C C\trp$; what FA buys is the freedom to soak up wildly different
+per-coordinate noise levels instead of forcing them all equal.
+
+\subsection{Inference: the posterior over the latent}
+
+Inference mirrors PPCA exactly, with $\Sigma_{\veta}$ wherever $\sigma^2 I_m$
+stood. The pair $(\vx, \vy)$ is jointly Gaussian with the same blocks as before,
+now
+\begin{equation}
+    \cov(\vx) = I_d, \qquad
+    \cov(\vy) = C C\trp + \Sigma_{\veta}, \qquad
+    \cov(\vx, \vy) = C\trp,
+\end{equation}
+so \cref{fact:cond} gives
+\begin{equation}
+    \E[\vx \mid \vy] = C\trp(C C\trp + \Sigma_{\veta})^{-1}\vy, \qquad
+    \cov(\vx \mid \vy) = I_d - C\trp(C C\trp + \Sigma_{\veta})^{-1} C.
+\end{equation}
+Again we would rather invert a $d \times d$ matrix. The matrix inversion lemma,
+now with the diagonal $\Sigma_{\veta}$, does it: defining
+\begin{equation}\label{eq:fa-M}
+    M = I_d + C\trp \Sigma_{\veta}^{-1} C \qquad (d \times d),
+\end{equation}
+the posterior collapses to
+\begin{equation}\label{eq:fa-posterior}
+    p(\vx \mid \vy) = \Normal\!\left(M^{-1} C\trp \Sigma_{\veta}^{-1}\vy,\; M^{-1}\right).
+\end{equation}
+(As before the covariance follows from
+$I_d - C\trp(CC\trp+\Sigma_{\veta})^{-1}C = I_d - M^{-1}C\trp\Sigma_{\veta}^{-1}C
+= I_d - M^{-1}(M - I_d) = M^{-1}$, using $C\trp\Sigma_{\veta}^{-1}C = M - I_d$.)
+The one genuinely new ingredient is the inverse noise covariance
+$\Sigma_{\veta}^{-1} = \diag(1/\sigma_1^2, \dots, 1/\sigma_m^2)$, trivial because
+$\Sigma_{\veta}$ is diagonal. The data enters the posterior mean as
+$C\trp \Sigma_{\veta}^{-1}\vy$: each coordinate is \emph{precision-weighted} by
+$1/\sigma_i^2$ before being read into the latent space, so noisy coordinates
+(large $\sigma_i^2$) are automatically discounted---the payoff of letting the
+noise vary per dimension. Setting all $\sigma_i^2 = \sigma^2$ collapses $M$ and
+\eqref{eq:fa-posterior} back to the PPCA posterior \eqref{eq:ppca-posterior}.
+
+\subsection{Learning: EM, not eigenvectors}
+
+The parameters $C$ and $\Sigma_{\veta}$ are again fit by maximizing the marginal
+likelihood, whose log has the same shape as PPCA's \eqref{eq:ppca-loglik} with
+$\Sigma_{\vy} = C C\trp + \Sigma_{\veta}$. But here the pleasant closed form
+disappears: the diagonal constraint on $\Sigma_{\veta}$ couples it with $C$ and
+breaks the eigendecomposition that solved PPCA. Factor analysis has \emph{no
+closed-form maximum likelihood estimate}; it must be optimized iteratively.
+
+The standard tool is \emph{expectation--maximization} (EM), which alternates
+between the inference we just did and a parameter update:
+\begin{itemize}
+    \item \textbf{E-step.} With the current $C, \Sigma_{\veta}$, compute the
+    posterior over each latent from \eqref{eq:fa-posterior}, $q(\vx_n) =
+    \Normal(\vmu_n, M^{-1})$ with $\vmu_n = M^{-1}C\trp\Sigma_{\veta}^{-1}\vy_n$,
+    and collect the sufficient statistics
+    \begin{equation}
+        \E[\vx_n] = \vmu_n, \qquad
+        \E[\vx_n\vx_n\trp] = M^{-1} + \vmu_n\vmu_n\trp .
+    \end{equation}
+    \item \textbf{M-step.} Holding those fixed, maximize the expected
+    complete-data log-likelihood over $C$ and $\Sigma_{\veta}$; both updates are
+    closed-form,
+    \begin{align}
+        C^{\text{new}} &= \Big(\textstyle\sum_n \vy_n \E[\vx_n]\trp\Big)
+                          \Big(\textstyle\sum_n \E[\vx_n\vx_n\trp]\Big)^{-1},
+                          \label{eq:fa-Mstep-C}\\
+        \Sigma_{\veta}^{\text{new}} &= \diag\!\left(\frac{1}{N}\sum_n
+            \big(\vy_n\vy_n\trp - C^{\text{new}}\E[\vx_n]\vy_n\trp\big)\right),
+            \label{eq:fa-Mstep-S}
+    \end{align}
+    where $\diag(\cdot)$ keeps only the diagonal, enforcing the noise model.
+\end{itemize}
+Each round cannot decrease the likelihood, so EM climbs monotonically---but only
+to a \emph{local} maximum. Like any local method it carries no guarantee of
+reaching the global optimum, and different initializations can converge to
+different solutions \parencite{Bishop2006-to}; in practice one restarts from
+several initializations and keeps the best.
+
+\section{The factor rotation problem}\label{sec:rotation}
+
+There is a deeper ambiguity, one the data can never resolve. Take any orthogonal
+$d \times d$ matrix $R$ (so $R R\trp = R\trp R = I_d$) and replace the loading and
+latent by
+\begin{equation}
+    C \mapsto CR, \qquad \vx \mapsto R\trp \vx .
+\end{equation}
+The observation is untouched, $CR\,(R\trp\vx) = C\vx$, and the rotated latent is
+still standard, $R\trp\vx \sim \Normal(\mathbf 0,\, R\trp I_d R) = \Normal(\mathbf
+0, I_d)$. The marginal covariance is invariant too,
+\begin{equation}\label{eq:rotation-invariance}
+    (CR)(CR)\trp = C\,R R\trp\,C\trp = C C\trp,
+\end{equation}
+so the likelihood is \emph{exactly the same} for $C$ and $CR$. The data cannot
+tell the two apart: only the subspace $\col(C)$ and the noise are identified, not
+the individual loading columns---the ``factors'' themselves.
+
+Three concrete symmetries live inside this freedom, because permutation and
+sign-flip matrices are themselves orthogonal:
+\begin{itemize}
+    \item \emph{Permutation.} Reordering the columns of $C$ (relabeling the
+    factors) is a rotation by a permutation matrix---the factors carry no
+    intrinsic order.
+    \item \emph{Sign flip.} Negating a column, $\vc_k \mapsto -\vc_k$, is a
+    rotation by $\diag(\pm 1)$---each factor's sign is arbitrary.
+    \item \emph{Continuous rotation.} Beyond these discrete moves, a general
+    orthogonal $R$ blends the factors into new linear combinations of one
+    another.
+\end{itemize}
+
+\paragraph{Isn't PCA immune?} No. We already met this rotation as the free $R$ in
+the PPCA maximum likelihood \eqref{eq:ppca-ML}. PCA and PPCA merely \emph{look}
+unique because they adopt a convention---take the loading columns orthogonal and
+ordered by decreasing variance (the eigenvectors of $S$). Ordering removes the
+permutation freedom, and demanding orthogonal axes with \emph{distinct}
+eigenvalues removes the continuous rotation, but the \emph{sign flips survive}:
+each principal component is pinned only up to $\pm$. And the instant two
+eigenvalues coincide, the rotation freedom within that eigenspace returns in
+full. Factor analysis adopts no ordering-or-orthogonality convention at all, so
+the entire rotation group is left open---which is why the ambiguity is felt most
+sharply there.
+
+\paragraph{A bug turned into a feature.} Since any rotation leaves the fit
+untouched \eqref{eq:rotation-invariance}, one is free to \emph{choose} the
+rotation that makes the loadings easiest to interpret---ideally each observed
+variable loading on only a few factors. This is the classical practice of
+\emph{factor rotation}: criteria such as \emph{varimax} search for an orthogonal
+$R$ that concentrates each column's weight onto a handful of coordinates (a
+``simple structure''). The model, the fit, and the likelihood do not change; only
+the description does. (\emph{Oblique} rotations go further, allowing a general
+invertible mixing at the cost of correlated factors---i.e.\ a non-identity latent
+prior.)
+
+The lesson is a cautionary one: an individual factor carries no intrinsic
+meaning. It is defined only up to rotation, so meaning must be \emph{imposed from
+outside} the model, in one of two ways. One is to fix a rotation convention
+(varimax and its relatives above), declaring a particular loading geometry
+canonical. The other is to anchor the factors to something meaningful external to
+the fit---regressing the inferred latents against known covariates (a stimulus, a
+behavior, a condition label) post hoc, and interpreting or rotating the factors
+by how they relate to those. Either way, ``what factor $k$ represents'' is a
+statement about a chosen convention or an external reference, never about the
+latent model alone.
 
 \printbibliography
 
