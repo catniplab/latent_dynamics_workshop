@@ -582,6 +582,42 @@ by how they relate to those. Either way, ``what factor $k$ represents'' is a
 statement about a chosen convention or an external reference, never about the
 latent model alone.
 
+\section{Units and scale: PCA versus factor analysis}\label{sec:scale}
+
+A second difference between the two models is subtler than the noise floor but
+just as consequential: what happens when you change the \emph{units} of the
+observed coordinates. Rescale each coordinate by its own factor,
+$\vy \mapsto D\vy$ with $D = \diag(a_1, \dots, a_m)$ (think millimeters to
+centimeters, or a different gain on each sensor). Under the FA model this is
+\emph{again} an FA model:
+\begin{equation}\label{eq:fa-rescale}
+    D\vy = (DC)\vx + D\veta, \qquad
+    D\veta \sim \Normal\!\big(\mathbf 0,\ D\Sigma_{\veta}D\big)
+          = \Normal\!\big(\mathbf 0,\ \diag(a_1^2\sigma_1^2, \dots, a_m^2\sigma_m^2)\big).
+\end{equation}
+The rescaled noise covariance is still diagonal, so the rescaled data obeys
+factor analysis with loading $DC$ and noise $a_i^2\sigma_i^2$---and the latent
+factors $\vx$ are \emph{unchanged}. Factor analysis is equivariant to
+per-coordinate rescaling: it does not care what units each coordinate is measured
+in.
+
+PCA and PPCA enjoy no such property. The isotropic floor is not preserved,
+\begin{equation}
+    D(\sigma^2 I_m)D = \sigma^2 D^2 = \diag(\sigma^2 a_1^2, \dots, \sigma^2 a_m^2),
+\end{equation}
+which is no longer isotropic unless all $a_i$ are equal---a rescaled PPCA model
+is an FA model, not a PPCA one. Equivalently, PCA diagonalizes $S$, and rescaling
+sends $S \mapsto DSD$, whose eigenvectors bear no simple relation to those of $S$.
+Change the units of your variables and PCA hands you different principal axes.
+This is exactly why PCA is usually run on \emph{standardized} (z-scored) data---to
+blunt its dependence on arbitrary units---whereas factor analysis needs no such
+preprocessing.
+
+The practical upshot: when the observed coordinates are commensurable (same
+units, comparable scales), PCA and PPCA are natural. When they are not (different
+sensors, different neurons, heterogeneous features), factor analysis---by soaking
+each coordinate's scale into its own $\sigma_i^2$---is the better-posed model.
+
 \printbibliography
 
 \end{document}
