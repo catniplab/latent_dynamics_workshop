@@ -1,0 +1,41 @@
+% Lecture notes for the Latent Dynamics workshop.
+%
+% This directory is intentionally SELF-CONTAINED: catniplab.sty and
+% math_preamble.tex are copied in locally so the notes build from a fresh
+% clone of this public repo without any external (memmingCommons) path.
+% Trade-off: these copies do not track upstream catniplab.sty fixes - re-copy
+% from memmingCommons/latex/ if you want updates.
+
+\documentclass[11pt]{article}
+\usepackage[lecture]{catniplab}
+\input{math_preamble}
+
+\usepackage{cleveref}
+\usepackage{amsthm}
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{lemma}[theorem]{Lemma}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[section]
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}[section]
+
+\addbibresource{references.bib}
+
+\title{Latent Dynamics: Lecture Notes}
+\author{I.~Memming Park}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\end{abstract}
+
+\section{Introduction}
+
+\printbibliography
+
+\end{document}
