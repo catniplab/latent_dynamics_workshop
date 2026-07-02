@@ -31,7 +31,11 @@ See [INSTALL_conda.md](INSTALL_conda.md).
 3. Create the environment. `UV_TORCH_BACKEND=auto` lets uv detect your hardware
    (NVIDIA CUDA, Apple Silicon, or CPU) and fetch the matching PyTorch build:
    ```bash
-   UV_TORCH_BACKEND=auto uv sync
+   UV_TORCH_BACKEND=auto uv sync           # macOS / Linux
+   ```
+   On Windows PowerShell, set the variable separately:
+   ```powershell
+   $env:UV_TORCH_BACKEND="auto"; uv sync
    ```
    This creates `.venv/` with all dependencies, including editable installs of
    the `external/` packages:
@@ -54,7 +58,7 @@ See [INSTALL_conda.md](INSTALL_conda.md).
    edit the `.py` in an editor or the `.ipynb` in Jupyter and keep them in sync.
    jupytext ships with the environment (`uv sync`), so just run:
    ```bash
-   uv run jupytext --sync <notebook>.ipynb   # sync after editing either file
+   uv run jupytext --sync 00_state_space_intuition.ipynb   # sync after editing either file
    ```
    Commit both the `.ipynb` and its paired `.py`.
 
