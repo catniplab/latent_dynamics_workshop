@@ -48,6 +48,15 @@ For installation of conda follow the instructions here: https://docs.conda.io/pr
    nbstripout --install
    ```
 
+5. (Contributors only) Each notebook is paired to a `py:percent` script via
+   [jupytext](https://jupytext.readthedocs.io/) (see `jupytext.toml`), so you can
+   edit the `.py` in an editor or the `.ipynb` in Jupyter and keep them in sync:
+   ```bash
+   pip install jupytext   # or: uv tool install jupytext
+   jupytext --sync <notebook>.ipynb   # sync after editing either file
+   ```
+   Commit both the `.ipynb` and its paired `.py`.
+
 ## Datasets
 
 We will be focusing on two datasets – a toy dataset of spiking data with low dimensional dynamics governed by
