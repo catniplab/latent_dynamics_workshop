@@ -21,6 +21,13 @@
 \newtheorem{definition}{Definition}[section]
 \theoremstyle{remark}
 \newtheorem{remark}{Remark}[section]
+\theoremstyle{definition}
+\newtheorem{funfact}{Fun fact}
+
+% local notation (math_preamble already provides \vx \vy \cov \trp \vPsi \identity)
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\veta}{\bm{\eta}}
+\newcommand{\Normal}{\mathcal{N}}
 
 \addbibresource{references.bib}
 
@@ -32,9 +39,182 @@
 \maketitle
 
 \begin{abstract}
+Notes on two classical linear-Gaussian latent variable models -- probabilistic
+PCA \parencite{Tipping1999-cv} and factor analysis -- with the Gaussian identities
+their derivations rely on. Throughout, $\vy \in \reals^m$ is the observed vector, $\vx \in \reals^d$
+the latent vector ($m \geq d$), and $C \in \reals^{m \times d}$ the loading
+matrix.
 \end{abstract}
 
-\section{Introduction}
+\paragraph{How to read these notes.}
+The sections are roughly self-contained, so skip any whose results you already
+know -- most readers can jump straight to probabilistic PCA
+(\cref{sec:ppca}). The notation and Gaussian fun facts below are a quick
+reference to consult as needed; each fun fact comes with its one-dimensional
+special case for intuition. These notes complement the standard textbook
+treatment in Bishop's \emph{Pattern Recognition and Machine Learning}
+(ch.~12)~\parencite{Bishop2006-to}, which also covers the fully Bayesian version of
+PCA.
+
+\section{Notation, from scratch}\label{sec:notation}
+
+A \emph{vector} $\vx = (x_1, \dots, x_d)$ is just a list of $d$ numbers; we write
+$\vx \in \reals^d$. Bold lowercase letters ($\vx, \vy, \veta$) are vectors,
+capital letters ($C, \Sigma$) are matrices, and $A\trp$ is the transpose of $A$.
+
+The star of these notes is the \emph{Gaussian} (a.k.a.\ \emph{normal})
+distribution -- the bell curve. In one dimension, a random number $x$ with mean
+$\mu$ and variance $\sigma^2$ has the familiar density
+\begin{equation}\label{eq:gauss1d}
+    p(x) = \frac{1}{\sqrt{2\pi\sigma^2}}
+           \exp\!\left(-\frac{(x-\mu)^2}{2\sigma^2}\right).
+\end{equation}
+In $d$ dimensions the variance $\sigma^2$ is replaced by a $d \times d$
+\emph{covariance matrix} $\Sigma$ (it records the variance of each coordinate and
+the covariance between every pair), and the mean $\mu$ by a mean \emph{vector}
+$\vm$:
+\begin{equation}\label{eq:gaussmv}
+    p(\vx) = \frac{1}{\sqrt{(2\pi)^d \det \Sigma}}
+             \exp\!\left(-\tfrac{1}{2}(\vx-\vm)\trp \Sigma^{-1} (\vx-\vm)\right).
+\end{equation}
+Writing that mouthful every time is painful, so we abbreviate ``$\vx$ is Gaussian
+with mean $\vm$ and covariance $\Sigma$'' as
+\begin{equation}\label{eq:normalnotation}
+    \vx \sim \Normal(\vm, \Sigma).
+\end{equation}
+The curly $\Normal$ is just shorthand for \textbf{N}ormal (the distribution is
+named after Gauss); the ``$\sim$'' reads ``is distributed as.'' That is the only
+new symbol you need -- everything below is a statement about what happens to
+$\vm$ and $\Sigma$.
+
+\section{Gaussian fun facts}\label{sec:facts}
+
+Both PPCA and factor analysis are \emph{linear-Gaussian}: the observation is a
+linear image of a Gaussian latent, plus independent Gaussian noise. Remarkably,
+two facts do all the work -- how a Gaussian survives an affine map, and how a
+jointly Gaussian pair marginalizes and conditions. Gaussians are the friendly
+distribution: push them through linear algebra and they stay Gaussian.
+
+\begin{funfact}[Affine maps keep Gaussians Gaussian]\label{fact:affine}
+Let $\vx \sim \Normal(\vm, \Sigma)$ and $\vy = A\vx + \vb$ for a fixed matrix
+$A$ and vector $\vb$. Then
+\begin{equation}\label{eq:affine}
+    \vy \sim \Normal(A\vm + \vb,\; A \Sigma A\trp).
+\end{equation}
+\end{funfact}
+
+\begin{proof}
+An affine map of a Gaussian is Gaussian, so it suffices to match the first two
+moments. Linearity of expectation gives $\E[\vy] = A\E[\vx] + \vb = A\vm + \vb$.
+For the covariance, write $\vy - \E[\vy] = A(\vx - \vm)$, hence
+\begin{equation}
+    \cov(\vy) = \E\!\left[A(\vx-\vm)(\vx-\vm)\trp A\trp\right]
+              = A\,\E\!\left[(\vx-\vm)(\vx-\vm)\trp\right] A\trp
+              = A \Sigma A\trp. \qedhere
+\end{equation}
+\end{proof}
+
+\emph{One dimension.} With scalars, $y = ax + b$ and $x \sim \Normal(\mu,
+\sigma^2)$ give $y \sim \Normal(a\mu + b,\; a^2\sigma^2)$: shifting moves the
+center, scaling by $a$ stretches the spread by $a^2$.
+
+\begin{funfact}[Independent Gaussians add up]\label{fact:sum}
+Let $\vx \sim \Normal(\vm_1, \Sigma_1)$ and $\vz \sim \Normal(\vm_2, \Sigma_2)$
+be \emph{independent}. Then their sum is again Gaussian,
+\begin{equation}\label{eq:sum}
+    \vx + \vz \sim \Normal(\vm_1 + \vm_2,\; \Sigma_1 + \Sigma_2).
+\end{equation}
+\end{funfact}
+
+\begin{proof}
+A sum of independent Gaussians is Gaussian (stack them into
+$\begin{psmallmatrix}\vx\\\vz\end{psmallmatrix}$, which is jointly Gaussian, and
+apply \cref{fact:affine} with $A = [\,I \;\; I\,]$). Matching moments,
+$\E[\vx+\vz] = \vm_1 + \vm_2$, and by independence the cross terms vanish,
+\begin{equation}
+    \cov(\vx + \vz) = \cov(\vx) + \cov(\vz) = \Sigma_1 + \Sigma_2. \qedhere
+\end{equation}
+\end{proof}
+
+\emph{One dimension.} Two independent bell curves add to a wider bell:
+$\Normal(\mu_1, \sigma_1^2)$ and $\Normal(\mu_2, \sigma_2^2)$ sum to
+$\Normal(\mu_1 + \mu_2,\; \sigma_1^2 + \sigma_2^2)$ -- variances add, so noise
+piles up.
+
+Now suppose two vectors are Gaussian \emph{together}. Partition the stacked
+vector and its mean and covariance into blocks,
+\begin{equation}\label{eq:joint}
+    \begin{pmatrix} \va \\ \vb \end{pmatrix}
+    \sim \Normal\!\left(
+        \begin{pmatrix} \vm_a \\ \vm_b \end{pmatrix},\;
+        \begin{pmatrix}
+            \Sigma_{aa} & \Sigma_{ab} \\
+            \Sigma_{ba} & \Sigma_{bb}
+        \end{pmatrix}
+    \right),
+    \qquad \Sigma_{ba} = \Sigma_{ab}\trp .
+\end{equation}
+
+\begin{funfact}[Marginalize and condition]\label{fact:cond}
+For the jointly Gaussian pair \eqref{eq:joint}, the \emph{marginal} of $\va$ is
+read straight off the blocks,
+\begin{equation}\label{eq:marginal}
+    \va \sim \Normal(\vm_a,\; \Sigma_{aa}),
+\end{equation}
+and the \emph{conditional} of $\va$ given $\vb$ is Gaussian with
+\begin{align}
+    \E[\va \mid \vb] &= \vm_a + \Sigma_{ab}\Sigma_{bb}^{-1}(\vb - \vm_b),
+        \label{eq:condmean}\\
+    \cov(\va \mid \vb) &= \Sigma_{aa} - \Sigma_{ab}\Sigma_{bb}^{-1}\Sigma_{ba}.
+        \label{eq:condcov}
+\end{align}
+\end{funfact}
+
+\begin{proof}
+The marginal is immediate: $\va = [\,I \;\; 0\,]\begin{psmallmatrix}\va\\\vb\end{psmallmatrix}$
+is an affine map of a Gaussian, so \cref{fact:affine} gives
+$\va \sim \Normal(\vm_a, \Sigma_{aa})$.
+
+For the conditional, subtract off the part of $\va$ that $\vb$ can explain and
+define the \emph{residual}
+\begin{equation}\label{eq:residual}
+    \vr = (\va - \vm_a) - \Sigma_{ab}\Sigma_{bb}^{-1}(\vb - \vm_b).
+\end{equation}
+Being an affine function of the joint Gaussian \eqref{eq:joint}, $\vr$ is Gaussian
+with mean $\mathbf 0$. It is \emph{uncorrelated} with $\vb$,
+\begin{equation}
+    \cov(\vr, \vb)
+        = \Sigma_{ab} - \Sigma_{ab}\Sigma_{bb}^{-1}\Sigma_{bb}
+        = 0,
+\end{equation}
+and for jointly Gaussian vectors uncorrelated means independent. Its covariance is
+\begin{equation}
+    \cov(\vr)
+        = \Sigma_{aa}
+          - 2\,\Sigma_{ab}\Sigma_{bb}^{-1}\Sigma_{ba}
+          + \Sigma_{ab}\Sigma_{bb}^{-1}\Sigma_{bb}\Sigma_{bb}^{-1}\Sigma_{ba}
+        = \Sigma_{aa} - \Sigma_{ab}\Sigma_{bb}^{-1}\Sigma_{ba}.
+\end{equation}
+Rearranging \eqref{eq:residual},
+$\va = \vm_a + \Sigma_{ab}\Sigma_{bb}^{-1}(\vb - \vm_b) + \vr$. Conditioning on
+$\vb$ freezes the middle term, while $\vr$ -- independent of $\vb$ -- keeps its
+distribution. This gives the mean \eqref{eq:condmean} and covariance
+\eqref{eq:condcov}.
+\end{proof}
+
+Equation \eqref{eq:marginal} says marginalizing is \emph{free} -- ignore the
+blocks you do not care about. The conditional mean \eqref{eq:condmean} is the
+prior mean $\vm_a$ nudged by the observed discrepancy $\vb - \vm_b$, and the
+conditional covariance \eqref{eq:condcov} (a \emph{Schur complement}) is smaller
+than $\Sigma_{aa}$ -- observing $\vb$ can only reduce our uncertainty about
+$\va$.
+
+\emph{One dimension.} For two correlated scalars with correlation $\rho$, the
+conditional mean $\E[a \mid b] = \mu_a + \frac{\sigma_{ab}}{\sigma_b^2}(b -
+\mu_b)$ is exactly the least-squares regression line, and the conditional
+variance $\sigma_a^2 - \sigma_{ab}^2/\sigma_b^2 = \sigma_a^2(1 - \rho^2)$ shrinks
+by the factor $1 - \rho^2$: the more correlated $b$ is with $a$, the more it
+tells us.
 
 \printbibliography
 
