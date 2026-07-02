@@ -23,11 +23,20 @@
 \newtheorem{remark}{Remark}[section]
 \theoremstyle{definition}
 \newtheorem{funfact}{Fun fact}
+\crefname{funfact}{fun fact}{fun facts}
+\Crefname{funfact}{Fun fact}{Fun facts}
 
 % local notation (math_preamble already provides \vx \vy \cov \trp \vPsi \identity)
 \newcommand{\E}{\mathbb{E}}
 \newcommand{\veta}{\bm{\eta}}
 \newcommand{\Normal}{\mathcal{N}}
+\DeclareMathOperator{\rank}{rank}
+\DeclareMathOperator{\col}{col}
+
+% schematic matrix rectangles with dimension labels (cf. the linear algebra notes)
+\newcommand*{\clapp}[1]{\hbox to 0pt{\hss#1\hss}}
+\newcommand*{\subdims}[3]{\clapp{\raisebox{#1}[0pt][0pt]{$\scriptstyle(#2 \times #3)$}}}
+\setlength{\fboxrule}{1pt}
 
 \addbibresource{references.bib}
 
@@ -39,16 +48,16 @@
 \maketitle
 
 \begin{abstract}
-Notes on two classical linear-Gaussian latent variable models -- probabilistic
-PCA \parencite{Tipping1999-cv} and factor analysis -- with the Gaussian identities
+Notes on two classical linear-Gaussian latent variable models---probabilistic
+PCA \parencite{Tipping1999-cv} and factor analysis---with the Gaussian identities
 their derivations rely on. Throughout, $\vy \in \reals^m$ is the observed vector, $\vx \in \reals^d$
-the latent vector ($m \geq d$), and $C \in \reals^{m \times d}$ the loading
-matrix.
+the latent vector ($m \geq d$, typically $d \ll m$), and $C \in \reals^{m
+\times d}$ the loading matrix.
 \end{abstract}
 
 \paragraph{How to read these notes.}
 The sections are roughly self-contained, so skip any whose results you already
-know -- most readers can jump straight to probabilistic PCA
+know---most readers can jump straight to probabilistic PCA
 (\cref{sec:ppca}). The notation and Gaussian fun facts below are a quick
 reference to consult as needed; each fun fact comes with its one-dimensional
 special case for intuition. These notes complement the standard textbook
@@ -63,7 +72,7 @@ $\vx \in \reals^d$. Bold lowercase letters ($\vx, \vy, \veta$) are vectors,
 capital letters ($C, \Sigma$) are matrices, and $A\trp$ is the transpose of $A$.
 
 The star of these notes is the \emph{Gaussian} (a.k.a.\ \emph{normal})
-distribution -- the bell curve. In one dimension, a random number $x$ with mean
+distribution---the bell curve. In one dimension, a random number $x$ with mean
 $\mu$ and variance $\sigma^2$ has the familiar density
 \begin{equation}\label{eq:gauss1d}
     p(x) = \frac{1}{\sqrt{2\pi\sigma^2}}
@@ -84,14 +93,14 @@ with mean $\vm$ and covariance $\Sigma$'' as
 \end{equation}
 The curly $\Normal$ is just shorthand for \textbf{N}ormal (the distribution is
 named after Gauss); the ``$\sim$'' reads ``is distributed as.'' That is the only
-new symbol you need -- everything below is a statement about what happens to
+new symbol you need---everything below is a statement about what happens to
 $\vm$ and $\Sigma$.
 
 \section{Gaussian fun facts}\label{sec:facts}
 
 Both PPCA and factor analysis are \emph{linear-Gaussian}: the observation is a
 linear image of a Gaussian latent, plus independent Gaussian noise. Remarkably,
-two facts do all the work -- how a Gaussian survives an affine map, and how a
+two facts do all the work---how a Gaussian survives an affine map, and how a
 jointly Gaussian pair marginalizes and conditions. Gaussians are the friendly
 distribution: push them through linear algebra and they stay Gaussian.
 
@@ -138,7 +147,7 @@ $\E[\vx+\vz] = \vm_1 + \vm_2$, and by independence the cross terms vanish,
 
 \emph{One dimension.} Two independent bell curves add to a wider bell:
 $\Normal(\mu_1, \sigma_1^2)$ and $\Normal(\mu_2, \sigma_2^2)$ sum to
-$\Normal(\mu_1 + \mu_2,\; \sigma_1^2 + \sigma_2^2)$ -- variances add, so noise
+$\Normal(\mu_1 + \mu_2,\; \sigma_1^2 + \sigma_2^2)$---variances add, so noise
 piles up.
 
 Now suppose two vectors are Gaussian \emph{together}. Partition the stacked
@@ -197,16 +206,16 @@ and for jointly Gaussian vectors uncorrelated means independent. Its covariance 
 \end{equation}
 Rearranging \eqref{eq:residual},
 $\va = \vm_a + \Sigma_{ab}\Sigma_{bb}^{-1}(\vb - \vm_b) + \vr$. Conditioning on
-$\vb$ freezes the middle term, while $\vr$ -- independent of $\vb$ -- keeps its
+$\vb$ freezes the middle term, while $\vr$---independent of $\vb$---keeps its
 distribution. This gives the mean \eqref{eq:condmean} and covariance
 \eqref{eq:condcov}.
 \end{proof}
 
-Equation \eqref{eq:marginal} says marginalizing is \emph{free} -- ignore the
+Equation \eqref{eq:marginal} says marginalizing is \emph{free}---ignore the
 blocks you do not care about. The conditional mean \eqref{eq:condmean} is the
 prior mean $\vm_a$ nudged by the observed discrepancy $\vb - \vm_b$, and the
 conditional covariance \eqref{eq:condcov} (a \emph{Schur complement}) is smaller
-than $\Sigma_{aa}$ -- observing $\vb$ can only reduce our uncertainty about
+than $\Sigma_{aa}$---observing $\vb$ can only reduce our uncertainty about
 $\va$.
 
 \emph{One dimension.} For two correlated scalars with correlation $\rho$, the
@@ -215,6 +224,184 @@ conditional mean $\E[a \mid b] = \mu_a + \frac{\sigma_{ab}}{\sigma_b^2}(b -
 variance $\sigma_a^2 - \sigma_{ab}^2/\sigma_b^2 = \sigma_a^2(1 - \rho^2)$ shrinks
 by the factor $1 - \rho^2$: the more correlated $b$ is with $a$, the more it
 tells us.
+
+\section{Probabilistic PCA}\label{sec:ppca}
+
+Probabilistic PCA \parencite{Tipping1999-cv} explains the observed vector as a
+low-dimensional latent cause seen through a linear map, corrupted by isotropic
+noise. Assume the data has been centered (the sample mean subtracted), so all
+means are zero. The \emph{generative model} is
+\begin{align}
+    \vx &\sim \Normal(\mathbf 0, I_d), \label{eq:ppca-latent}\\
+    \vy &= C\vx + \veta, \qquad \veta \sim \Normal(\mathbf 0, \sigma^2 I_m),
+        \label{eq:ppca-obs}
+\end{align}
+with $\vx$ and $\veta$ independent. The latent $\vx \in \reals^d$ is a handful of
+hidden factors; the loading matrix $C \in \reals^{m\times d}$ maps them into the
+$m$ observed dimensions; and every observed coordinate gets the \emph{same}
+noise variance $\sigma^2$---the ``isotropic'' assumption that distinguishes
+PPCA from factor analysis later.
+
+Writing out the shapes makes the dimensionality reduction visible. The model
+only requires $m \geq d$, but the regime of interest is $d \ll m$: a handful of
+latent factors driving many observed coordinates. The loading $C$ is then tall
+and thin,
+\begin{equation}\label{eq:ppca-shapes}
+    \underbrace{\begin{bmatrix} y_1 \\ y_2 \\ \vdots \\ y_m \end{bmatrix}}_{m \times 1}
+    =
+    \underbrace{\begin{bmatrix}
+        C_{11} & \cdots & C_{1d} \\
+        C_{21} & \cdots & C_{2d} \\
+        \vdots & \ddots & \vdots \\
+        C_{m1} & \cdots & C_{md}
+    \end{bmatrix}}_{m \times d}
+    \underbrace{\begin{bmatrix} x_1 \\ \vdots \\ x_d \end{bmatrix}}_{d \times 1}
+    +
+    \underbrace{\begin{bmatrix} \eta_1 \\ \eta_2 \\ \vdots \\ \eta_m \end{bmatrix}}_{m \times 1} .
+\end{equation}
+Reading $C$ by its columns $C = [\,\vc_1 \;\cdots\; \vc_d\,]$, the model is
+$\vy = \sum_{k=1}^d x_k \vc_k + \veta$: each latent coordinate $x_k$ turns on a
+loading direction $\vc_k \in \reals^m$, and the observation is their weighted sum
+plus noise.
+
+\paragraph{What does $\vy$ look like?}
+Because $\vy$ is a linear image of the Gaussian $\vx$ plus independent Gaussian
+noise, our fun facts hand us its distribution immediately. It is zero-mean, and
+combining the affine map (\cref{fact:affine}) on $C\vx$ with the independent sum
+(\cref{fact:sum}) for the noise,
+\begin{equation}\label{eq:ppca-marginal}
+    \vy \sim \Normal\!\left(\mathbf 0,\; \underbrace{C C\trp + \sigma^2 I_m}_{\displaystyle \Sigma_{\vy}}\right).
+\end{equation}
+So PPCA models the data covariance as a low-rank part $C C\trp$ plus an isotropic
+floor $\sigma^2 I_m$. Writing $C = [\,\vc_1\ \cdots\ \vc_d\,]$ through its columns
+$\vc_k \in \reals^m$, the low-rank part is a sum of $d$ rank-one outer
+products---the tall $m \times d$ block $C$ times the wide $d \times m$ block
+$C\trp$,
+\begin{equation}\label{eq:ppca-lowrank}
+    C C\trp \quad=\quad
+    \framebox[0.9cm]{\raisebox{0pt}[1.0cm][1.0cm]{$C$}}
+    \;\;
+    \framebox[1.8cm]{\raisebox{0mm}[4.5mm][2.5mm]{$C\trp$}}
+    \quad=\quad \sum_{k=1}^d \vc_k \vc_k\trp ,
+\end{equation}
+one bump of shared variance per latent factor. Each $\vc_k \vc_k\trp$ is rank
+one, and summing the $d$ of them gives a rank-$d$ matrix ($\rank C C\trp = d$
+when the loading columns are linearly independent, and at most $d$ in general).
+The observation covariance is these few strong directions of shared variation
+riding on a uniform background of noise $\sigma^2 I_m$.
+
+\subsection{Inference: the posterior over the latent}
+
+Given an observation $\vy$, what latent factors likely produced it? We want
+$p(\vx \mid \vy)$. The pair $(\vx, \vy)$ is jointly Gaussian---both are linear
+functions of the independent Gaussians $\vx$ and $\veta$---so \cref{fact:cond}
+applies once we have the covariance blocks. From \eqref{eq:ppca-latent} and
+\eqref{eq:ppca-obs},
+\begin{equation}
+    \cov(\vx) = I_d, \qquad
+    \cov(\vy) = C C\trp + \sigma^2 I_m, \qquad
+    \cov(\vx, \vy) = \E[\vx(C\vx + \veta)\trp] = C\trp .
+\end{equation}
+Feeding these into the conditioning formula (\cref{fact:cond}, with $\va = \vx$
+and $\vb = \vy$),
+\begin{align}
+    \E[\vx \mid \vy] &= C\trp(C C\trp + \sigma^2 I_m)^{-1}\vy, \label{eq:ppca-postmean-m}\\
+    \cov(\vx \mid \vy) &= I_d - C\trp(C C\trp + \sigma^2 I_m)^{-1} C. \label{eq:ppca-postcov-m}
+\end{align}
+These invert an $m \times m$ matrix, but with $d \ll m$ we would rather invert
+something $d \times d$. The matrix inversion lemma (``push-through identity''),
+$(C C\trp + \sigma^2 I_m)^{-1} C = C\,(C\trp C + \sigma^2 I_d)^{-1}$, lets us do
+exactly that. Defining the $d \times d$ matrix
+\begin{equation}\label{eq:ppca-M}
+    M = C\trp C + \sigma^2 I_d,
+\end{equation}
+the posterior collapses to
+\begin{equation}\label{eq:ppca-posterior}
+    p(\vx \mid \vy) = \Normal\!\left(M^{-1} C\trp \vy,\; \sigma^2 M^{-1}\right).
+\end{equation}
+(The covariance follows from
+$I_d - C\trp(CC\trp+\sigma^2 I_m)^{-1}C = I_d - M^{-1} C\trp C = I_d - M^{-1}(M - \sigma^2 I_d) = \sigma^2 M^{-1}$,
+using $C\trp C = M - \sigma^2 I_d$.) Now the only inverse is the small $d \times d$
+matrix $M$. The posterior mean is a linear read-out of $\vy$---not the naive
+$C\trp\vy$, but shrunk through $M^{-1}$; as $\sigma^2 \to 0$ it approaches the
+least-squares projection $(C\trp C)^{-1}C\trp\vy$ onto the latent subspace.
+
+\subsection{Learning: maximum likelihood}
+
+The parameters $C$ and $\sigma^2$ are fit by maximizing the likelihood of the
+data $\{\vy_n\}_{n=1}^N$ under the marginal \eqref{eq:ppca-marginal}. Each
+$\vy_n \sim \Normal(\mathbf 0, \Sigma_{\vy})$ with $\Sigma_{\vy} = C C\trp +
+\sigma^2 I_m$, so the log-likelihood is
+\begin{equation}\label{eq:ppca-loglik}
+    \ell(C, \sigma^2)
+      = -\frac{N}{2}\Big[\,m \ln(2\pi) + \ln\det\Sigma_{\vy}
+        + \tr\!\big(\Sigma_{\vy}^{-1} S\big)\Big],
+    \qquad
+    S = \frac{1}{N}\sum_{n=1}^N \vy_n \vy_n\trp .
+\end{equation}
+It touches the data only through the sample covariance $S$---the very statistic
+classical PCA diagonalizes.
+
+Recall the \emph{eigendecomposition} of a symmetric positive-semidefinite matrix:
+$S$ can be written $S = U \Lambda U\trp$, where $U = [\,\vu_1\ \cdots\ \vu_m\,]$
+is orthogonal (its columns $\vu_i$ are orthonormal \emph{eigenvectors}, the
+principal directions) and $\Lambda = \diag(\lambda_1, \dots, \lambda_m)$ holds
+the \emph{eigenvalues}, ordered $\lambda_1 \geq \cdots \geq \lambda_m \geq 0$.
+Each $\lambda_i$ is the variance of the data along direction $\vu_i$. Collect the
+top $d$ into $U_d = [\,\vu_1\ \cdots\ \vu_d\,]$ (the $d$ highest-variance
+directions) and $\Lambda_d = \diag(\lambda_1, \dots, \lambda_d)$; this
+$U_d$ is exactly what PCA returns.
+
+Setting $\partial\ell/\partial C = 0$ has, remarkably, a closed-form global
+maximum \parencite{Tipping1999-cv}:
+\begin{equation}\label{eq:ppca-ML}
+    C_{\mathrm{ML}} = U_d\,(\Lambda_d - \sigma^2 I_d)^{1/2}\,R,
+\end{equation}
+with $U_d$ and $\Lambda_d$ the top-$d$ eigenvectors and eigenvalues of $S$ just
+defined, and $R$ any $d \times d$ orthogonal matrix. That $R$ is the rotation ambiguity we
+already saw: $C \mapsto CR$ leaves $C C\trp$, hence the likelihood, unchanged.
+The noise variance is the average of the \emph{discarded} eigenvalues,
+\begin{equation}\label{eq:ppca-sigmaML}
+    \sigma^2_{\mathrm{ML}} = \frac{1}{m - d}\sum_{j = d+1}^{m} \lambda_j ,
+\end{equation}
+i.e.\ the leftover variance PPCA cannot explain, spread uniformly. So PPCA
+recovers the principal subspace: the columns of $C_{\mathrm{ML}}$ span the
+top-$d$ eigenvectors of $S$---exactly PCA's directions---with the residual
+variance folded into $\sigma^2$. As $\sigma^2 \to 0$ the loadings collapse onto
+the scaled principal axes and PPCA reduces to classical PCA.
+
+\paragraph{PPCA is PCA, made probabilistic.}
+The two methods return the \emph{same subspace}. Classical PCA keeps the span of
+the top $d$ eigenvectors of $S$, namely $\col(U_d)$. The PPCA loading
+\eqref{eq:ppca-ML} is $U_d$ right-multiplied by $(\Lambda_d - \sigma^2 I_d)^{1/2}R$---a
+diagonal matrix times an orthogonal one, hence an invertible $d \times d$
+matrix (the retained $\lambda_1, \dots, \lambda_d$ exceed the average tail
+eigenvalue $\sigma^2$, so the square root is real). Right-multiplying by an
+invertible matrix never changes the column space, so
+\begin{equation}\label{eq:ppca-samespace}
+    \col(C_{\mathrm{ML}}) = \col(U_d) :
+\end{equation}
+the PPCA loadings span the principal subspace \emph{exactly}. The two methods
+differ only in how they coordinatize that subspace: PCA scales axis $k$ by
+$\sqrt{\lambda_k}$ and pins the orientation, whereas PPCA scales by
+$\sqrt{\lambda_k - \sigma^2}$ (shrinking each axis by the noise floor it strips
+off) and leaves the orientation free through $R$. As $\sigma^2 \to 0$ even the
+scalings coincide, and the posterior mean $\E[\vx \mid \vy]$ becomes the
+orthogonal projection of $\vy$ onto $\col(U_d)$---the PCA scores. In short, PPCA
+is a probabilistic model whose maximum-likelihood fit \emph{is} PCA: it recasts
+what PCA computes as inference in a linear-Gaussian latent variable model.
+
+\paragraph{Two caveats, and the road to factor analysis.}
+The equivalence cuts both ways, with a caveat in each direction. First, PCA is
+\emph{more general} than its probabilistic reading: as a variance-maximizing
+(equivalently, best least-squares subspace) procedure it can be run on data that
+are neither Gaussian nor generated by a linear model---PPCA is one probabilistic
+interpretation, not a prerequisite. Second, and pulling the other way, PPCA's
+isotropic noise $\sigma^2 I_m$ is a strong assumption: every observed coordinate is
+forced to carry the \emph{same} private noise variance. Real measurements rarely
+oblige---different sensors, neurons, or features have different noise scales.
+Relaxing $\sigma^2 I_m$ to a general diagonal noise covariance is exactly factor
+analysis, the subject of the next section.
 
 \printbibliography
 
