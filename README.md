@@ -14,25 +14,42 @@ For installation of conda follow the instructions here: https://docs.conda.io/pr
 ---
 ## Code setup:
 
-1. Clone or download this repo. \
-   Use this command to clone the repo along with all its submodules, ensuring you get the full project, including any nested dependencies: \
-   `git clone --recurse-submodules https://github.com/catniplab/latent_dynamics_workshop.git`
+1. Clone this repo **with submodules** (required for XFADS, neurofisherSNR, and NLB tools):
+   ```bash
+   git clone --recurse-submodules https://github.com/catniplab/latent_dynamics_workshop.git
+   cd latent_dynamics_workshop
+   ```
+   If you already cloned without submodules, initialize them with:
+   ```bash
+   git submodule update --init --recursive
+   ```
 
-2. Make a conda environment using the requirements.txt with 
-    - For Linux and MacOS use `conda env create -f env.yml`
-    - For Windows use `conda env create -f env_windows.yml`
+2. Create the conda environment (Linux, macOS, and Windows):
+   ```bash
+   conda env create -f env.yml
+   ```
 
-3. Activate the conda environment using `conda activate lvmworkshop`
+3. Activate the environment: `conda activate lvmworkshop`
 
-4. cd to the project main directory (`cd latent_dynamics_workshop`), after cloning the repo, and run the following command in the terminal to install [XFADS](https://github.com/catniplab/xfads/) (eXponential FAmily Dynamical Systems), [Dowling, Zhao, Park. 2024](https://arxiv.org/abs/2403.01371),  and its dependencies \
-   `pip install -e xfads/` \
-   (`xfads/` is the submodule folder that contains the `pyproject.toml` file and the `xfads` package folder)
+   The environment installs editable packages from `external/`:
+   - [XFADS](https://github.com/catniplab/xfads/) — [Dowling, Zhao, Park. 2024](https://arxiv.org/abs/2403.01371)
+   - [neurofisherSNR](https://github.com/catniplab/neurofisherSNR) — Fisher-information SNR bounds
+
+   If pip editable installs failed during env creation, run manually from the repo root:
+   ```bash
+   pip install -e external/xfads/ -e external/neurofisherSNR/
+   ```
 
 ## Datasets
 
 We will be focusing on two datasets – a toy dataset of spiking data with low dimensional dynamics governed by
 a simulated system and electrophysiological recordings from the motor cortex (M1) and dorsal premotor cortex (PMd) of a monkey during a delayed reaching task.
 The simulated system is a continuous attractor system with a ring topology in 2D - i.e., an abstract ring attractor system.
+
+Notebook 00 expects pre-generated Van der Pol data at `vanderpol/data/poisson_obs.h5`. Generate it with:
+```bash
+python code_pack/generate_vdp_data.py
+```
 
 ---
 ## Starting Jupyter Notebook or JupyterLab
