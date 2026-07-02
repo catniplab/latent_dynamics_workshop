@@ -709,6 +709,66 @@ $P_t = (I - K_tC)P_t^-(I - K_tC)\trp + K_t R K_t\trp$, which stays symmetric
 positive-\emph{semi}definite, or propagate a Cholesky square root of $P_t$. These change the
 arithmetic, not the estimate.
 
+\section{Optional: learning the dynamics (Ho--Kalman)}\label{sec:hokalman}
+
+\emph{Optional reading, tied to notebook~01.} The filter above assumed the system
+$(A, C, Q, R)$ was known. Where do those come from? One route is
+probabilistic---EM, exactly as for factor analysis. The other is a fast algebraic
+trick from control theory, \emph{subspace identification}; its classic form is the
+\emph{Ho--Kalman} algorithm \parencite{Katayama2005-jt}, sketched here. Work at
+stationarity, where the latent has settled to $\vx_t \sim \Normal(\mathbf 0,
+P_\infty)$ with $P_\infty = A P_\infty A\trp + Q$ (the discrete Lyapunov equation;
+notebook~01 writes the latent $\vz_t$).
+
+\paragraph{Covariances are Markov parameters.} Compute the output autocovariances
+$\Gamma_k = \E[\vy_{t+k}\vy_t\trp]$. Since $\vx_{t+k} = A^k\vx_t + (\text{future
+noise} \perp \vx_t)$ we have $\E[\vx_{t+k}\vx_t\trp] = A^k P_\infty$, so for $k \ge
+1$
+\begin{equation}\label{eq:hk-markov}
+  \Gamma_k = C A^{k} P_\infty C\trp = C A^{k-1} G, \qquad G := A P_\infty C\trp .
+\end{equation}
+The lagged covariances behave exactly like the impulse response (``Markov
+parameters'') of the deterministic system $(A, C, G)$, so the classical
+realization machinery applies.
+
+\paragraph{Hankel, then SVD.} Stack the $\Gamma_k$ ($k\ge1$) into a block-Hankel
+matrix whose $(i,j)$ block is $\Gamma_{i+j+1}$. By \eqref{eq:hk-markov} it
+\emph{factors} into an observability and a controllability matrix,
+\begin{equation}\label{eq:hk-factor}
+  H = \mathcal{O}\,\mathcal{K},
+  \qquad
+  \mathcal{O} = \begin{bmatrix} C \\ CA \\ CA^2 \\ \vdots \end{bmatrix},
+  \qquad
+  \mathcal{K} = \begin{bmatrix} G & AG & A^2 G & \cdots \end{bmatrix} .
+\end{equation}
+Each factor has only $d$ inner dimensions, so $\rank H \le d$: the latent
+dimension is the number of nonzero singular values of $H$---the low-rank story of
+PPCA, now on a Hankel of covariances. A truncated SVD $H \approx U_d \Sigma_d
+V_d\trp$ splits the two factors, $\mathcal{O} = U_d \Sigma_d^{1/2}$ and
+$\mathcal{K} = \Sigma_d^{1/2} V_d\trp$. (The split is unique only up to an
+invertible $T$, $\mathcal O \mapsto \mathcal O T$, $\mathcal K \mapsto
+T^{-1}\mathcal K$---the basis freedom of the latent coordinates, the rotation
+ambiguity of \cref{sec:rotation} again.)
+
+\paragraph{Read off the system.} The observation matrix is the first block row,
+$C = \mathcal{O}_{[1]}$. For $A$, use \emph{shift invariance}: the block rows of
+$\mathcal O$ obey $\mathcal{O}_{\downarrow} = \mathcal{O}_{\uparrow} A$, where
+$\mathcal{O}_{\uparrow}$ drops the last block row and $\mathcal{O}_{\downarrow}$
+the first (each block is the one above times $A$). Solving with the pseudoinverse,
+\begin{equation}\label{eq:hk-A}
+  A = \mathcal{O}_{\uparrow}^{\dagger}\, \mathcal{O}_{\downarrow} .
+\end{equation}
+Finally $G$ is the first block column of $\mathcal K$; $Q$ follows from the
+factorization, $P_\infty$ from the Lyapunov equation, and the sensor noise from
+$\Gamma_0 = C P_\infty C\trp + R$, i.e.\ $R = \Gamma_0 - C P_\infty C\trp$.
+
+\paragraph{Why bother.} One SVD, no iteration, and out comes a full linear
+dynamical system. But it only matches moments---it never touches the
+likelihood---so it is statistically less efficient than the EM/ML fit and can
+even return an unstable estimate. The usual practice: run Ho--Kalman for a fast,
+initialization-free guess, then polish it with EM. Notebook~01 fits both and
+compares the eigenvalues of the learned $A$.
+
 \printbibliography
 
 \end{document}
