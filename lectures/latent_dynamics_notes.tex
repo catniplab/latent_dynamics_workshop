@@ -41,6 +41,9 @@
 
 \addbibresource{references.bib}
 
+% override catniplab's default "manuscript in preparation" running header
+\setheadercenter{Latent variable models: PPCA and factor analysis}
+
 \title{Latent Dynamics: Lecture Notes}
 \author{I.~Memming Park}
 \date{\today}
@@ -387,8 +390,12 @@ differ only in how they coordinatize that subspace: PCA scales axis $k$ by
 $\sqrt{\lambda_k}$ and pins the orientation, whereas PPCA scales by
 $\sqrt{\lambda_k - \sigma^2}$ (shrinking each axis by the noise floor it strips
 off) and leaves the orientation free through $R$. As $\sigma^2 \to 0$ even the
-scalings coincide, and the posterior mean $\E[\vx \mid \vy]$ becomes the
-orthogonal projection of $\vy$ onto $\col(U_d)$---the PCA scores. In short, PPCA
+scalings coincide (in the PCA convention $R = I_d$): the \emph{reconstruction}
+$C\,\E[\vx \mid \vy] \to U_d U_d\trp \vy$ is exactly the orthogonal projection of
+$\vy$ onto the principal subspace $\col(U_d)$, while the posterior mean itself,
+$\E[\vx \mid \vy] \to \Lambda_d^{-1/2} U_d\trp \vy$, returns the
+principal-component scores $U_d\trp\vy$ (whitened by $\Lambda_d^{-1/2}$, the price
+of our unit-variance latent). In short, PPCA
 is a probabilistic model whose maximum-likelihood fit \emph{is} PCA: it recasts
 what PCA computes as inference in a linear-Gaussian latent variable model.
 
