@@ -192,3 +192,6 @@ vanderpol/data/*
 mc_maze/data/*
 code_pack/scratch.py
 
+# Claude Code local config (never publish to this public repo)
+.claude/
+
