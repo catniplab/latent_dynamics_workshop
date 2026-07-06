@@ -251,13 +251,18 @@ Rules, mirroring the notebook exercises:
 - **Harder exercises use `[optional stretch]`.** The non-stretch exercises alone
   must cover the section's active step.
 
-Build both PDFs from the one source (`cd lectures`):
+Build from `cd lectures`:
 
 ```
 make student     # latent_dynamics_notes.pdf            - solutions hidden
 make solutions   # latent_dynamics_notes_solutions.pdf  - solutions shown
-make             # both
+make exercise    # kalman_filter_exercise.pdf           - print-and-fill worksheet
+make             # all of the above
 ```
+
+Exercises and solutions render as printer-friendly `tcolorbox` boxes (light
+tint fills that stay legible in grayscale); the colors are defined in
+`math_preamble.tex`.
 
 PDFs are gitignored. **Compile and commit both PDFs only at a version
 release**, not on every edit.
