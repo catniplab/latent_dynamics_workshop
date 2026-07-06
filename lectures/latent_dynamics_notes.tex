@@ -334,6 +334,27 @@ matrix $M$. The posterior mean is a linear read-out of $\vy$---not the naive
 $C\trp\vy$, but shrunk through $M^{-1}$; as $\sigma^2 \to 0$ it approaches the
 least-squares projection $(C\trp C)^{-1}C\trp\vy$ onto the latent subspace.
 
+\begin{exercise}
+Using the posterior \eqref{eq:ppca-posterior}, show that as $\sigma^2 \to 0$ the
+posterior mean $M^{-1}C\trp\vy$ approaches the least-squares projection
+$(C\trp C)^{-1}C\trp\vy$ (assume $C$ has full column rank).
+\end{exercise}
+\begin{solution}
+As $\sigma^2 \to 0$, $M = C\trp C + \sigma^2 I_d \to C\trp C$, which is
+invertible when $C$ has full column rank; hence
+$M^{-1}C\trp\vy \to (C\trp C)^{-1}C\trp\vy$.
+\end{solution}
+
+\begin{exercise}[optional stretch]
+Show observing $\vy$ never increases uncertainty about $\vx$: the posterior
+covariance $\sigma^2 M^{-1}$ satisfies $I_d - \sigma^2 M^{-1} \succeq 0$.
+\end{exercise}
+\begin{solution}
+$I_d - \sigma^2 M^{-1} = M^{-1}(M - \sigma^2 I_d) = M^{-1} C\trp C$. Since $M$ and
+$C\trp C$ share eigenvectors ($M = C\trp C + \sigma^2 I_d$), the product is
+symmetric with nonnegative eigenvalues, so $M^{-1}C\trp C \succeq 0$.
+\end{solution}
+
 \subsection{Learning: maximum likelihood}
 
 The parameters $C$ and $\sigma^2$ are fit by maximizing the likelihood of the

@@ -48,3 +48,29 @@
 \newcommand{\vDelta}{\mathbf{\Delta}}
 \newcommand{\vPsi}{\mathbf{\Psi}}
 \newcommand{\vphi}{\bm{\phi}}
+
+% ---------------------------------------------------------------------------
+% Exercises and solutions: single source, student/instructor toggle.
+%   Student PDF (default): solution blocks are dropped.
+%   Instructor PDF: built with \def\SolutionsBuild{} prepended (see the
+%   Makefile `solutions` target). Do NOT hand-edit the toggle here.
+% ---------------------------------------------------------------------------
+\usepackage{comment}
+\newif\ifsolutions
+\ifdefined\SolutionsBuild\solutionstrue\fi
+\ifsolutions
+    \includecomment{solution}
+\else
+    \excludecomment{solution}
+\fi
+
+% Inline micro-exercise, numbered per section. Optional argument tags it, e.g.
+% \begin{exercise}[optional stretch] for the skippable harder tier.
+\newcounter{exercise}[section]
+\renewcommand{\theexercise}{\thesection.\arabic{exercise}}
+\newenvironment{exercise}[1][]{%
+    \refstepcounter{exercise}%
+    \par\smallskip\noindent\textbf{Exercise~\theexercise}%
+    \if\relax\detokenize{#1}\relax\else\ \textit{(#1)}\fi
+    \textbf{.}\enspace\ignorespaces
+}{\par\smallskip}

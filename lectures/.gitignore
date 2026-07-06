@@ -11,4 +11,5 @@
 *.run.xml
 *.synctex.gz
 *.toc
+*.cut
 build.log

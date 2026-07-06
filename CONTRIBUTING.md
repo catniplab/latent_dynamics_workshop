@@ -221,6 +221,47 @@ Keep notes in the repo alongside the notebooks so notation drift is caught in
 the same review. Same review checklist habits apply: one-sentence takeaway per
 section, shared notation, reminder-not-derivation, pointer to the notebook.
 
+### Exercises in the notes
+
+Single source, one toggle. Exercises live inline in the `.tex`; solutions sit
+right beside them but are hidden by default. The `\ifsolutions` machinery is in
+`math_preamble.tex`; do not hand-flip it.
+
+```latex
+\begin{exercise}
+Show that as $\sigma^2 \to 0$ the posterior mean approaches the least-squares
+projection.
+\end{exercise}
+\begin{solution}
+As $\sigma^2 \to 0$, $M \to C\trp C$, so $M^{-1}C\trp\vy \to (C\trp C)^{-1}C\trp\vy$.
+\end{solution}
+
+\begin{exercise}[optional stretch]   % harder tier, skippable
+...
+\end{exercise}
+```
+
+Rules, mirroring the notebook exercises:
+
+- **Inline, one idea each**, placed right where the concept is developed - not
+  batched at the end. The standalone `kalman_filter_exercise.tex` worksheet is
+  the exception, not the model.
+- **Solutions always present, hidden by default.** Every `exercise` gets a
+  `solution` right after it.
+- **Harder exercises use `[optional stretch]`.** The non-stretch exercises alone
+  must cover the section's active step.
+
+Build both PDFs from the one source (`cd lectures`):
+
+```
+make student     # latent_dynamics_notes.pdf            - solutions hidden
+make solutions   # latent_dynamics_notes_solutions.pdf  - solutions shown
+make             # both
+```
+
+PDFs are gitignored. **Compile and commit both PDFs only at a version
+release**, not on every edit.
+
 ## Review checklist
 
 Before merging a notebook, confirm:
