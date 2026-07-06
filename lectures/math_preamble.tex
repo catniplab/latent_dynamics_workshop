@@ -1,0 +1,50 @@
+% to be included in the preamble
+% use \input{math_preamble} in the preamble of the main document
+
+% math & font packages
+\usepackage{amssymb}
+\usepackage{mathtools} % \DeclarePairedDelimiter
+\usepackage{bm} % bold greek
+
+% bold vectors for each alphabet vx
+\usepackage{forloop}
+\newcommand{\defvec}[1]{\expandafter\newcommand\csname v#1\endcsname{{\mathbf{#1}}}}
+\newcounter{ct}
+\forLoop{1}{26}{ct}{
+    \edef\letter{\alph{ct}}
+    \expandafter\defvec\letter
+}
+
+% captial \vA
+\forLoop{1}{26}{ct}{
+    \edef\letter{\Alph{ct}}
+    \expandafter\defvec\letter
+}
+
+% math
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator*{\tr}{tr} % trace
+\DeclareMathOperator*{\var}{var}
+\DeclareMathOperator*{\cov}{cov}
+
+\DeclarePairedDelimiter{\abs}{\lvert}{\rvert}
+\DeclarePairedDelimiter{\norm}{\lVert}{\rVert}
+
+\newcommand{\dm}[1]{\ensuremath{\mathrm{d}{#1}}} % dx dy dz dmu
+%\newcommand{\RN}[2]{\frac{\dm{#1}}{\dm{#2}}} % (Radon-Nikodym) derivative
+\newcommand{\PD}[2]{\frac{\partial #1}{\partial #2}} % partial derivative
+
+\newcommand{\field}[1]{\ensuremath{\mathbb{#1}}}
+\newcommand{\reals}{\field{R}}
+\newcommand{\complex}{\field{C}}
+\newcommand{\integers}{\field{Z}}
+\newcommand{\naturalNumbers}{\field{N}}
+\newcommand{\trp}{{^\top}} % transpose
+\newcommand{\identity}{\ensuremath{\mathbb{I}}}
+\newcommand{\ones}{\ensuremath{\mathbf{1}}}
+\newcommand{\indicator}[1]{\mathbf{1}_{#1}} % indicator function
+\newcommand{\stateSpace}{\reals^n}
+\newcommand{\DF}{\nabla_{\vx}\vf} %\newcommand{\DF}{\mathcal{D}\vf}
+\newcommand{\vDelta}{\mathbf{\Delta}}
+\newcommand{\vPsi}{\mathbf{\Psi}}
+\newcommand{\vphi}{\bm{\phi}}

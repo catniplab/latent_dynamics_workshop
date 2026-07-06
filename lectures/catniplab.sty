@@ -1,0 +1,288 @@
+% catniplab.sty - Unified LaTeX style for lab manuscripts and preprints
+% Based on manuscript.tex and common patterns across lab documents
+%
+% Usage: \usepackage[<options>]{catniplab}
+%
+% Options:
+%   manuscript   - Tight margins (1.3cm), small font (8.2pt) for drafts (default)
+%   preprint     - Standard margins (2.5cm/3cm), normal font (10pt)
+%   lecture      - Lecture/worksheet style with exam-friendly margins
+%   a4paper      - A4 paper size (default)
+%   letterpaper  - US Letter paper size
+%   twoside      - Two-sided layout (default)
+%   oneside      - One-sided layout
+%   noheaders    - Disable fancy headers
+%   natbib       - Use natbib+bibtex instead of biblatex+biber
+%   nobib        - Disable bibliography package (for journals with own bib style)
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{catniplab}[2025/01/24 Memming Lab Manuscript Style]
+
+%% ========================================================================
+%% Package Options
+%% ========================================================================
+
+\newif\if@manuscript\@manuscripttrue
+\newif\if@preprint\@preprintfalse
+\newif\if@lecture\@lecturefalse
+\newif\if@afourpaper\@afourpapertrue
+\newif\if@twoside\@twosidetrue
+\newif\if@fancyheaders\@fancyheaderstrue
+\newif\if@usenatbib\@usenatbibfalse
+\newif\if@usebiblatex\@usebiblatextrue
+\newif\if@nobib\@nobibfalse
+
+\DeclareOption{manuscript}{\@manuscripttrue\@preprintfalse\@lecturefalse}
+\DeclareOption{preprint}{\@preprinttrue\@manuscriptfalse\@lecturefalse}
+\DeclareOption{lecture}{\@lecturetrue\@manuscriptfalse\@preprintfalse}
+\DeclareOption{a4paper}{\@afourpapertrue}
+\DeclareOption{letterpaper}{\@afourpaperfalse}
+\DeclareOption{twoside}{\@twosidetrue}
+\DeclareOption{oneside}{\@twosidefalse}
+\DeclareOption{noheaders}{\@fancyheadersfalse}
+\DeclareOption{natbib}{\@usenatbibtrue\@usebiblatexfalse}
+\DeclareOption{nobib}{\@nobibtrue\@usenatbibfalse\@usebiblatexfalse}
+
+\ProcessOptions\relax
+
+%% ========================================================================
+%% Geometry - Paper size and margins
+%% ========================================================================
+
+\RequirePackage{geometry}
+
+\if@manuscript
+  % Tight margins for manuscript drafts
+  \if@afourpaper
+    \geometry{a4paper, top=1.3cm, bottom=1.3cm, left=1.3cm, right=1.3cm}
+  \else
+    \geometry{letterpaper, top=1.3cm, bottom=1.3cm, left=1.3cm, right=1.3cm}
+  \fi
+\else\if@preprint
+  % Standard margins for preprints
+  \if@afourpaper
+    \geometry{a4paper, top=2.5cm, bottom=2.5cm, left=3cm, right=3cm}
+  \else
+    \geometry{letterpaper, top=2.5cm, bottom=2.5cm, left=3cm, right=3cm}
+  \fi
+\else\if@lecture
+  % Lecture/worksheet margins
+  \if@afourpaper
+    \geometry{a4paper, top=2cm, bottom=2cm, left=3cm, right=3cm}
+  \else
+    \geometry{letterpaper, top=2cm, bottom=2cm, left=3cm, right=3cm}
+  \fi
+\fi\fi\fi
+
+%% ========================================================================
+%% Typography - Fonts and text rendering
+%% ========================================================================
+
+\RequirePackage[T1]{fontenc}        % Proper hyphenation and text rendering
+\RequirePackage[default]{lato}       % Lato as the default font
+\RequirePackage{microtype}           % Improved typography (kerning, spacing)
+
+% Font size for manuscript style
+\if@manuscript
+  \renewcommand{\normalsize}{\fontsize{8.2pt}{10pt}\selectfont}
+  \normalsize
+\fi
+
+%% ========================================================================
+%% Graphics
+%% ========================================================================
+
+\RequirePackage{graphicx}
+\DeclareGraphicsExtensions{.pdf,.png,.jpg,.mps,.eps,.ps}
+\graphicspath{{figs/}{figures/}{.}}
+
+%% ========================================================================
+%% Colors
+%% ========================================================================
+
+\RequirePackage[table]{xcolor}
+
+% Standard colors for the lab
+\definecolor{darkblue}{rgb}{0.05,0.05,0.4}
+\definecolor{mpcolor}{rgb}{1, 0.1, 0.59}         % Memming pink for TODOs
+\definecolor{c:adjointidx}{rgb}{0.15,0.55,0.7}   % For adjoint index notation
+\definecolor{c:time}{rgb}{0.50,0.12,0.7}         % For time notation
+
+%% ========================================================================
+%% Hyperlinks
+%% ========================================================================
+
+\RequirePackage{hyperref}
+\hypersetup{
+    colorlinks = true,
+    citecolor = darkblue,
+    linkcolor = darkblue,
+    urlcolor = darkblue
+}
+\RequirePackage{url}
+
+%% ========================================================================
+%% Bibliography
+%% ========================================================================
+
+% Option 1: biblatex + biber (default)
+%   In document: \addbibresource{refs.bib}, \printbibliography
+% Option 2: natbib + bibtex
+%   In document: \bibliographystyle{...}, \bibliography{refs}
+
+\if@usenatbib
+  \RequirePackage[numbers,sort&compress,super,comma]{natbib}
+\fi
+
+\if@usebiblatex
+  \RequirePackage[backend=biber,style=nature,sorting=none,url=false,date=year]{biblatex}
+\fi
+
+%% ========================================================================
+%% Tables
+%% ========================================================================
+
+\RequirePackage{booktabs}   % Professional-quality tables (\toprule, \midrule, \bottomrule)
+\RequirePackage{multirow}   % Multi-row cells in tables
+
+%% ========================================================================
+%% Lists
+%% ========================================================================
+
+\RequirePackage{enumitem}   % Customizable lists
+
+%% ========================================================================
+%% Headers and Footers
+%% ========================================================================
+
+\if@fancyheaders
+  \RequirePackage{fancyhdr}
+  \RequirePackage{titling}
+
+  \pagestyle{fancy}
+
+  % Horizontal line settings
+  \renewcommand{\headrulewidth}{2pt}
+  \renewcommand{\footrulewidth}{1pt}
+
+  % Default header/footer setup (can be overridden in document)
+  \fancyhead{}
+  \fancyhead[C]{\emph{manuscript in preparation}}
+  \fancyfoot{}
+  \fancyfoot[C]{\thepage}
+
+  % Title setup with affiliations
+  \pretitle{\begin{center}\LARGE}
+  \posttitle{\end{center}}
+  \preauthor{\begin{center}\large \lineskip 0.5em}
+  \postauthor{\par\end{center}}
+\fi
+
+%% ========================================================================
+%% Captions
+%% ========================================================================
+
+\RequirePackage{caption}
+
+\if@manuscript
+  % Small caption font for manuscript style
+  \DeclareCaptionFont{sevenpt}{\fontsize{7pt}{8.5pt}\selectfont}
+  \captionsetup[figure]{font=sevenpt}
+  \captionsetup[table]{font=sevenpt}
+\fi
+
+%% ========================================================================
+%% Section Formatting
+%% ========================================================================
+
+\RequirePackage[compact]{titlesec}
+\titlespacing*{\section}{0pt}{4pt}{0pt}
+\titlespacing*{\subsection}{0pt}{4pt}{0pt}
+\titlespacing*{\subsubsection}{0pt}{4pt}{0pt}
+
+%% ========================================================================
+%% Boxes (tcolorbox)
+%% ========================================================================
+
+\RequirePackage[most]{tcolorbox}
+
+% Standard explanation box (numbered)
+\newtcolorbox[auto counter,number format=\Alph]{explainbox}[2][]{%
+    colframe=gray!60!black,
+    colback=gray!5,
+    coltitle=white,
+    fonttitle=\bfseries,
+    sharp corners=south,
+    rounded corners=southeast,
+    boxrule=0.8pt,
+    drop shadow=black!20,
+    title=Box~\thetcbcounter: #2, #1,
+    before upper={\setlength{\parindent}{1.5em}},
+}
+
+% Simple highlight box (unnumbered)
+\newtcolorbox{highlightbox}[1][]{%
+    colframe=darkblue!75!black,
+    colback=darkblue!5,
+    boxrule=0.5pt,
+    #1
+}
+
+% Warning/important box
+\newtcolorbox{warningbox}[1][]{%
+    colframe=red!75!black,
+    colback=red!5,
+    boxrule=0.5pt,
+    #1
+}
+
+%% ========================================================================
+%% Utility Commands
+%% ========================================================================
+
+% TODO marker
+\newcommand{\TODO}[1]{(\textbf{TODO:\ }\textcolor{mpcolor}{#1})}
+
+% Equation reference with "Eq." prefix
+\RequirePackage{letltxmacro}
+\LetLtxMacro{\originaleqref}{\eqref}
+\renewcommand{\eqref}{Eq.~\originaleqref}
+
+%% ========================================================================
+%% Style Presets
+%% ========================================================================
+
+% Suppress section numbering (Nature/NatComm style)
+\newcommand{\suppresssectionnumbering}{%
+  \setcounter{secnumdepth}{0}%
+}
+
+% Setup for supplementary materials
+\newcommand{\beginappendix}{%
+  \appendix
+  \setcounter{section}{0}
+  \setcounter{equation}{0}
+  \setcounter{figure}{0}
+  \setcounter{table}{0}
+  \renewcommand{\thesection}{S\arabic{section}}
+  \renewcommand{\thefigure}{S\arabic{figure}}
+  \renewcommand{\thetable}{S\arabic{table}}
+  \renewcommand{\theequation}{S\arabic{equation}}
+}
+
+% Affiliation setup helper (for use with titling package)
+\newcommand{\setaffiliations}[1]{%
+  \postauthor{\par\end{center}%
+    \begin{center}\textit{#1}\end{center}}%
+}
+
+% Header text helpers
+\newcommand{\setheaderleft}[1]{\fancyhead[L]{#1}}
+\newcommand{\setheadercenter}[1]{\fancyhead[C]{\emph{#1}}}
+\newcommand{\setheaderright}[1]{\fancyhead[R]{#1}}
+
+%% ========================================================================
+%% End of package
+%% ========================================================================
+
+\endinput

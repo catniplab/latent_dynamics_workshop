@@ -1,0 +1,529 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.82in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{xurl}
+\usepackage[hidelinks]{hyperref}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.45em}
+\setlist[itemize]{topsep=0.2em,itemsep=0.15em,leftmargin=1.2em}
+\setlist[enumerate]{topsep=0.2em,itemsep=0.35em,leftmargin=1.5em}
+
+\newcommand{\blankline}{\vspace{0.9em}\hrule\vspace{0.9em}}
+\newcommand{\shortblank}{\rule{0.35\linewidth}{0.4pt}}
+\newcommand{\stepbox}[1]{%
+  \vspace{0.25em}
+  \fcolorbox{black!35}{black!3}{%
+    \begin{minipage}{0.96\linewidth}
+      #1
+    \end{minipage}
+  }
+}
+
+\begin{document}
+
+\begin{center}
+{\Large \textbf{Deriving the 1D Kalman Filter}}\\
+\end{center}
+
+
+\section*{1. Intuition: hidden state and noisy observations}
+
+Suppose a sensor measures the position of an object on a line. The sensor is
+noisy, so the raw readings $y_t$ jump around. The sensor noise variance is $R$.
+
+\begin{enumerate}
+  \item Suppose $R=4$. If you only think about the next raw observation $y_5$,
+  what noise variance do you expect for this next sensor reading?
+
+  \vspace{3em}
+
+  \item Suppose we have strong reason to believe the object is stationary. Then
+  previous readings can tell us where the fixed position is likely to be. Let
+  $\mu_T$ be the average of the first $T$ readings:
+  \[
+  \mu_T = \frac{1}{T}\sum_{t=1}^T y_t.
+  \]
+  If the readings are independent and each has noise variance $R$, what is
+  $P_T=\operatorname{Var}(\mu_T)$?
+
+  (Note that this is different from the sample variance of the four readings)
+
+  \vspace{3em}
+
+  \item Suppose
+  \[
+  y_1=7,\qquad y_2=9,\qquad y_3=8,\qquad y_4=8.
+  \]
+  Compute the belief mean and variance after four readings, using $R=4$.
+  \[
+  \mu_4 =
+  \hspace{5cm}
+  P_4 =
+  \hspace{5cm}
+  \]
+
+  \vspace{1.4em}
+
+  \item A new reading arrives: $y_5=10$. Update the average without recomputing
+  the whole sum:
+  \[
+  \mu_5
+  =
+  \mu_4+\alpha(y_5-\mu_4).
+  \]
+  What is $\alpha$? What is $\mu_5$?
+  \[
+  \alpha =
+  \hspace{5cm}
+  \mu_5 =
+  \hspace{5cm}
+  \]
+
+  \vspace{1.4em}
+
+  \item Suppose we have observed $N$ readings. We can compute the average
+  $\mu_N$ and its variance. Now a new reading arrives: $y_{N+1}$. How should we
+  update the average? How is the update weight $\alpha$ related to the variance
+  of the average and the variance of the sensor noise?
+
+  \vspace{3em}
+\end{enumerate}
+
+\newpage
+
+\section*{2. Intuition: choosing the gain from uncertainty}
+Now write the same idea as a belief update. Before seeing a new observation, suppose
+\[
+  x\sim \mathcal{N}(\mu_b,P_b),
+  \qquad
+  y\mid x\sim \mathcal{N}(x,R)
+\]
+A natural update is:
+\[
+  \mu_{\text{new}}=\mu_b+K(y-\mu_b) \qquad\qquad K=\frac{P_b}{P_b+R}
+\]
+
+\begin{enumerate}
+  \item Check the limiting cases.
+  \[
+    R\to 0
+    \quad\Rightarrow\quad
+    K\to
+    \hspace{3cm}
+    R\to \infty
+    \quad\Rightarrow\quad
+    K\to
+    \hspace{3cm}
+  \]
+
+  \vspace{1.4em}
+
+  \[
+    P_b\to 0
+    \quad\Rightarrow\quad
+    K\to
+    \hspace{3cm}
+    P_b\to \infty
+    \quad\Rightarrow\quad
+    K\to
+    \hspace{3cm}
+  \]
+
+  \vspace{1.8em}
+
+  \item Derive the variance update from the mean update.
+
+  \vspace{5cm}
+
+  \item Suppose:
+  \[
+  \mu_b = 8, \qquad P_b = 4, \qquad y = 10, \qquad R = 1.
+  \]
+  Is the new mean closer to $8$ or to $10$? Explain using uncertainty.
+
+  \vspace{2.0em}
+
+  Compute $K$, $\mu_{\text{new}}$, and $P_{\text{new}}$.
+  \[
+  K =
+  \hspace{3cm}
+  \mu_{\text{new}} =
+  \hspace{3cm}
+  P_{\text{new}} =
+  \hspace{3cm}
+  \]
+
+  \vspace{2.0em}
+
+\end{enumerate}
+
+\newpage
+
+\section*{3. Bayesian interpretation and the MAP solution}
+
+Now we give the same update a Bayesian reading. The hidden position $x$ is not
+observed directly. Before seeing the new measurement, our belief is the
+\textbf{prior}:
+\[
+x \sim \mathcal{N}(\mu_b,P_b),
+\qquad
+p(x)\propto
+\exp\left[-\frac{1}{2}\frac{(x-\mu_b)^2}{P_b}\right].
+\]
+
+The sensor model says that, if the true position were $x$, the measurement
+would be centered at $x$ with noise variance $R$. This is the
+\textbf{likelihood}:
+\[
+y\mid x \sim \mathcal{N}(x,R),
+\qquad
+p(y\mid x)\propto
+\exp\left[-\frac{1}{2}\frac{(y-x)^2}{R}\right].
+\]
+
+Bayes' rule says to multiply the likelihood by the prior:
+\[
+p(x \mid y)
+\propto
+p(y\mid x)p(x)
+\propto
+\exp\left[
+-\frac{1}{2}
+\left(
+\frac{(x-\mu_b)^2}{P_b}
++
+\frac{(y-x)^2}{R}
+\right)
+\right].
+\]
+
+Define the quadratic cost:
+\[
+J(x)=
+\frac{(x-\mu_b)^2}{P_b}
++
+\frac{(y-x)^2}{R}.
+\]
+The \textbf{MAP(Maximum A Posteriori) estimate} is the value of $x$ that makes the posterior largest:
+\[
+x_{\mathrm{MAP}}=\arg\max_x p(x\mid y).
+\]
+Because $p(x\mid y)\propto \exp[-J(x)/2]$, maximizing the posterior is the same
+as minimizing this quadratic cost:
+\[
+x_{\mathrm{MAP}}=\arg\min_x J(x).
+\]
+
+\begin{enumerate}
+  \item Find the MAP estimate by differentiating $J(x)$ and setting the derivative to zero. With $K=P_b/(P_b+R)$, show that this is the same mean update as before:
+  \[
+  x_{\mathrm{MAP}}
+  =
+  \mu_b+K(y-\mu_b).
+  \]
+
+  \vspace{5.0cm}
+
+  \item The posterior is Gaussian. For a Gaussian posterior, the MAP estimate
+  and the posterior mean are the same, so $x_{\mathrm{MAP}}=\mu_{\text{new}}$.
+  The variance comes from the curvature of $J(x)$:
+  \[
+  \frac{1}{P_{\text{new}}}
+  =
+  \hspace{5em}
+  \qquad\Rightarrow\qquad
+  P_{\text{new}}
+  =
+  \hspace{5em}
+  \]
+
+  Fill in the gain form:
+  \[
+  P_{\text{new}}
+  =
+  (1-K)P_b.
+  \]
+
+  \vspace{2.0em}
+\end{enumerate}
+
+\stepbox{
+\textbf{Bayesian interpretation.}
+For Gaussian belief and Gaussian sensor noise, the MAP solution gives exactly
+the same gain update:
+\[
+K=\frac{P_b}{P_b+R},
+\qquad
+\mu_{\text{new}}=\mu_b+K(y-\mu_b),
+\qquad
+P_{\text{new}}=(1-K)P_b.
+\]
+The number $K$ tells how strongly the observation pulls the belief.
+}
+
+\newpage
+
+\section*{4. Moving target: the 1D Kalman filter}
+
+A Kalman filter repeats two steps: first move the belief forward with a model,
+then update it using the new measurement. For a simple moving target:
+\[
+x_t = ax_{t-1}+e_t,
+\qquad
+e_t\sim\mathcal{N}(0,Q),
+\qquad
+y_t=x_t+v_t,
+\qquad
+v_t\sim\mathcal{N}(0,R).
+\]
+
+Before using $y_t$, the model gives:
+\[
+\mu_t^m=a\mu_{t-1},
+\qquad
+P_t^m=a^2P_{t-1}+Q.
+\]
+
+Then reuse the single-measurement update from Section 2:
+\[
+K_t=\frac{P_t^m}{P_t^m+R},
+\qquad
+\mu_t=\mu_t^m+K_t(y_t-\mu_t^m),
+\qquad
+P_t=(1-K_t)P_t^m.
+\]
+
+\textbf{Exercise.} Use
+\[
+\mu_0=0,\qquad P_0=2,\qquad a=1,\qquad Q=2,\qquad R=4,
+\]
+\[
+y_1=2,\qquad y_2=2,\qquad y_3=5.
+\]
+
+For each row, first compute the model-based belief $(\mu_t^m,P_t^m)$, then
+update it with the measurement $y_t$. Keep three decimal places if needed.
+
+{\renewcommand{\arraystretch}{2.25}
+\[
+\begin{array}{c|c|c|c|c|c|c}
+t & y_t & \mu_t^m & P_t^m & K_t & \mu_t & P_t \\
+\hline
+1 & 2 & \hspace{4.2em} & \hspace{4.2em} & \hspace{4.2em} &
+\hspace{4.2em} & \hspace{4.2em} \\
+2 & 2 & & & & & \\
+3 & 5 & & & & &
+\end{array}
+\]
+}
+
+\vspace{2.0em}
+
+Show the update for time step 1:
+\[
+\mu_1^m=
+\qquad
+P_1^m=
+\qquad
+K_1=
+\]
+\[
+\mu_1=
+\qquad
+P_1=
+\]
+
+\vspace{2.5em}
+
+\textbf{Interpret the result.}
+
+\begin{enumerate}
+  \item At time step 3, the sensor observation jumps to $5$. Does the belief
+  jump all the way to $5$? Why or why not?
+
+  \blankline
+  \blankline
+
+  \item Suppose the sensor becomes much noisier, so $R=16$ instead of $R=4$.
+  Would the measurement weight become larger or smaller? What would that do to
+  the new mean?
+
+  \blankline
+  \blankline
+
+  \item In one sentence, answer the main filtering question: how does the filter
+  reconcile disagreement between observation and belief?
+
+  \blankline
+  \blankline
+\end{enumerate}
+
+\newpage
+
+\section*{5. Optional harder extension: two-dimensional position}
+
+Now the hidden state is a vector:
+\[
+\mathbf{x}_t =
+\begin{bmatrix}
+x_t \\
+y_t
+\end{bmatrix}.
+\]
+
+Use the vector version of the moving-target model, where the sensor measures
+both coordinates directly:
+\[
+\mathbf{x}_t=A\mathbf{x}_{t-1}+\mathbf{e}_t,
+\qquad
+\mathbf{z}_t=\mathbf{x}_t+\mathbf{v}_t.
+\]
+
+The two-dimensional equations are the vector version of the 1D belief update:
+\[
+\boldsymbol{\mu}_t^m = A\boldsymbol{\mu}_{t-1},
+\qquad
+P_t^m = AP_{t-1}A^\top+Q,
+\]
+\[
+\mathbf{d}_t = \mathbf{z}_t-\boldsymbol{\mu}_t^m,
+\qquad
+S_t = P_t^m + R,
+\qquad
+K_t = P_t^m S_t^{-1},
+\]
+\[
+\boldsymbol{\mu}_t =
+\boldsymbol{\mu}_t^m + K_t\mathbf{d}_t,
+\qquad
+P_t = (I-K_t)P_t^m.
+\]
+
+Use:
+\[
+\boldsymbol{\mu}_0 =
+\begin{bmatrix}
+0 \\
+0
+\end{bmatrix},
+\quad
+P_0 =
+\begin{bmatrix}
+2 & 0 \\
+0 & 2
+\end{bmatrix},
+\quad
+A =
+\begin{bmatrix}
+1 & 0 \\
+0 & 1
+\end{bmatrix},
+\]
+\[
+Q =
+\begin{bmatrix}
+1 & 0 \\
+0 & 1
+\end{bmatrix},
+\quad
+R =
+\begin{bmatrix}
+4 & 0 \\
+0 & 1
+\end{bmatrix},
+\quad
+\mathbf{z}_1 =
+\begin{bmatrix}
+2 \\
+-1
+\end{bmatrix}.
+\]
+
+\textbf{Important simplification:} all matrices here are diagonal. That means
+the horizontal and vertical coordinates can be computed like two separate 1D
+filters, but written in vector form.
+
+\begin{enumerate}
+  \item Carry the belief through the motion model.
+  \[
+  \boldsymbol{\mu}_1^m =
+  \qquad\qquad
+  P_1^m =
+  \]
+
+  \vspace{2.5em}
+
+  \item Compute the discrepancy vector.
+  \[
+  \mathbf{d}_1 = \mathbf{z}_1-\boldsymbol{\mu}_1^m =
+  \]
+
+  \vspace{2.0em}
+
+  \item Compute $S_1=P_1^m+R$ and then $S_1^{-1}$.
+  \[
+  S_1 =
+  \qquad\qquad
+  S_1^{-1} =
+  \]
+
+  \vspace{2.5em}
+
+  \item Compute the measurement-weight matrix.
+  \[
+  K_1 = P_1^mS_1^{-1} =
+  \]
+
+  \vspace{2.5em}
+
+  \item Compute the new mean and covariance.
+  \[
+  \boldsymbol{\mu}_1 =
+  \boldsymbol{\mu}_1^m + K_1\mathbf{d}_1 =
+  \]
+
+  \vspace{2.0em}
+
+  \[
+  P_1 = (I-K_1)P_1^m =
+  \]
+
+  \vspace{2.5em}
+
+  \item Which coordinate trusts the observation more: horizontal or vertical?
+  How can you tell from $K_1$?
+
+  \blankline
+  \blankline
+\end{enumerate}
+
+\newpage
+
+\section*{Reference notes used to design this exercise}
+
+These references are useful for instructors who want to connect this scalar
+exercise and the optional 2D extension to standard Kalman filter notation.
+
+\begin{itemize}
+  \item MIT, Tony Lacey, \emph{Tutorial: The Kalman Filter}.\\
+  \url{https://web.mit.edu/kirtley/kirtley/binlustuff/literature/control/Kalman%20filter.pdf}
+
+  \item Cornell University CS4758, \emph{Kalman Filter Applications: Tank Filling}.\\
+  \url{https://www.cs.cornell.edu/courses/cs4758/2012sp/materials/MI63slides.pdf}
+
+  \item Columbia University, Max Welling, \emph{The Kalman Filter}.\\
+  \url{https://sites.stat.columbia.edu/liam/teaching/neurostat-spr12/papers/hmm/KF-welling-notes.pdf}
+
+  \item Carnegie Mellon University 16-831, \emph{Kalman Filtering}.\\
+  \url{https://www.cs.cmu.edu/~16831-f14/notes/F11/16831_lecture17_mklingen.pdf}
+
+  \item University of Washington AMath 482/582, \emph{Lecture 26: Multivariate Kalman Filtering}.\\
+  \url{https://atmos.washington.edu/~breth/classes/AS552/lect/lect26.pdf}
+\end{itemize}
+
+\end{document}
