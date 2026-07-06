@@ -49,40 +49,5 @@
 \newcommand{\vPsi}{\mathbf{\Psi}}
 \newcommand{\vphi}{\bm{\phi}}
 
-% ---------------------------------------------------------------------------
-% Exercises and solutions: single source, student/instructor toggle.
-%   Student PDF (default): solution boxes are dropped entirely.
-%   Instructor PDF: built with \def\SolutionsBuild{} prepended (see the
-%   Makefile `solutions` target). Do NOT hand-edit the toggle here.
-% Boxes are printer-friendly: light tint fills (<= 12%) that stay legible in
-% grayscale. Colors are defined here so the preamble is self-contained.
-% ---------------------------------------------------------------------------
-\usepackage{comment}
-\usepackage[most]{tcolorbox}
-\definecolor{solnframe}{rgb}{0.10,0.25,0.55} % calm blue for solution boxes
-\newif\ifsolutions
-\ifdefined\SolutionsBuild\solutionstrue\fi
-
-% Inline micro-exercise, numbered per section, shown in both builds. Optional
-% argument tags it, e.g. \begin{exercise}[optional stretch] for the harder tier.
-\newtcolorbox[auto counter, number within=section]{exercise}[1][]{%
-    breakable, enhanced, sharp corners,
-    colback=black!3, colframe=black!55, boxrule=0.5pt,
-    left=6pt, right=6pt, top=3pt, bottom=3pt,
-    coltitle=black, colbacktitle=black!10, fonttitle=\bfseries,
-    title={Exercise~\thetcbcounter\if\relax\detokenize{#1}\relax\else\ (#1)\fi},
-}
-
-% Solution box, instructor build only. In the student build the environment and
-% its contents are dropped by the comment package.
-\ifsolutions
-    \newtcolorbox{solution}{%
-        breakable, enhanced, sharp corners,
-        colback=solnframe!5, colframe=solnframe!70, boxrule=0.5pt,
-        left=6pt, right=6pt, top=3pt, bottom=3pt,
-        coltitle=solnframe!85!black, colbacktitle=solnframe!12,
-        fonttitle=\bfseries, title={Solution},
-    }
-\else
-    \excludecomment{solution}
-\fi
+% Exercises and solutions: shared machinery (toggle + printer-friendly boxes).
+\input{exercise_setup}

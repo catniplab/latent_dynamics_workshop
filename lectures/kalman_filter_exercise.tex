@@ -8,6 +8,10 @@
 \usepackage{xurl}
 \usepackage[hidelinks]{hyperref}
 
+% shared solution-box machinery (\ifsolutions toggle); instructor build via
+% \def\SolutionsBuild{} - see the Makefile exercise_solutions target
+\input{exercise_setup}
+
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{0.45em}
 \setlist[itemize]{topsep=0.2em,itemsep=0.15em,leftmargin=1.2em}
@@ -42,6 +46,12 @@ noisy, so the raw readings $y_t$ jump around. The sensor noise variance is $R$.
 
   \vspace{3em}
 
+  \begin{solution}
+  Each raw reading carries the same sensor noise, so
+  $\operatorname{Var}(y_5)=R=4$. Seeing past readings does not change the noise
+  of the \emph{next} raw measurement.
+  \end{solution}
+
   \item Suppose we have strong reason to believe the object is stationary. Then
   previous readings can tell us where the fixed position is likely to be. Let
   $\mu_T$ be the average of the first $T$ readings:
@@ -54,6 +64,16 @@ noisy, so the raw readings $y_t$ jump around. The sensor noise variance is $R$.
   (Note that this is different from the sample variance of the four readings)
 
   \vspace{3em}
+
+  \begin{solution}
+  The average of $T$ independent readings, each with variance $R$, has
+  \[
+  P_T=\operatorname{Var}(\mu_T)
+     =\frac{1}{T^2}\sum_{t=1}^T \operatorname{Var}(y_t)
+     =\frac{1}{T^2}\,(T R)=\frac{R}{T}.
+  \]
+  More readings shrink the variance of the estimate by $1/T$.
+  \end{solution}
 
   \item Suppose
   \[
@@ -68,6 +88,11 @@ noisy, so the raw readings $y_t$ jump around. The sensor noise variance is $R$.
   \]
 
   \vspace{1.4em}
+
+  \begin{solution}
+  $\mu_4=\tfrac{1}{4}(7+9+8+8)=\tfrac{32}{4}=8$, and
+  $P_4=\dfrac{R}{4}=\dfrac{4}{4}=1$.
+  \end{solution}
 
   \item A new reading arrives: $y_5=10$. Update the average without recomputing
   the whole sum:
@@ -86,12 +111,31 @@ noisy, so the raw readings $y_t$ jump around. The sensor noise variance is $R$.
 
   \vspace{1.4em}
 
+  \begin{solution}
+  The running average of five readings weights the new one by
+  $\alpha=\tfrac{1}{5}$, so
+  $\mu_5=8+\tfrac{1}{5}(10-8)=8.4$ (check: $\tfrac{32+10}{5}=8.4$). Equivalently
+  $\alpha=\dfrac{P_4}{P_4+R}=\dfrac{1}{1+4}=\tfrac{1}{5}$: the gain form already.
+  \end{solution}
+
   \item Suppose we have observed $N$ readings. We can compute the average
   $\mu_N$ and its variance. Now a new reading arrives: $y_{N+1}$. How should we
   update the average? How is the update weight $\alpha$ related to the variance
   of the average and the variance of the sensor noise?
 
   \vspace{3em}
+
+  \begin{solution}
+  With $P_N=R/N$ the belief variance after $N$ readings,
+  \[
+  \mu_{N+1}=\mu_N+\alpha\,(y_{N+1}-\mu_N),
+  \qquad
+  \alpha=\frac{1}{N+1}=\frac{P_N}{P_N+R}.
+  \]
+  The weight is the ratio of the belief variance to belief-plus-sensor
+  variance: a confident belief (small $P_N$) gives a small $\alpha$ and barely
+  moves; an uncertain belief (large $P_N$) trusts the new reading.
+  \end{solution}
 \end{enumerate}
 
 \newpage
@@ -136,9 +180,30 @@ A natural update is:
 
   \vspace{1.8em}
 
+  \begin{solution}
+  A perfect sensor or a hopeless prior means trust the data
+  ($R\to0\Rightarrow K\to1$, $P_b\to\infty\Rightarrow K\to1$); a hopeless sensor
+  or a perfect prior means ignore the data
+  ($R\to\infty\Rightarrow K\to0$, $P_b\to0\Rightarrow K\to0$).
+  \end{solution}
+
   \item Derive the variance update from the mean update.
 
   \vspace{5cm}
+
+  \begin{solution}
+  Combining two independent Gaussian sources of information adds precisions
+  (inverse variances):
+  \[
+  \frac{1}{P_{\text{new}}}=\frac{1}{P_b}+\frac{1}{R}
+  \quad\Rightarrow\quad
+  P_{\text{new}}=\frac{P_b R}{P_b+R}.
+  \]
+  This equals the gain form: with $K=\dfrac{P_b}{P_b+R}$,
+  \[
+  (1-K)P_b=\Bigl(\frac{R}{P_b+R}\Bigr)P_b=\frac{P_b R}{P_b+R}=P_{\text{new}}.
+  \]
+  \end{solution}
 
   \item Suppose:
   \[
@@ -159,6 +224,16 @@ A natural update is:
   \]
 
   \vspace{2.0em}
+
+  \begin{solution}
+  The belief ($P_b=4$) is more uncertain than the sensor ($R=1$), so the update
+  leans toward the measurement $10$:
+  \[
+  K=\frac{4}{4+1}=0.8,\quad
+  \mu_{\text{new}}=8+0.8\,(10-8)=9.6,\quad
+  P_{\text{new}}=(1-0.8)\cdot4=0.8.
+  \]
+  \end{solution}
 
 \end{enumerate}
 
@@ -229,6 +304,21 @@ x_{\mathrm{MAP}}=\arg\min_x J(x).
 
   \vspace{5.0cm}
 
+  \begin{solution}
+  Set $J'(x)=0$:
+  \[
+  \frac{2(x-\mu_b)}{P_b}-\frac{2(y-x)}{R}=0
+  \;\Rightarrow\;
+  R(x-\mu_b)=P_b(y-x)
+  \;\Rightarrow\;
+  x=\frac{R\mu_b+P_b y}{P_b+R}.
+  \]
+  Rewriting with $K=\dfrac{P_b}{P_b+R}$,
+  \[
+  x=\mu_b+\frac{P_b}{P_b+R}(y-\mu_b)=\mu_b+K(y-\mu_b).
+  \]
+  \end{solution}
+
   \item The posterior is Gaussian. For a Gaussian posterior, the MAP estimate
   and the posterior mean are the same, so $x_{\mathrm{MAP}}=\mu_{\text{new}}$.
   The variance comes from the curvature of $J(x)$:
@@ -250,6 +340,16 @@ x_{\mathrm{MAP}}=\arg\min_x J(x).
   \]
 
   \vspace{2.0em}
+
+  \begin{solution}
+  The curvature of $J$ is $J''(x)=\dfrac{2}{P_b}+\dfrac{2}{R}$, and for a
+  Gaussian the posterior precision is half of it:
+  \[
+  \frac{1}{P_{\text{new}}}=\frac{1}{P_b}+\frac{1}{R}
+  \quad\Rightarrow\quad
+  P_{\text{new}}=\frac{P_b R}{P_b+R}=(1-K)P_b.
+  \]
+  \end{solution}
 \end{enumerate}
 
 \stepbox{
@@ -340,11 +440,34 @@ P_1=
 
 \vspace{2.5em}
 
+\begin{solution}
+Step 1: $\mu_1^m=a\mu_0=0$, $P_1^m=a^2P_0+Q=2+2=4$,
+$K_1=\dfrac{4}{4+4}=0.5$, $\mu_1=0+0.5(2-0)=1$, $P_1=(1-0.5)\cdot4=2$.
+The variance reaches its steady state ($P^m=4$, $K=0.5$, $P=2$) at once, so
+every row shares the same gain:
+\[
+\begin{array}{c|c|c|c|c|c|c}
+t & y_t & \mu_t^m & P_t^m & K_t & \mu_t & P_t \\
+\hline
+1 & 2 & 0    & 4 & 0.5 & 1    & 2 \\
+2 & 2 & 1    & 4 & 0.5 & 1.5  & 2 \\
+3 & 5 & 1.5  & 4 & 0.5 & 3.25 & 2
+\end{array}
+\]
+\end{solution}
+
 \textbf{Interpret the result.}
 
 \begin{enumerate}
   \item At time step 3, the sensor observation jumps to $5$. Does the belief
   jump all the way to $5$? Why or why not?
+
+  \begin{solution}
+  No: $\mu_3=3.25$, not $5$. With $K=0.5$ the belief moves only halfway from the
+  prediction $\mu_3^m=1.5$ toward the observation, $1.5+0.5(5-1.5)=3.25$. The
+  noisy measurement is trusted only partly because the prediction still carries
+  information.
+  \end{solution}
 
   \blankline
   \blankline
@@ -353,11 +476,23 @@ P_1=
   Would the measurement weight become larger or smaller? What would that do to
   the new mean?
 
+  \begin{solution}
+  Smaller. $K_t=\dfrac{P_t^m}{P_t^m+R}$ shrinks as $R$ grows, so the update
+  moves the mean less toward the observation and the belief stays closer to the
+  model prediction.
+  \end{solution}
+
   \blankline
   \blankline
 
   \item In one sentence, answer the main filtering question: how does the filter
   reconcile disagreement between observation and belief?
+
+  \begin{solution}
+  It sets the estimate to a precision-weighted average of the model prediction
+  and the new measurement, leaning toward whichever is more certain, with the
+  Kalman gain fixing the balance.
+  \end{solution}
 
   \blankline
   \blankline
@@ -458,12 +593,22 @@ filters, but written in vector form.
 
   \vspace{2.5em}
 
+  \begin{solution}
+  $\boldsymbol{\mu}_1^m=A\boldsymbol{\mu}_0=\begin{bmatrix}0\\0\end{bmatrix}$,
+  $\;P_1^m=AP_0A^\top+Q=2I+I=\begin{bmatrix}3&0\\0&3\end{bmatrix}$.
+  \end{solution}
+
   \item Compute the discrepancy vector.
   \[
   \mathbf{d}_1 = \mathbf{z}_1-\boldsymbol{\mu}_1^m =
   \]
 
   \vspace{2.0em}
+
+  \begin{solution}
+  $\mathbf{d}_1=\begin{bmatrix}2\\-1\end{bmatrix}-\begin{bmatrix}0\\0\end{bmatrix}
+   =\begin{bmatrix}2\\-1\end{bmatrix}$.
+  \end{solution}
 
   \item Compute $S_1=P_1^m+R$ and then $S_1^{-1}$.
   \[
@@ -474,12 +619,26 @@ filters, but written in vector form.
 
   \vspace{2.5em}
 
+  \begin{solution}
+  $S_1=\begin{bmatrix}3&0\\0&3\end{bmatrix}+\begin{bmatrix}4&0\\0&1\end{bmatrix}
+   =\begin{bmatrix}7&0\\0&4\end{bmatrix}$,
+  $\;S_1^{-1}=\begin{bmatrix}1/7&0\\0&1/4\end{bmatrix}$ (diagonal, so invert
+  entrywise).
+  \end{solution}
+
   \item Compute the measurement-weight matrix.
   \[
   K_1 = P_1^mS_1^{-1} =
   \]
 
   \vspace{2.5em}
+
+  \begin{solution}
+  $K_1=P_1^mS_1^{-1}
+   =\begin{bmatrix}3&0\\0&3\end{bmatrix}\begin{bmatrix}1/7&0\\0&1/4\end{bmatrix}
+   =\begin{bmatrix}3/7&0\\0&3/4\end{bmatrix}
+   \approx\begin{bmatrix}0.429&0\\0&0.75\end{bmatrix}$.
+  \end{solution}
 
   \item Compute the new mean and covariance.
   \[
@@ -495,8 +654,29 @@ filters, but written in vector form.
 
   \vspace{2.5em}
 
+  \begin{solution}
+  $\boldsymbol{\mu}_1
+   =\begin{bmatrix}0\\0\end{bmatrix}
+    +\begin{bmatrix}3/7&0\\0&3/4\end{bmatrix}\begin{bmatrix}2\\-1\end{bmatrix}
+   =\begin{bmatrix}6/7\\-3/4\end{bmatrix}
+   \approx\begin{bmatrix}0.857\\-0.75\end{bmatrix}$, and
+  \[
+  P_1=(I-K_1)P_1^m
+    =\begin{bmatrix}4/7&0\\0&1/4\end{bmatrix}\begin{bmatrix}3&0\\0&3\end{bmatrix}
+    =\begin{bmatrix}12/7&0\\0&3/4\end{bmatrix}
+    \approx\begin{bmatrix}1.714&0\\0&0.75\end{bmatrix}.
+  \]
+  \end{solution}
+
   \item Which coordinate trusts the observation more: horizontal or vertical?
   How can you tell from $K_1$?
+
+  \begin{solution}
+  The vertical coordinate: its gain $3/4$ exceeds the horizontal $3/7$. The
+  vertical sensor is more accurate ($R_{22}=1<4=R_{11}$), so the filter leans
+  on its measurement more. A larger diagonal entry of $K_1$ means more trust in
+  that coordinate's observation.
+  \end{solution}
 
   \blankline
   \blankline

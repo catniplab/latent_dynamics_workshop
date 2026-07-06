@@ -1,0 +1,42 @@
+% Shared exercise/solution machinery, \input by both latent_dynamics_notes.tex
+% (via math_preamble.tex) and kalman_filter_exercise.tex. Kept in one file so
+% the toggle and box styling are not duplicated.
+%
+% Single source, student/instructor toggle:
+%   Student PDF (default): solution boxes are dropped entirely.
+%   Instructor PDF: built with \def\SolutionsBuild{} prepended (see the
+%   Makefile *_solutions targets). Do NOT hand-edit the toggle here.
+% Boxes are printer-friendly: light tint fills (<= 12%) that stay legible in
+% grayscale. Colors are defined here so the file is self-contained.
+
+\usepackage{environ}   % capture-or-discard env bodies (robust inside lists)
+\usepackage[most]{tcolorbox}
+\definecolor{solnframe}{rgb}{0.10,0.25,0.55} % calm blue for solution boxes
+\newif\ifsolutions
+\ifdefined\SolutionsBuild\solutionstrue\fi
+
+% Inline micro-exercise, numbered per section, shown in both builds. Optional
+% argument tags it, e.g. \begin{exercise}[optional stretch] for the harder tier.
+\newtcolorbox[auto counter, number within=section]{exercise}[1][]{%
+    breakable, enhanced, sharp corners,
+    colback=black!3, colframe=black!55, boxrule=0.5pt,
+    left=6pt, right=6pt, top=3pt, bottom=3pt,
+    coltitle=black, colbacktitle=black!10, fonttitle=\bfseries,
+    title={Exercise~\thetcbcounter\if\relax\detokenize{#1}\relax\else\ (#1)\fi},
+}
+
+% Solution box, instructor build only. In the student build the environment
+% body is captured by environ and simply not emitted (discarded, not scanned),
+% which is robust even inside enumerate/itemize.
+\newtcolorbox{solnbox}{%
+    breakable, enhanced, sharp corners,
+    colback=solnframe!5, colframe=solnframe!70, boxrule=0.5pt,
+    left=6pt, right=6pt, top=3pt, bottom=3pt,
+    coltitle=solnframe!85!black, colbacktitle=solnframe!12,
+    fonttitle=\bfseries, title={Solution},
+}
+\ifsolutions
+    \NewEnviron{solution}{\begin{solnbox}\BODY\end{solnbox}}
+\else
+    \NewEnviron{solution}{}% discard body in the student build
+\fi
