@@ -7,6 +7,31 @@ Subsequently, we will introduce the statistically more difficult, but theoretica
 There will be hands-on components to try some of the methods.
 
 ---
+## Notebook roadmap
+
+The notebooks are a **core path** plus **optional companions**. Follow the core
+path for the main arc; branch into an optional companion when you want the deeper
+dive on that topic. Each notebook is meant to run in one sitting and loads a
+pretrained checkpoint where training would otherwise be slow.
+
+**Fast track (core):** `00` -> `02` -> `04` -> `05` -> `06`
+
+| # | Notebook | Path | What it covers |
+|---|----------|------|----------------|
+| 00 | `00_state_space_intuition` | core | latent process -> Poisson spikes; latents carry dynamics |
+| 01 | `01_snr_and_readout_geometry` | optional (extends 00) | Fisher-information SNR; random vs axis-aligned readouts |
+| 02 | `02_linear_lvms` | core | PCA -> Factor Analysis -> Kalman/RTS smoothing |
+| 03 | `03_system_id_and_em` | optional (extends 02) | Ho-Kalman subspace ID and EM |
+| 04 | `04_variational_inference` | core | ELBO, KL, the reparameterization trick |
+| 05 | `05_xfads_ring_attractor` | core | XFADS learns a nonlinear latent flow (synthetic) |
+| 06 | `06_xfads_mc_maze` | core | XFADS on real MC-Maze spikes; smoothing/filtering/forecasting |
+| 07 | `07_decoding_and_evaluation` | optional (extends 06) | ridge decoding R^2, k-step prediction, predictive log-likelihood |
+
+The `lectures/` notes derive the underlying math (PPCA, Factor Analysis,
+exponential-family/Poisson observations, Kalman filtering, RTS smoothing,
+variational inference, and XFADS); each notebook links to the relevant section.
+
+---
 ## Code setup:
 
 We use [uv](https://docs.astral.sh/uv/) to manage the environment. Prefer conda?
