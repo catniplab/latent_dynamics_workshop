@@ -86,6 +86,10 @@ import pytorch_lightning as lightning
 import warnings
 warnings.filterwarnings("ignore")  # silence matplotlib/lightning chatter for teaching
 
+# Plumbing lives in code_pack so the notebook shows only the concept (see CONTRIBUTING).
+from code_pack.plotting import plot_single_reaches, plot_spikes_and_behavior
+from code_pack.utils import load_mc_maze_data, build_mc_maze_ssm
+
 # %% [markdown]
 # # Model and training parameters
 #
@@ -177,11 +181,7 @@ if cfg.device == 'cuda':
 # decoding, so keep it in mind.
 
 # %%
-data_splits_path = './external/xfads/examples/monkey_reaching/data' if not _in_colab else 'latent_dynamics_workshop/external/xfads/examples/monkey_reaching/data'
-
-train_data = torch.load(data_splits_path + f'/data_train_{cfg.bin_sz_ms}ms.pt')
-valid_data = torch.load(data_splits_path + f'/data_valid_{cfg.bin_sz_ms}ms.pt')
-test_data = torch.load(data_splits_path + f'/data_test_{cfg.bin_sz_ms}ms.pt')
+train_data, valid_data, test_data = load_mc_maze_data(cfg, _in_colab)
 
 train_data.keys()
 
@@ -206,22 +206,6 @@ print(vel_test.shape)
 # and, for a few trials, the spike raster next to the hand velocity.
 
 # %%
-def plot_single_reaches(reaches, n_trials_to_plot):
-    """Plumbing: integrate velocity to hand position and color by reach angle."""
-    trial_plt_dx = torch.randperm(reaches.shape[0])[:n_trials_to_plot]
-
-    fig = plt.figure(figsize=(5, 5))
-    fig.suptitle('hand reaches')
-    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
-    ax.axis('off')
-
-    for n in trial_plt_dx:
-        traj = torch.cumsum(reaches[n], dim=0)
-        reach_angle = torch.atan2(traj[-1, 0], traj[-1, 1])
-        reach_color = plt.cm.hsv(reach_angle / (2 * np.pi) + 0.5)
-        ax.plot(traj[:, 0], traj[:, 1], linewidth=1.0, alpha=0.8, color=reach_color)
-
-
 plot_single_reaches(vel_train.cpu(), n_trials_to_plot=120)
 
 # %%
@@ -237,46 +221,6 @@ n_bins_enc = train_data['n_time_bins_enc']
 
 
 # %%
-def plot_spikes_and_behavior(spikes, velocity, binsize, trials_inds, event_bin):
-    """Plumbing: raster (top) and hand velocity (bottom) for a few trials."""
-    n_trials = len(trials_inds)
-    fig, axes = plt.subplots(nrows=2, ncols=n_trials, figsize=(4 * n_trials, 6), sharex=False, sharey='row')
-    if n_trials == 1:
-        axes = axes.reshape(2, 1)
-
-    for col, trial_idx in enumerate(trials_inds):
-        trial = spikes[trial_idx]
-        reach = velocity[trial_idx]
-        ax_spikes = axes[0, col]
-        ax_vel = axes[1, col]
-
-        for neuron_idx in range(trial.shape[-1]):
-            spike_times = np.where(trial[:, neuron_idx].cpu() == 1)[0]
-            ax_spikes.scatter(spike_times, [neuron_idx] * len(spike_times), s=4, color='gray', marker='|')
-
-        ax_spikes.axvline(x=event_bin, linestyle='--', color='purple', alpha=0.4)
-        ax_spikes.set_ylabel('neurons')
-        ax_spikes.set_title(f'Trial {trial_idx}\n# spikes: {int(torch.sum(trial))}', fontsize=10)
-        ax_spikes.set_xlabel('time bins')
-
-        time_axis = torch.arange(reach.shape[0]) * binsize
-        ax_vel.plot(time_axis, reach[:, 0], color='navy', label='vel x')
-        ax_vel.plot(time_axis, reach[:, 1], color='coral', label='vel y')
-        ax_vel.axvline(x=event_bin * binsize, linestyle='--', color='purple', alpha=0.4)
-        ax_vel.set_xlabel('time (ms)')
-        ax_vel.set_title('hand velocity', fontsize=10)
-        ax_vel.legend(fontsize=8)
-
-        if col == 0:
-            _, y_top = ax_spikes.get_ylim()
-            ax_spikes.annotate("movement\nonset", xy=(event_bin, y_top), xytext=(event_bin - 10, y_top + 3),
-                               arrowprops=dict(facecolor='black', alpha=0.4, arrowstyle='->'),
-                               fontsize=7, ha='center', alpha=0.8)
-
-    fig.tight_layout()
-    plt.show()
-
-
 plot_spikes_and_behavior(y_train_obs.cpu(), vel_train.cpu(), cfg.bin_sz_ms,
                          torch.randperm(y_train_obs.size(0))[:4],
                          event_bin=move_onset_bin)
@@ -308,51 +252,14 @@ test_dataloader = torch.utils.data.DataLoader(y_test_dataset, batch_size=y_valid
 # </p>
 
 # %%
-import torch.nn as nn
-
-import xfads.utils as utils
-import xfads.prob_utils as prob_utils
 import xfads.plot_utils as plot_utils
-
-from xfads.smoothers.nonlinear_smoother_causal import LowRankNonlinearStateSpaceModel, NonlinearFilter
-from xfads.ssm_modules.dynamics import DenseGaussianDynamics, DenseGaussianInitialCondition
-from xfads.ssm_modules.encoders import LocalEncoderLRMvn, BackwardEncoderLRMvn
-from xfads.ssm_modules.likelihoods import PoissonLikelihood
-
 from xfads.smoothers.lightning_trainers import LightningMonkeyReaching
 
 # %%
-if cfg.device == 'cuda':
-    torch.cuda.empty_cache()
-
-"""likelihood module (Poisson spikes; see sec:expfam)"""
-H = utils.ReadoutLatentMask(cfg.n_latents, cfg.n_latents_read)
-readout_fn = nn.Sequential(H, nn.Linear(cfg.n_latents_read, n_neurons_obs))
-likelihood_pdf = PoissonLikelihood(readout_fn, n_neurons_obs, cfg.bin_sz, device=cfg.device)
-
-"""dynamics module"""
-Q_diag = 1. * torch.ones(cfg.n_latents, device=cfg.device)
-dynamics_fn = utils.build_gru_dynamics_function(cfg.n_latents, cfg.n_hidden_dynamics, device=cfg.device)
-dynamics_mod = DenseGaussianDynamics(dynamics_fn, cfg.n_latents, Q_diag, device=cfg.device)
-
-"""initial condition"""
-m_0 = torch.zeros(cfg.n_latents, device=cfg.device)
-Q_0_diag = 1. * torch.ones(cfg.n_latents, device=cfg.device)
-initial_condition_pdf = DenseGaussianInitialCondition(cfg.n_latents, m_0, Q_0_diag, device=cfg.device)
-
-"""local/backward encoder"""
-backward_encoder = BackwardEncoderLRMvn(cfg.n_latents, cfg.n_hidden_backward, cfg.n_latents,
-                                        rank_local=cfg.rank_local, rank_backward=cfg.rank_backward,
-                                        device=cfg.device)
-local_encoder = LocalEncoderLRMvn(cfg.n_latents, n_neurons_obs, cfg.n_hidden_local, cfg.n_latents, rank=cfg.rank_local,
-                                  device=cfg.device, dropout=cfg.p_local_dropout)
-
-"""nonlinear filter"""
-nl_filter = NonlinearFilter(dynamics_mod, initial_condition_pdf, device=cfg.device)
-
-"""sequential vae"""
-ssm = LowRankNonlinearStateSpaceModel(dynamics_mod, likelihood_pdf, initial_condition_pdf, backward_encoder,
-                                      local_encoder, nl_filter, device=cfg.device)
+# build_mc_maze_ssm wires the dynamics, Poisson likelihood, and low-rank encoders
+# (see code_pack.utils); it is shared verbatim with notebook 07. The model comes back
+# untrained - the checkpoint loaded below overwrites its parameters.
+ssm, dynamics_mod = build_mc_maze_ssm(cfg, n_neurons_obs)
 
 seq_vae = LightningMonkeyReaching(ssm, cfg, n_bins_enc, bin_prd_start)
 seq_vae.ssm.eval()

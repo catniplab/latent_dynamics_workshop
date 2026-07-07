@@ -65,12 +65,9 @@ if _in_colab:
 import numpy as np
 import matplotlib.pyplot as plt
 
-from sklearn.decomposition import PCA
 from sklearn.linear_model import Ridge
-from sklearn.metrics import r2_score
 
 import torch
-import torch.nn as nn
 import pytorch_lightning as lightning
 
 import warnings
@@ -79,11 +76,10 @@ warnings.filterwarnings("ignore")
 import xfads.utils as utils
 import xfads.plot_utils as plot_utils
 
-from xfads.smoothers.nonlinear_smoother_causal import LowRankNonlinearStateSpaceModel, NonlinearFilter
-from xfads.ssm_modules.dynamics import DenseGaussianDynamics, DenseGaussianInitialCondition
-from xfads.ssm_modules.encoders import LocalEncoderLRMvn, BackwardEncoderLRMvn
-from xfads.ssm_modules.likelihoods import PoissonLikelihood
-from xfads.smoothers.lightning_trainers import LightningMonkeyReaching
+# The SSM build and checkpoint load repeat 06 verbatim; the plotting helpers below are
+# plumbing. Both live in code_pack so this notebook stays focused on the four metrics.
+from code_pack.plotting import plot_spikes_and_decoded_behavior, pca_vs_r2, plot_trials
+from code_pack.utils import load_mc_maze_data, load_mc_maze_model
 
 # %%
 """config (must match the checkpoint from 06)"""
@@ -112,10 +108,8 @@ lightning.seed_everything(cfg.seed, workers=True)
 torch.set_default_dtype(torch.float32)
 
 # %%
-"""load data"""
-data_splits_path = './external/xfads/examples/monkey_reaching/data' if not _in_colab else 'latent_dynamics_workshop/external/xfads/examples/monkey_reaching/data'
-train_data = torch.load(data_splits_path + f'/data_train_{cfg.bin_sz_ms}ms.pt')
-test_data = torch.load(data_splits_path + f'/data_test_{cfg.bin_sz_ms}ms.pt')
+"""load data (07 uses train + test only; valid is loaded but unused here)"""
+train_data, _, test_data = load_mc_maze_data(cfg, _in_colab)
 
 y_train_obs = train_data['y_obs'].type(torch.float32).to(cfg.data_device)
 y_test_obs = test_data['y_obs'].type(torch.float32).to(cfg.data_device)
@@ -129,34 +123,8 @@ n_bins_prd = n_bins - bin_prd_start
 n_bins_enc = train_data['n_time_bins_enc']
 
 # %%
-"""rebuild the SSM and load the checkpoint"""
-H = utils.ReadoutLatentMask(cfg.n_latents, cfg.n_latents_read)
-readout_fn = nn.Sequential(H, nn.Linear(cfg.n_latents_read, n_neurons_obs))
-likelihood_pdf = PoissonLikelihood(readout_fn, n_neurons_obs, cfg.bin_sz, device=cfg.device)
-
-Q_diag = 1. * torch.ones(cfg.n_latents, device=cfg.device)
-dynamics_fn = utils.build_gru_dynamics_function(cfg.n_latents, cfg.n_hidden_dynamics, device=cfg.device)
-dynamics_mod = DenseGaussianDynamics(dynamics_fn, cfg.n_latents, Q_diag, device=cfg.device)
-
-m_0 = torch.zeros(cfg.n_latents, device=cfg.device)
-Q_0_diag = 1. * torch.ones(cfg.n_latents, device=cfg.device)
-initial_condition_pdf = DenseGaussianInitialCondition(cfg.n_latents, m_0, Q_0_diag, device=cfg.device)
-
-backward_encoder = BackwardEncoderLRMvn(cfg.n_latents, cfg.n_hidden_backward, cfg.n_latents,
-                                        rank_local=cfg.rank_local, rank_backward=cfg.rank_backward, device=cfg.device)
-local_encoder = LocalEncoderLRMvn(cfg.n_latents, n_neurons_obs, cfg.n_hidden_local, cfg.n_latents,
-                                  rank=cfg.rank_local, device=cfg.device, dropout=cfg.p_local_dropout)
-nl_filter = NonlinearFilter(dynamics_mod, initial_condition_pdf, device=cfg.device)
-ssm = LowRankNonlinearStateSpaceModel(dynamics_mod, likelihood_pdf, initial_condition_pdf, backward_encoder,
-                                      local_encoder, nl_filter, device=cfg.device)
-
-ckpts_path = 'latent_dynamics_workshop/ckpts/mc_maze' if _in_colab else './ckpts/mc_maze'
-best_model_path = f'{ckpts_path}/epoch=827_valid_loss=1415.56_r2_valid_enc=0.89_r2_valid_bhv=0.00_valid_bps_enc=0.42.ckpt'
-seq_vae = LightningMonkeyReaching.load_from_checkpoint(best_model_path, ssm=ssm, cfg=cfg,
-                                                       n_time_bins_enc=n_bins_enc, n_time_bins_bhv=bin_prd_start,
-                                                       strict=False)
-seq_vae.ssm = seq_vae.ssm.to(cfg.device)
-seq_vae.ssm.eval()
+"""rebuild the SSM and load the checkpoint (identical to 06; see code_pack.utils)"""
+seq_vae, ssm, dynamics_mod = load_mc_maze_model(cfg, n_neurons_obs, n_bins_enc, bin_prd_start, _in_colab)
 
 # %%
 """recompute latents (smoothed z_s, filtered z_f, forecasted z_p) and rates"""
@@ -262,49 +230,6 @@ with torch.no_grad():
 # </details>
 
 # %%
-def plot_spikes_and_decoded_behavior(spikes, velocity, velocity_hat, binsize, trials_inds, event_bin):
-    """Plumbing: raster (top) and true vs decoded hand velocity (bottom)."""
-    n_trials = len(trials_inds)
-    fig, axes = plt.subplots(nrows=2, ncols=n_trials, figsize=(4 * n_trials, 6), sharex=False, sharey='row')
-    if n_trials == 1:
-        axes = axes.reshape(2, 1)
-
-    for col, trial_idx in enumerate(trials_inds):
-        trial = spikes[trial_idx]
-        reach = velocity[trial_idx]
-        decoded_reach = velocity_hat[trial_idx]
-        ax_spikes = axes[0, col]
-        ax_vel = axes[1, col]
-
-        for neuron_idx in range(trial.shape[-1]):
-            spike_times = np.where(trial[:, neuron_idx].cpu() == 1)[0]
-            ax_spikes.scatter(spike_times, [neuron_idx] * len(spike_times), s=4, color='gray', marker='|')
-
-        ax_spikes.axvline(x=event_bin, linestyle='--', color='purple', alpha=0.4)
-        ax_spikes.set_ylabel('neurons')
-        ax_spikes.set_title(f'\nTrial {trial_idx}\n# spikes: {int(torch.sum(trial))}', fontsize=10)
-        ax_spikes.set_xlabel('time bins')
-
-        time_axis = torch.arange(reach.shape[0]) * binsize
-        ax_vel.plot(time_axis, reach[:, 0], color='navy', linewidth=1.0, label='true vel x' if col == 0 else '')
-        ax_vel.plot(time_axis, reach[:, 1], color='coral', linewidth=1.0, label='true vel y' if col == 0 else '')
-        ax_vel.plot(time_axis, decoded_reach[:, 0], linestyle='--', linewidth=1.0, color='navy', label='decoded vel x' if col == 0 else '')
-        ax_vel.plot(time_axis, decoded_reach[:, 1], linestyle='--', linewidth=1.0, color='coral', label='decoded vel y' if col == 0 else '')
-        ax_vel.axvline(x=event_bin * binsize, linestyle='--', linewidth=1.0, color='purple', alpha=0.4)
-        ax_vel.set_xlabel('time (ms)')
-        ax_vel.set_title('\nhand velocity', fontsize=10)
-
-        if col == 0:
-            _, y_top = ax_spikes.get_ylim()
-            ax_spikes.annotate("movement\nonset", xy=(event_bin, y_top), xytext=(event_bin - 10, y_top + 3),
-                               arrowprops=dict(facecolor='black', alpha=0.4, arrowstyle='->'),
-                               fontsize=7, ha='center', alpha=0.8)
-
-    fig.legend(loc='upper center', bbox_to_anchor=(0.5, 1.1), ncol=2, fontsize=10, frameon=False)
-    fig.tight_layout()
-    plt.show()
-
-
 plot_spikes_and_decoded_behavior(y_test_obs.cpu(), vel_test.cpu(), vel_hat_test_s, cfg.bin_sz_ms,
                                  torch.randperm(y_test_obs.size(0))[:4], event_bin=move_onset_bin)
 
@@ -369,40 +294,6 @@ plt.show()
 # latent dimensions by their decoding weight.
 
 # %%
-def pca_vs_r2(z_train, z_test, vel_train, vel_test, max_pcs=40, alpha=0.01):
-    flatten = lambda x: x.reshape(-1, x.shape[2]).detach().cpu().numpy()
-    flatten_vel = lambda v: v.reshape(-1, 2).detach().cpu().numpy()
-
-    X_train, X_test = flatten(z_train), flatten(z_test)
-    y_train, y_test = flatten_vel(vel_train), flatten_vel(vel_test)
-
-    r2_scores = []
-    clf = None
-    for k in range(1, max_pcs + 1):
-        pca = PCA(n_components=k)
-        X_train_pca = pca.fit_transform(X_train)
-        X_test_pca = pca.transform(X_test)
-        clf = Ridge(alpha=alpha).fit(X_train_pca, y_train)
-        r2_scores.append(r2_score(y_test, clf.predict(X_test_pca), multioutput='uniform_average'))
-
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
-    axes[0].plot(np.arange(1, max_pcs + 1), r2_scores, marker='o')
-    axes[0].set_xlabel("num PCs used for decoding")
-    axes[0].set_ylabel("R2")
-    axes[0].set_title("velocity decoding from latents")
-    axes[0].grid(True)
-
-    importance = np.abs(clf.coef_).mean(axis=0)  # last fit uses all max_pcs PCs
-    axes[1].bar(np.arange(len(importance)), importance[np.argsort(-importance)])
-    axes[1].set_xlabel('latent PC (sorted)')
-    axes[1].set_ylabel('mean |w| (vx & vy)')
-    axes[1].set_title('PC importance for decoding')
-    plt.tight_layout()
-    plt.show()
-
-    return np.array(r2_scores)
-
-
 r2_scores = pca_vs_r2(z_s_train[:, :, :n_bins_enc, :].mean(dim=0),
                       z_s_test[:, :, :n_bins_enc, :].mean(dim=0),
                       vel_train, vel_test, max_pcs=40)
@@ -500,39 +391,6 @@ plt.show()
 # (bottom) for a few trials.
 
 # %%
-def plot_trials(true_rates, generated_rates, n=4, spike_threshold=0.1):
-    """Plumbing: observed spike raster (top) vs generated rate heatmap (bottom)."""
-    true_rates = true_rates.cpu() if isinstance(true_rates, torch.Tensor) else true_rates
-    generated_rates = generated_rates.cpu() if isinstance(generated_rates, torch.Tensor) else generated_rates
-
-    trials = true_rates.shape[0]
-    n = min(n, trials)
-    random_indices = np.random.choice(trials, size=n, replace=False)
-
-    fig, axes = plt.subplots(2, n, figsize=(2.5 * n, 8), sharex=True, sharey='row')
-    im = None
-    for idx, trial_i in enumerate(random_indices):
-        spikes = true_rates[trial_i]
-        ax_raster = axes[0, idx]
-        spike_times, neuron_ids = np.where(spikes > spike_threshold)
-        ax_raster.scatter(spike_times, neuron_ids, s=2, color='black')
-        if idx == 0:
-            ax_raster.set_ylabel("neuron")
-
-        ax_gen = axes[1, idx]
-        im = ax_gen.imshow(generated_rates[trial_i].T, aspect='auto', cmap='viridis', origin='lower')
-        if idx == 0:
-            ax_gen.set_ylabel("neuron")
-            ax_gen.set_xlabel("time bins")
-
-    cbar_ax = fig.add_axes([1., 0.12, 0.015, 0.33])
-    fig.colorbar(im, cax=cbar_ax, label="firing rate")
-    axes[0, 0].set_title("Observed spikes (raster)", fontsize=12)
-    axes[1, 0].set_title("Generated firing rates", fontsize=12)
-    plt.tight_layout()
-    plt.show()
-
-
 plot_trials(y_test_obs, rates_test_s)
 
 # %% [markdown]

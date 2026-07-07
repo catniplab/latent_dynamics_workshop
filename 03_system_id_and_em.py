@@ -77,21 +77,7 @@ torch.set_default_dtype(torch.float32)
 
 
 # %%
-def plot_rotated_latents(z_rot, m_rot, z_true, label, n_samples):
-    """Overlay posterior samples (gray), posterior mean, and true latent per dim."""
-    fig, axs = plt.subplots(2, 1, figsize=(12, 5))
-    for d in range(2):
-        axs[d].set_title(f"rotated latent trajectory (dim {d})")
-        axs[d].set_box_aspect(0.2)
-        for s in range(n_samples):
-            axs[d].plot(z_rot[s, 0, :, d], linewidth=0.5, color="gray")
-        axs[d].plot(m_rot[0, :, d], label=label)
-        axs[d].plot(z_true[0, :, d], label="true")
-        axs[d].legend()
-        axs[d].set_xlabel("time")
-    plt.tight_layout()
-    plt.show()
-
+from code_pack.plotting import plot_rotated_latents
 
 # %% [markdown]
 # ## Recreate the spiral data and the true-parameter smoother

@@ -3,6 +3,91 @@ import numpy as np
 from einops import rearrange
 
 
+# Filename of the pretrained XFADS checkpoint shipped for the MC_Maze notebooks
+# (06 and 07). Both notebooks must load exactly this checkpoint.
+_MC_MAZE_CKPT_NAME = 'epoch=827_valid_loss=1415.56_r2_valid_enc=0.89_r2_valid_bhv=0.00_valid_bps_enc=0.42.ckpt'
+
+
+def load_mc_maze_data(cfg, in_colab):
+    """Load the MC_Maze train/valid/test splits as saved tensors (no randomness)."""
+    data_splits_path = ('latent_dynamics_workshop/external/xfads/examples/monkey_reaching/data'
+                        if in_colab else './external/xfads/examples/monkey_reaching/data')
+    train_data = torch.load(data_splits_path + f'/data_train_{cfg.bin_sz_ms}ms.pt')
+    valid_data = torch.load(data_splits_path + f'/data_valid_{cfg.bin_sz_ms}ms.pt')
+    test_data = torch.load(data_splits_path + f'/data_test_{cfg.bin_sz_ms}ms.pt')
+    return train_data, valid_data, test_data
+
+
+def build_mc_maze_ssm(cfg, n_neurons_obs):
+    """Wire the XFADS state-space model (dynamics, Poisson likelihood, encoders, filter).
+
+    This is the module construction shared verbatim by notebooks 06 and 07. The random
+    parameter initialization here is overwritten when a checkpoint is loaded; the model
+    is returned untrained. Returns the assembled ``ssm`` and its ``dynamics_mod`` (needed
+    for k-step forecasting in 07).
+    """
+    import torch.nn as nn
+    import xfads.utils as xfads_utils
+    from xfads.smoothers.nonlinear_smoother_causal import LowRankNonlinearStateSpaceModel, NonlinearFilter
+    from xfads.ssm_modules.dynamics import DenseGaussianDynamics, DenseGaussianInitialCondition
+    from xfads.ssm_modules.encoders import LocalEncoderLRMvn, BackwardEncoderLRMvn
+    from xfads.ssm_modules.likelihoods import PoissonLikelihood
+
+    if cfg.device == 'cuda':
+        torch.cuda.empty_cache()
+
+    """likelihood module (Poisson spikes; see sec:expfam)"""
+    H = xfads_utils.ReadoutLatentMask(cfg.n_latents, cfg.n_latents_read)
+    readout_fn = nn.Sequential(H, nn.Linear(cfg.n_latents_read, n_neurons_obs))
+    likelihood_pdf = PoissonLikelihood(readout_fn, n_neurons_obs, cfg.bin_sz, device=cfg.device)
+
+    """dynamics module"""
+    Q_diag = 1. * torch.ones(cfg.n_latents, device=cfg.device)
+    dynamics_fn = xfads_utils.build_gru_dynamics_function(cfg.n_latents, cfg.n_hidden_dynamics, device=cfg.device)
+    dynamics_mod = DenseGaussianDynamics(dynamics_fn, cfg.n_latents, Q_diag, device=cfg.device)
+
+    """initial condition"""
+    m_0 = torch.zeros(cfg.n_latents, device=cfg.device)
+    Q_0_diag = 1. * torch.ones(cfg.n_latents, device=cfg.device)
+    initial_condition_pdf = DenseGaussianInitialCondition(cfg.n_latents, m_0, Q_0_diag, device=cfg.device)
+
+    """local/backward encoder"""
+    backward_encoder = BackwardEncoderLRMvn(cfg.n_latents, cfg.n_hidden_backward, cfg.n_latents,
+                                            rank_local=cfg.rank_local, rank_backward=cfg.rank_backward,
+                                            device=cfg.device)
+    local_encoder = LocalEncoderLRMvn(cfg.n_latents, n_neurons_obs, cfg.n_hidden_local, cfg.n_latents, rank=cfg.rank_local,
+                                      device=cfg.device, dropout=cfg.p_local_dropout)
+
+    """nonlinear filter"""
+    nl_filter = NonlinearFilter(dynamics_mod, initial_condition_pdf, device=cfg.device)
+
+    """sequential vae"""
+    ssm = LowRankNonlinearStateSpaceModel(dynamics_mod, likelihood_pdf, initial_condition_pdf, backward_encoder,
+                                          local_encoder, nl_filter, device=cfg.device)
+    return ssm, dynamics_mod
+
+
+def load_mc_maze_model(cfg, n_neurons_obs, n_bins_enc, bin_prd_start, in_colab):
+    """Build the XFADS SSM and load the pretrained MC_Maze checkpoint into it.
+
+    Returns ``(seq_vae, ssm, dynamics_mod)`` with the SSM in eval mode. This is the
+    load-pretrained path shared by notebooks 06 and 07; 06 uses ``build_mc_maze_ssm``
+    directly for its optional train-from-scratch branch.
+    """
+    from xfads.smoothers.lightning_trainers import LightningMonkeyReaching
+
+    ssm, dynamics_mod = build_mc_maze_ssm(cfg, n_neurons_obs)
+
+    ckpts_path = 'latent_dynamics_workshop/ckpts/mc_maze' if in_colab else './ckpts/mc_maze'
+    best_model_path = f'{ckpts_path}/{_MC_MAZE_CKPT_NAME}'
+    seq_vae = LightningMonkeyReaching.load_from_checkpoint(best_model_path, ssm=ssm, cfg=cfg,
+                                                           n_time_bins_enc=n_bins_enc, n_time_bins_bhv=bin_prd_start,
+                                                           strict=False)
+    seq_vae.ssm = seq_vae.ssm.to(cfg.device)
+    seq_vae.ssm.eval()
+    return seq_vae, ssm, dynamics_mod
+
+
 def expected_ll_poisson(Y, m, P, C, delta, dtype=torch.float32):
     m_t = torch.tensor(m, dtype=dtype)
     P_t = torch.tensor(P, dtype=dtype)
