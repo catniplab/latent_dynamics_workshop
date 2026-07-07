@@ -1068,6 +1068,62 @@ gives the stationary observation covariance $C P_\infty C\trp + R = \Gamma_0$ of
 $P_{T+h}^- = P_T + hQ$ grows linearly, so forecasts become arbitrarily uncertain.
 \end{solution}
 
+\section{Optional: a map of latent variable models for spike trains}\label{sec:neurallvm}
+
+We have now assembled all the design choices a latent variable model for neural
+population activity can make: what the \emph{observations} look like (Gaussian
+vs.\ Poisson/point-process, \cref{sec:expfam}), what shape the \emph{latent}
+takes (static low-rank factors, a smooth Gaussian-process trajectory, or an
+explicit dynamical system), and how \emph{inference} is done (closed-form,
+spectral, or approximate/variational). The neuroscience literature is largely a
+tour through combinations of these choices. This optional section is a map, not a
+derivation: \cref{tab:neurallvm} places a few landmark models as coordinates in
+that design space, for further reading.
+
+Two broad families are worth distinguishing. \emph{Gaussian-process} methods
+(GPFA \parencite{Yu2009-qp}, vLGP \parencite{Zhao2016a}, and the linear-time
+Hida--Mat\'ern approach of \parencite{Dowling2023c}) put a smoothness prior
+directly on the latent trajectory without committing to a parametric dynamical
+law; \emph{state-space} methods (the linear-Gaussian LDS of \cref{sec:kalman},
+the Poisson linear dynamical system \parencite{Macke2011-ep}, and XFADS
+\parencite{Dowling2024-xfads}) instead posit an explicit transition model
+$\vz_t = f(\vz_{t-1}) + \text{noise}$. Orthogonally, the observation model splits
+the closed-form-inference cases (Gaussian emissions: PCA, FA, GPFA, Kalman) from
+the ones that lose conjugacy and require approximate inference (point-process /
+exponential-family emissions: PLDS, vLGP, cvHM, XFADS), exactly the break
+described in \cref{sec:expfam}. Scalability is the third axis: cvHM
+\parencite{Dowling2023c} attains linear time in the trajectory length via
+Hida--Mat\'ern kernels and conjugate-computation variational inference, and
+XFADS scales to large populations with low-rank amortized encoders
+(\cref{sec:xfads}). Notebooks \texttt{02}, \texttt{05}, and \texttt{06} implement
+representatives of these families.
+
+\begin{table}[t]
+  \centering
+  \footnotesize
+  \begin{tabular}{@{}lllll@{}}
+    \toprule
+    Model & Observations & Latent structure & Inference & Reference \\
+    \midrule
+    PCA / PPCA & Gaussian & static low-rank & eigen / closed-form & \parencite{Tipping1999-cv} \\
+    Factor analysis & Gaussian & static low-rank & EM & \parencite{Bishop2006-to} \\
+    GPFA & Gaussian & GP smoothness & closed-form GP & \parencite{Yu2009-qp} \\
+    LDS / Kalman & Gaussian & linear dynamics & closed-form (Kalman/RTS) & \cref{sec:kalman} \\
+    PLDS & Poisson & linear dynamics & Laplace / variational & \parencite{Macke2011-ep} \\
+    vLGP & point process & GP smoothness & variational & \parencite{Zhao2016a} \\
+    cvHM (linear-time GP) & point proc.\ / general & GP (Hida--Mat\'ern) & CVI, linear time & \parencite{Dowling2023c} \\
+    XFADS & exponential family & nonlinear dynamics & amortized structured VI & \parencite{Dowling2024-xfads} \\
+    \bottomrule
+  \end{tabular}
+  \caption{A few latent variable models for neural population spike trains,
+    organized by observation model, latent structure, and inference method.
+    Gaussian-process models put a smoothness prior on the trajectory;
+    state-space models posit explicit dynamics. Non-Gaussian observations
+    forfeit the closed-form posterior of \cref{sec:expfam} and require
+    approximate inference.}
+  \label{tab:neurallvm}
+\end{table}
+
 \section{Optional: learning the dynamics (Ho--Kalman)}\label{sec:hokalman}
 
 \emph{Optional reading, tied to notebook~01.} The filter above assumed the system
