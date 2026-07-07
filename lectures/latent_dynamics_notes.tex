@@ -757,6 +757,33 @@ $\diag(\Delta\bm{\lambda})$, evaluated at $\hat{\vz}$. That the data precision n
 moves with the latent is the single genuinely new phenomenon; everything else is
 the FA posterior with a rate-dependent weighting.
 
+\subsection{How much does the population encode? Fisher information and SNR}
+
+The matrix multiplying the loading in \eqref{eq:expfam-laplace},
+\begin{equation}\label{eq:expfam-fisher}
+    \mathcal{I}(\vz) = C\trp \diag\!\big(\Delta\bm{\lambda}(\vz)\big)\, C
+                     = \sum_{i=1}^m \Delta\lambda_i\, \vc_i \vc_i\trp ,
+\end{equation}
+is the \emph{Fisher information} that the population's spike counts carry about
+the latent $\vz$---the expected curvature of $-\log p(\vy\mid\vz)$. It sets a
+Cram\'er--Rao floor: any unbiased estimate obeys $\cov(\hat{\vz}) \succeq
+\mathcal{I}(\vz)^{-1}$, and the Laplace posterior covariance
+$(\mathcal{I}(\vz)+I_d)^{-1}$ is exactly this floor sharpened by the unit-variance
+prior. Read elementwise, each neuron adds $\Delta\lambda_i\,\vc_i\vc_i\trp$:
+information grows with firing rate and with the number of neurons, and is shaped
+by how the tuning directions $\vc_i$ tile the latent space. A natural
+\emph{signal-to-noise ratio} compares the latent's signal power to this
+inverse-Fisher noise floor,
+\begin{equation}\label{eq:expfam-snr}
+    \mathrm{SNR}(\vz) = \frac{\tr \cov(\vz)}{\tr \mathcal{I}(\vz)^{-1}} .
+\end{equation}
+\textcite{Jeon2024b} turn this into a practical upper bound on the SNR of
+\emph{inferred} neural latent trajectories---the bound scales with the per-neuron
+Fisher information and the observation overdispersion---and show that inference
+which exploits temporal regularity (the smoothing of \cref{sec:smoothing})
+approaches it. Notebook~\texttt{01} measures this bound for random versus
+axis-aligned readouts.
+
 \subsection{Learning}
 
 The parameters $C$ and $\vb$ are fit by maximizing the (now intractable) marginal
