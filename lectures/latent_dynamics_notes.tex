@@ -55,7 +55,7 @@
 Notes on two classical linear-Gaussian latent variable models---probabilistic
 PCA \parencite{Tipping1999-cv} and factor analysis---with the Gaussian identities
 their derivations rely on, plus a final section that carries the same toolkit
-into time to derive the Kalman filter. Throughout, $\vy \in \reals^m$ is the observed vector, $\vx \in \reals^d$
+into time to derive the Kalman filter. Throughout, $\vy \in \reals^m$ is the observed vector, $\vz \in \reals^d$
 the latent vector ($m \geq d$, typically $d \ll m$), and $C \in \reals^{m
 \times d}$ the loading matrix.
 \end{abstract}
@@ -240,11 +240,11 @@ low-dimensional latent cause seen through a linear map, corrupted by isotropic
 noise. Assume the data has been centered (the sample mean subtracted), so all
 means are zero. The \emph{generative model} is
 \begin{align}
-    \vx &\sim \Normal(\mathbf 0, I_d), \label{eq:ppca-latent}\\
-    \vy &= C\vx + \veta, \qquad \veta \sim \Normal(\mathbf 0, \sigma^2 I_m),
+    \vz &\sim \Normal(\mathbf 0, I_d), \label{eq:ppca-latent}\\
+    \vy &= C\vz + \veta, \qquad \veta \sim \Normal(\mathbf 0, \sigma^2 I_m),
         \label{eq:ppca-obs}
 \end{align}
-with $\vx$ and $\veta$ independent. The latent $\vx \in \reals^d$ is a handful of
+with $\vz$ and $\veta$ independent. The latent $\vz \in \reals^d$ is a handful of
 hidden factors; the loading matrix $C \in \reals^{m\times d}$ maps them into the
 $m$ observed dimensions; and every observed coordinate gets the \emph{same}
 noise variance $\sigma^2$---the ``isotropic'' assumption that distinguishes
@@ -263,19 +263,19 @@ and thin,
         \vdots & \ddots & \vdots \\
         C_{m1} & \cdots & C_{md}
     \end{bmatrix}}_{m \times d}
-    \underbrace{\begin{bmatrix} x_1 \\ \vdots \\ x_d \end{bmatrix}}_{d \times 1}
+    \underbrace{\begin{bmatrix} z_1 \\ \vdots \\ z_d \end{bmatrix}}_{d \times 1}
     +
     \underbrace{\begin{bmatrix} \eta_1 \\ \eta_2 \\ \vdots \\ \eta_m \end{bmatrix}}_{m \times 1} .
 \end{equation}
 Reading $C$ by its columns $C = [\,\vc_1 \;\cdots\; \vc_d\,]$, the model is
-$\vy = \sum_{k=1}^d x_k \vc_k + \veta$: each latent coordinate $x_k$ turns on a
+$\vy = \sum_{k=1}^d z_k \vc_k + \veta$: each latent coordinate $z_k$ turns on a
 loading direction $\vc_k \in \reals^m$, and the observation is their weighted sum
 plus noise.
 
 \paragraph{What does $\vy$ look like?}
-Because $\vy$ is a linear image of the Gaussian $\vx$ plus independent Gaussian
+Because $\vy$ is a linear image of the Gaussian $\vz$ plus independent Gaussian
 noise, our fun facts hand us its distribution immediately. It is zero-mean, and
-combining the affine map (\cref{fact:affine}) on $C\vx$ with the independent sum
+combining the affine map (\cref{fact:affine}) on $C\vz$ with the independent sum
 (\cref{fact:sum}) for the noise,
 \begin{equation}\label{eq:ppca-marginal}
     \vy \sim \Normal\!\left(\mathbf 0,\; \underbrace{C C\trp + \sigma^2 I_m}_{\displaystyle \Sigma_{\vy}}\right).
@@ -301,20 +301,20 @@ riding on a uniform background of noise $\sigma^2 I_m$.
 \subsection{Inference: the posterior over the latent}
 
 Given an observation $\vy$, what latent factors likely produced it? We want
-$p(\vx \mid \vy)$. The pair $(\vx, \vy)$ is jointly Gaussian---both are linear
-functions of the independent Gaussians $\vx$ and $\veta$---so \cref{fact:cond}
+$p(\vz \mid \vy)$. The pair $(\vz, \vy)$ is jointly Gaussian---both are linear
+functions of the independent Gaussians $\vz$ and $\veta$---so \cref{fact:cond}
 applies once we have the covariance blocks. From \eqref{eq:ppca-latent} and
 \eqref{eq:ppca-obs},
 \begin{equation}
-    \cov(\vx) = I_d, \qquad
+    \cov(\vz) = I_d, \qquad
     \cov(\vy) = C C\trp + \sigma^2 I_m, \qquad
-    \cov(\vx, \vy) = \E[\vx(C\vx + \veta)\trp] = C\trp .
+    \cov(\vz, \vy) = \E[\vz(C\vz + \veta)\trp] = C\trp .
 \end{equation}
-Feeding these into the conditioning formula (\cref{fact:cond}, with $\va = \vx$
+Feeding these into the conditioning formula (\cref{fact:cond}, with $\va = \vz$
 and $\vb = \vy$),
 \begin{align}
-    \E[\vx \mid \vy] &= C\trp(C C\trp + \sigma^2 I_m)^{-1}\vy, \label{eq:ppca-postmean-m}\\
-    \cov(\vx \mid \vy) &= I_d - C\trp(C C\trp + \sigma^2 I_m)^{-1} C. \label{eq:ppca-postcov-m}
+    \E[\vz \mid \vy] &= C\trp(C C\trp + \sigma^2 I_m)^{-1}\vy, \label{eq:ppca-postmean-m}\\
+    \cov(\vz \mid \vy) &= I_d - C\trp(C C\trp + \sigma^2 I_m)^{-1} C. \label{eq:ppca-postcov-m}
 \end{align}
 These invert an $m \times m$ matrix, but with $d \ll m$ we would rather invert
 something $d \times d$. The matrix inversion lemma (``push-through identity''),
@@ -325,7 +325,7 @@ exactly that. Defining the $d \times d$ matrix
 \end{equation}
 the posterior collapses to
 \begin{equation}\label{eq:ppca-posterior}
-    p(\vx \mid \vy) = \Normal\!\left(M^{-1} C\trp \vy,\; \sigma^2 M^{-1}\right).
+    p(\vz \mid \vy) = \Normal\!\left(M^{-1} C\trp \vy,\; \sigma^2 M^{-1}\right).
 \end{equation}
 (The covariance follows from
 $I_d - C\trp(CC\trp+\sigma^2 I_m)^{-1}C = I_d - M^{-1} C\trp C = I_d - M^{-1}(M - \sigma^2 I_d) = \sigma^2 M^{-1}$,
@@ -346,7 +346,7 @@ $M^{-1}C\trp\vy \to (C\trp C)^{-1}C\trp\vy$.
 \end{solution}
 
 \begin{exercise}[optional stretch]
-Show observing $\vy$ never increases uncertainty about $\vx$: the posterior
+Show observing $\vy$ never increases uncertainty about $\vz$: the posterior
 covariance $\sigma^2 M^{-1}$ satisfies $I_d - \sigma^2 M^{-1} \succeq 0$.
 \end{exercise}
 \begin{solution}
@@ -408,7 +408,7 @@ $\col(C_{\mathrm{ML}}) = \col(U_d)$: the loadings span the principal subspace
 exactly. They differ only in coordinates---PCA scales axis $k$ by
 $\sqrt{\lambda_k}$, PPCA by $\sqrt{\lambda_k - \sigma^2}$ (stripping the noise
 floor), orientation free through $R$. As $\sigma^2 \to 0$ they coincide: the
-reconstruction $C\,\E[\vx \mid \vy] \to U_d U_d\trp \vy$ is PCA's orthogonal
+reconstruction $C\,\E[\vz \mid \vy] \to U_d U_d\trp \vy$ is PCA's orthogonal
 projection onto $\col(U_d)$ (the posterior mean itself is the whitened score
 $\Lambda_d^{-1/2} U_d\trp \vy$). In short, PPCA's maximum-likelihood fit \emph{is}
 PCA, recast as inference in a linear-Gaussian model.
@@ -431,9 +431,9 @@ Factor analysis keeps everything about PPCA except the noise: rather than one
 shared variance $\sigma^2$, every observed coordinate gets its own $\sigma_i^2$.
 The generative model is
 \begin{equation}\label{eq:fa-latent}
-    \vx \sim \Normal(\mathbf 0, I_d), \qquad \vy = C\vx + \veta,
+    \vz \sim \Normal(\mathbf 0, I_d), \qquad \vy = C\vz + \veta,
 \end{equation}
-with $\vx$ and $\veta$ independent, where the noise is zero-mean Gaussian with a
+with $\vz$ and $\veta$ independent, where the noise is zero-mean Gaussian with a
 \emph{diagonal} covariance,
 \begin{equation}\label{eq:fa-obs}
     \veta \sim \Normal(\mathbf 0,\ \Sigma_{\veta}),
@@ -448,7 +448,7 @@ with $\vx$ and $\veta$ independent, where the noise is zero-mean Gaussian with a
 \end{equation}
 The zeros off the diagonal say the noise in different coordinates is
 uncorrelated; the diagonal entries $\sigma_i^2$ let each coordinate be exactly as
-noisy as it needs to be. In the classical vocabulary the latent $\vx$ are the
+noisy as it needs to be. In the classical vocabulary the latent $\vz$ are the
 \emph{common factors} (shared across all coordinates), the loading columns
 $\vc_k$ say how strongly each factor drives each coordinate, and $\veta$ is the
 \emph{unique} (or specific) noise, private to each coordinate.
@@ -466,17 +466,17 @@ per-coordinate noise levels instead of forcing them all equal.
 \subsection{Inference: the posterior over the latent}
 
 Inference mirrors PPCA exactly, with $\Sigma_{\veta}$ wherever $\sigma^2 I_m$
-stood. The pair $(\vx, \vy)$ is jointly Gaussian with the same blocks as before,
+stood. The pair $(\vz, \vy)$ is jointly Gaussian with the same blocks as before,
 now
 \begin{equation}
-    \cov(\vx) = I_d, \qquad
+    \cov(\vz) = I_d, \qquad
     \cov(\vy) = C C\trp + \Sigma_{\veta}, \qquad
-    \cov(\vx, \vy) = C\trp,
+    \cov(\vz, \vy) = C\trp,
 \end{equation}
 so \cref{fact:cond} gives
 \begin{equation}
-    \E[\vx \mid \vy] = C\trp(C C\trp + \Sigma_{\veta})^{-1}\vy, \qquad
-    \cov(\vx \mid \vy) = I_d - C\trp(C C\trp + \Sigma_{\veta})^{-1} C.
+    \E[\vz \mid \vy] = C\trp(C C\trp + \Sigma_{\veta})^{-1}\vy, \qquad
+    \cov(\vz \mid \vy) = I_d - C\trp(C C\trp + \Sigma_{\veta})^{-1} C.
 \end{equation}
 Again we would rather invert a $d \times d$ matrix. The matrix inversion lemma,
 now with the diagonal $\Sigma_{\veta}$, does it: defining
@@ -485,7 +485,7 @@ now with the diagonal $\Sigma_{\veta}$, does it: defining
 \end{equation}
 the posterior collapses to
 \begin{equation}\label{eq:fa-posterior}
-    p(\vx \mid \vy) = \Normal\!\left(M^{-1} C\trp \Sigma_{\veta}^{-1}\vy,\; M^{-1}\right).
+    p(\vz \mid \vy) = \Normal\!\left(M^{-1} C\trp \Sigma_{\veta}^{-1}\vy,\; M^{-1}\right).
 \end{equation}
 (As before the covariance follows from
 $I_d - C\trp(CC\trp+\Sigma_{\veta})^{-1}C = I_d - M^{-1}C\trp\Sigma_{\veta}^{-1}C
@@ -512,22 +512,22 @@ The standard tool is \emph{expectation--maximization} (EM), which alternates
 between the inference we just did and a parameter update:
 \begin{itemize}
     \item \textbf{E-step.} With the current $C, \Sigma_{\veta}$, compute the
-    posterior over each latent from \eqref{eq:fa-posterior}, $q(\vx_n) =
+    posterior over each latent from \eqref{eq:fa-posterior}, $q(\vz_n) =
     \Normal(\vmu_n, M^{-1})$ with $\vmu_n = M^{-1}C\trp\Sigma_{\veta}^{-1}\vy_n$,
     and collect the sufficient statistics
     \begin{equation}
-        \E[\vx_n] = \vmu_n, \qquad
-        \E[\vx_n\vx_n\trp] = M^{-1} + \vmu_n\vmu_n\trp .
+        \E[\vz_n] = \vmu_n, \qquad
+        \E[\vz_n\vz_n\trp] = M^{-1} + \vmu_n\vmu_n\trp .
     \end{equation}
     \item \textbf{M-step.} Holding those fixed, maximize the expected
     complete-data log-likelihood over $C$ and $\Sigma_{\veta}$; both updates are
     closed-form,
     \begin{align}
-        C^{\text{new}} &= \Big(\textstyle\sum_n \vy_n \E[\vx_n]\trp\Big)
-                          \Big(\textstyle\sum_n \E[\vx_n\vx_n\trp]\Big)^{-1},
+        C^{\text{new}} &= \Big(\textstyle\sum_n \vy_n \E[\vz_n]\trp\Big)
+                          \Big(\textstyle\sum_n \E[\vz_n\vz_n\trp]\Big)^{-1},
                           \label{eq:fa-Mstep-C}\\
         \Sigma_{\veta}^{\text{new}} &= \diag\!\left(\frac{1}{N}\sum_n
-            \big(\vy_n\vy_n\trp - C^{\text{new}}\E[\vx_n]\vy_n\trp\big)\right),
+            \big(\vy_n\vy_n\trp - C^{\text{new}}\E[\vz_n]\vy_n\trp\big)\right),
             \label{eq:fa-Mstep-S}
     \end{align}
     where $\diag(\cdot)$ keeps only the diagonal, enforcing the noise model.
@@ -544,10 +544,10 @@ There is a deeper ambiguity, one the data can never resolve. Take any orthogonal
 $d \times d$ matrix $R$ (so $R R\trp = R\trp R = I_d$) and replace the loading and
 latent by
 \begin{equation}
-    C \mapsto CR, \qquad \vx \mapsto R\trp \vx .
+    C \mapsto CR, \qquad \vz \mapsto R\trp \vz .
 \end{equation}
-The observation is untouched, $CR\,(R\trp\vx) = C\vx$, and the rotated latent is
-still standard, $R\trp\vx \sim \Normal(\mathbf 0,\, R\trp I_d R) = \Normal(\mathbf
+The observation is untouched, $CR\,(R\trp\vz) = C\vz$, and the rotated latent is
+still standard, $R\trp\vz \sim \Normal(\mathbf 0,\, R\trp I_d R) = \Normal(\mathbf
 0, I_d)$. The marginal covariance is invariant too,
 \begin{equation}\label{eq:rotation-invariance}
     (CR)(CR)\trp = C\,R R\trp\,C\trp = C C\trp,
@@ -602,13 +602,13 @@ $\vy \mapsto D\vy$ with $D = \diag(a_1, \dots, a_m)$ (think millimeters to
 centimeters, or a different gain on each sensor). Under the FA model this is
 \emph{again} an FA model:
 \begin{equation}\label{eq:fa-rescale}
-    D\vy = (DC)\vx + D\veta, \qquad
+    D\vy = (DC)\vz + D\veta, \qquad
     D\veta \sim \Normal\!\big(\mathbf 0,\ D\Sigma_{\veta}D\big)
           = \Normal\!\big(\mathbf 0,\ \diag(a_1^2\sigma_1^2, \dots, a_m^2\sigma_m^2)\big).
 \end{equation}
 The rescaled noise covariance is still diagonal, so the rescaled data obeys
 factor analysis with loading $DC$ and noise $a_i^2\sigma_i^2$---and the latent
-factors $\vx$ are \emph{unchanged}. Factor analysis is equivariant to
+factors $\vz$ are \emph{unchanged}. Factor analysis is equivariant to
 per-coordinate rescaling: it does not care what units each coordinate is measured
 in.
 
@@ -629,28 +629,210 @@ units, comparable scales), PCA and PPCA are natural. When they are not (differen
 sensors, different neurons, heterogeneous features), factor analysis---by soaking
 each coordinate's scale into its own $\sigma_i^2$---is the better-posed model.
 
+\section{Beyond Gaussian observations: exponential-family and Poisson models}\label{sec:expfam}
+
+So far the observation was a linear-Gaussian image of the latent: $\vy = C\vz +
+\veta$ with Gaussian noise. That is fine for real-valued measurements, but it
+fails the moment the data are counts. Spike trains, the currency of the neural
+notebooks (00, 04), are non-negative integers---a neuron in a time bin fires
+$0,1,2,\dots$ times. A Gaussian read-out puts probability mass on negative and
+fractional $y$, which no count can take. We need an emission that lives on the
+integers and stays non-negative. The plan is surgical: keep the linear
+latent-to-parameter map $C\vz + \vb$, swap only the Gaussian emission for a
+Poisson one, and watch which pieces of the linear-Gaussian machinery survive.
+
+\subsection{The model}
+
+The latent keeps its standard-Gaussian prior, exactly as in PPCA and factor
+analysis,
+\begin{equation}\label{eq:expfam-latent}
+    \vz \sim \Normal(\mathbf 0, I_d).
+\end{equation}
+The affine image of the latent is now read as a vector of \emph{log firing
+rates}---the ``natural'' parameter of the emission---and exponentiating gives a
+strictly positive rate,
+\begin{equation}\label{eq:expfam-rate}
+    \bm{\theta} = C\vz + \vb, \qquad \bm{\lambda} = \exp(\bm{\theta}) = \exp(C\vz + \vb)
+    \quad\text{(elementwise)} .
+\end{equation}
+The log link $\lambda_i = e^{\theta_i}$ guarantees $\lambda_i > 0$ no matter what
+the latent does. Over a bin of width $\Delta$, the observed counts are
+conditionally independent Poisson,
+\begin{equation}\label{eq:expfam-obs}
+    y_i \mid \vz \sim \mathrm{Poisson}(\Delta\,\lambda_i), \qquad i = 1, \dots, m .
+\end{equation}
+Elementwise this is a \emph{Poisson generalized linear model} (GLM) with a latent
+regressor: row $\vc_i\trp$ of $C$ is neuron $i$'s tuning vector, $b_i$ its
+baseline log-rate, and a step in the latent moves every neuron's rate
+\emph{multiplicatively} (an additive shift in log-rate). The shapes are the PPCA
+shapes of \eqref{eq:ppca-shapes} unchanged---$C \in \reals^{m\times d}$ tall and
+thin, $\vz \in \reals^d$---with a new bias $\vb \in \reals^m$ and the linear
+output reinterpreted as a log-rate rather than a mean. Throughout we take
+$\Delta = \mathrm{d}t$ the bin width; setting $\Delta = 1$ absorbs it into $\vb$.
+
+\subsection{The log-likelihood}
+
+The Poisson pmf for one neuron is $p(y_i \mid \vz) = (\Delta\lambda_i)^{y_i}
+e^{-\Delta\lambda_i}/y_i!$. Taking logs and using $\log\lambda_i = \theta_i =
+\vc_i\trp\vz + b_i$, then summing over the conditionally independent neurons,
+\begin{equation}\label{eq:expfam-loglik}
+    \log p(\vy \mid \vz) = \sum_{i=1}^m \Big[\, y_i\,(\vc_i\trp\vz + b_i)
+        - \Delta\, e^{\vc_i\trp\vz + b_i} \,\Big] + \mathrm{const}(\vy, \Delta) .
+\end{equation}
+Three pieces: a \emph{linear} term $y_i\,\theta_i$ (data times natural
+parameter), a \emph{convex penalty} $\Delta e^{\theta_i}$ (the expected count),
+and a data-only constant $\log(y_i!) - y_i\log\Delta$ that never touches $\vz$.
+Adding the log-prior gives the log-joint, the object both inference and learning
+optimize,
+\begin{equation}\label{eq:expfam-logjoint}
+    \log p(\vz, \vy) = \sum_{i=1}^m \Big[\, y_i(\vc_i\trp\vz + b_i)
+        - \Delta e^{\vc_i\trp\vz + b_i} \,\Big] - \tfrac12 \vz\trp\vz + \mathrm{const} .
+\end{equation}
+
+\subsection{Exponential family: one machine, many emissions}
+
+Poisson and Gaussian are not rivals; they are two members of the same
+\emph{exponential family}. Each writes the per-coordinate likelihood as
+\begin{equation}\label{eq:expfam-form}
+    p(y_i \mid \vz) = h(y_i)\,\exp\!\big(\theta_i\, y_i - A(\theta_i)\big),
+    \qquad \theta_i = \vc_i\trp\vz + b_i,
+\end{equation}
+with $\theta_i$ the natural parameter (always the affine image $C\vz + \vb$) and
+$A(\cdot)$ the \emph{log-partition} function. The log-partition carries the
+moments,
+\begin{equation}\label{eq:expfam-moments}
+    \E[y_i \mid \vz] = A'(\theta_i), \qquad \var(y_i \mid \vz) = A''(\theta_i) .
+\end{equation}
+For the Poisson $A(\theta) = e^{\theta}$, so $\E[y_i\mid\vz] = \var(y_i\mid\vz) =
+\lambda_i$ (mean equals variance---the Fano factor is $1$). For a Gaussian with
+identity link $A(\theta) = \theta^2/2$, so the mean is $\theta$ and the variance
+is constant---recovering the linear-Gaussian factor-analysis emission of
+\cref{sec:fa}. The message: PPCA and FA are the \emph{Gaussian special case};
+$C\vz + \vb$ is always the natural-parameter map, and only $A(\cdot)$ changes when
+the data change.
+
+\subsection{What breaks: no conjugacy}
+
+In the linear-Gaussian world \cref{fact:cond} handed us an exact Gaussian
+posterior $p(\vz\mid\vy)$ and a closed-form marginal $p(\vy)$. With a Poisson
+emission both vanish. The posterior $p(\vz\mid\vy) \propto p(\vy\mid\vz)\,p(\vz)$
+is no longer Gaussian---the likelihood \eqref{eq:expfam-loglik} is not a quadratic
+in $\vz$---and the marginal $p(\vy) = \int p(\vy\mid\vz)\,p(\vz)\,\mathrm{d}\vz$
+has no closed form. Bluntly: the conditioning fun fact no longer applies. There
+is no $M$ matrix, no closed-form posterior, no eigen-solution. We must
+approximate.
+
+\subsection{What survives: log-concavity, MAP, Laplace}
+
+Not all structure is lost. With the exponential link the log-joint
+\eqref{eq:expfam-logjoint} is \emph{concave} in $\vz$. Its gradient is a
+spikes-minus-expected-spikes error, back-projected through $C$ and balanced
+against the prior pull,
+\begin{equation}\label{eq:expfam-grad}
+    \nabla_{\vz}\log p(\vz, \vy) = C\trp(\vy - \Delta\bm{\lambda}) - \vz ,
+\end{equation}
+and its Hessian is negative definite everywhere,
+\begin{equation}\label{eq:expfam-hess}
+    \nabla^2_{\vz}\log p(\vz, \vy) = -\big(C\trp \diag(\Delta\bm{\lambda})\,C + I_d\big) \prec 0 .
+\end{equation}
+So the log-joint has a \emph{unique} maximizer, the MAP estimate $\hat{\vz} =
+\arg\max_{\vz}\log p(\vz,\vy)$, found by Newton's method---equivalently
+iteratively reweighted least squares (IRLS), the standard GLM solver. Expanding
+the log-joint to second order at $\hat{\vz}$ gives the \emph{Laplace
+approximation} to the posterior,
+\begin{equation}\label{eq:expfam-laplace}
+    p(\vz \mid \vy) \approx \Normal\!\Big(\hat{\vz},\;
+        \big(C\trp \diag(\Delta\hat{\bm{\lambda}})\,C + I_d\big)^{-1}\Big),
+    \qquad \hat{\bm{\lambda}} = \exp(C\hat{\vz} + \vb) .
+\end{equation}
+Compare the posterior precision with factor analysis's constant $M = I_d + C\trp
+\Sigma_{\veta}^{-1} C$ of \eqref{eq:fa-M}. The shape is identical---prior
+precision $I_d$ plus $C\trp(\text{data precision})\,C$---but the Gaussian noise
+precision $\Sigma_{\veta}^{-1}$ is replaced by the \emph{state-dependent}
+$\diag(\Delta\bm{\lambda})$, evaluated at $\hat{\vz}$. That the data precision now
+moves with the latent is the single genuinely new phenomenon; everything else is
+the FA posterior with a rate-dependent weighting.
+
+\subsection{Learning}
+
+The parameters $C$ and $\vb$ are fit by maximizing the (now intractable) marginal
+likelihood. EM still applies, but its E-step is no longer exact: the closed-form
+Gaussian posterior of factor analysis is replaced by an approximate posterior---
+the Laplace form \eqref{eq:expfam-laplace}, or a variational one. This is the
+doorway to \cref{sec:vi} (variational inference), and, once dynamics are stacked
+on the latent, to XFADS (\cref{sec:xfads}): a Poisson read-out riding on
+Kalman-style latent dynamics.
+
+\paragraph{Link functions.} The canonical log link $\bm{\lambda} =
+\exp(\bm{\theta})$ is analytically clean and guarantees concavity, but $\exp$ can
+overflow numerically for large $\theta_i$. A common alternative is the
+\emph{softplus},
+\begin{equation}\label{eq:expfam-softplus}
+    \bm{\lambda} = \log\!\big(\mathbf 1 + \exp(C\vz + \vb)\big) \quad\text{(elementwise)},
+\end{equation}
+still monotone and positive but with gentler, linear tails; it is non-canonical,
+so the tidy $A'$/$A''$ moment identities no longer hold exactly. Notebook 00 uses
+$\exp$; notebook 04 compares $\exp$ against softplus emissions. The same
+exponential-family read-out reappears on top of the latent-dynamics machinery in
+the sections that follow.
+
+\begin{exercise}[gradient, Hessian, concavity]
+For the Poisson model with log link, differentiate the log-joint
+$\log p(\vz,\vy) = \sum_i[\,y_i(\vc_i\trp\vz + b_i) - \Delta e^{\vc_i\trp\vz + b_i}\,]
+- \tfrac12\vz\trp\vz$ to show $\nabla_{\vz} = C\trp(\vy - \Delta\bm{\lambda}) - \vz$
+and $\nabla^2_{\vz} = -(C\trp\diag(\Delta\bm{\lambda})C + I_d)$. Conclude the
+Hessian is negative definite, so the MAP $\hat{\vz}$ is unique.
+\end{exercise}
+\begin{solution}
+Since $\partial_{\vz}(\vc_i\trp\vz) = \vc_i$ and $\partial_{\vz}e^{\vc_i\trp\vz +
+b_i} = \lambda_i\vc_i$, the gradient sums $y_i\vc_i - \Delta\lambda_i\vc_i =
+C\trp(\vy - \Delta\bm{\lambda})$ minus the prior term $\vz$. Differentiating
+again, each neuron contributes $-\Delta\lambda_i\vc_i\vc_i\trp$, giving
+$-C\trp\diag(\Delta\bm{\lambda})C$, and the prior adds $-I_d$. Since
+$\Delta\lambda_i > 0$, $C\trp\diag(\Delta\bm{\lambda})C \succeq 0$ and $I_d \succ
+0$, so the Hessian is negative definite and the log-joint is strictly concave;
+its stationary point is the unique maximum.
+\end{solution}
+
+\begin{exercise}[Poisson has no free noise scale]
+Show that for the Poisson emission $\E[y_i\mid\vz] = \var(y_i\mid\vz) =
+\Delta\lambda_i$ (Fano factor $1$), and contrast with factor analysis, where the
+emission mean $\vc_i\trp\vz$ and noise variance $\sigma_i^2$ are separate free
+quantities. What does this say about identifying a separate per-neuron noise level
+in the Poisson model?
+\end{exercise}
+\begin{solution}
+For $y\sim\mathrm{Poisson}(\mu)$, mean $=$ variance $= \mu$, here $\mu =
+\Delta\lambda_i$; equivalently $A(\theta) = e^{\theta}$ gives $A' = A'' = e^{\theta}
+= \lambda_i$. Unlike FA's diagonal $\Sigma_{\veta}$, the Poisson observation noise
+is fixed by the rate itself---there is no independent $\sigma_i^2$ to fit.
+Heterogeneous variability across neurons must come from the rates (through $C,
+\vb$) or from a richer emission (e.g.\ negative binomial, which adds an
+overdispersion parameter), not from a separable additive noise term.
+\end{solution}
+
 \section{The Kalman filter: a latent that moves}\label{sec:kalman}
 
 So far the latent was static---one hidden cause per observation. Let it now
 \emph{evolve in time}. The same linear-Gaussian machinery, made sequential, is
 the workhorse of latent \emph{dynamics}.
 
-Take the simplest case: one hidden state $x_t \in \reals$ that drifts, watched by
+Take the simplest case: one hidden state $z_t \in \reals$ that drifts, watched by
 a noisy scalar sensor,
 \begin{equation}\label{eq:kf-model}
-  x_t = a\,x_{t-1} + e_t, \quad e_t \sim \Normal(0, Q),
+  z_t = a\,z_{t-1} + e_t, \quad e_t \sim \Normal(0, Q),
   \qquad
-  y_t = x_t + v_t, \quad v_t \sim \Normal(0, R),
+  y_t = z_t + v_t, \quad v_t \sim \Normal(0, R),
 \end{equation}
 with the process noise, sensor noise, and initial state all mutually independent.
 Here $Q$ is how unpredictably the state moves and $R$ how badly the sensor
-corrupts it; $a=1$ makes $x_t$ a random walk,
-and $y_t = x_t + v_t$ is again ``signal plus noise,'' now one scalar at a time.
+corrupts it; $a=1$ makes $z_t$ a random walk,
+and $y_t = z_t + v_t$ is again ``signal plus noise,'' now one scalar at a time.
 
-We track the \emph{belief} $p(x_t \mid y_{1:t})$: all we know about the state
+We track the \emph{belief} $p(z_t \mid y_{1:t})$: all we know about the state
 given the readings so far. Every arrow in \eqref{eq:kf-model} is linear-Gaussian,
 so the belief stays Gaussian (fun facts \ref{fact:affine}--\ref{fact:cond}) and we
-carry only a mean and a variance, $x_t \mid y_{1:t} \sim \Normal(\mu_t, P_t)$. Two
+carry only a mean and a variance, $z_t \mid y_{1:t} \sim \Normal(\mu_t, P_t)$. Two
 moves per step update them. (We write $\mu_t^-, P_t^-$ for the \emph{predicted}
 belief before seeing $y_t$; the worksheet writes these $\mu_t^m, P_t^m$, and
 $\mu_b, P_b$ in its single-measurement warm-up.)
@@ -665,8 +847,8 @@ $a^2$ (inflating it when $|a|>1$, shrinking it when $|a|<1$). For the worksheet'
 random walk $a=1$, prediction simply grows the variance by $Q$.
 
 \paragraph{Update.} Condition on $y_t$. We hold a Gaussian prior
-$x_t \sim \Normal(\mu_t^-, P_t^-)$ and a Gaussian likelihood
-$y_t \mid x_t \sim \Normal(x_t, R)$; Bayes multiplies them. The cleanest reading:
+$z_t \sim \Normal(\mu_t^-, P_t^-)$ and a Gaussian likelihood
+$y_t \mid z_t \sim \Normal(z_t, R)$; Bayes multiplies them. The cleanest reading:
 \emph{precisions (inverse variances) add}, and the mean is their precision-weighted
 average,
 \begin{equation}\label{eq:kf-bayes}
@@ -691,7 +873,7 @@ belief sharpens, $P_t = (1-K_t)P_t^- \le P_t^-$: a measurement can only help. Th
 is the entire idea; the accompanying worksheet works it on numbers.
 
 \paragraph{Vector form.} Nothing new in higher dimensions. For
-$\vx_t = A\vx_{t-1} + \ve_t$ and $\vy_t = C\vx_t + \vv_t$ (noise covariances $Q,
+$\vz_t = A\vz_{t-1} + \ve_t$ and $\vy_t = C\vz_t + \vv_t$ (noise covariances $Q,
 R$),
 \begin{equation}
 \begin{aligned}
@@ -706,9 +888,11 @@ and $\vd_t = \vy_t - C\vmu_t^-$ the \emph{innovation}, so $K_t = P_t^- C\trp
 S_t^{-1}$. Scalars became matrices and $1/(P^-+R)$ became $S_t^{-1}$;
 predict-then-update, gain-weighted innovation, shrinking covariance---all
 identical. With $C=I$ and diagonal matrices it splits into independent 1D
-filters: the worksheet's 2D case, where $S_t = P_t^- + R$ and (because $y$ is a
-coordinate there) the measurement is written $\vz_t$, so $\vd_t = \vz_t -
-\vmu_t^-$.
+filters: the worksheet's 2D case, where $S_t = P_t^- + R$. (Heads-up on notation:
+that worksheet names its two state coordinates $x$ and $y$, so it cannot reuse
+$y$ for the measurement and writes the \emph{observation} as $\vz_t$---the one
+place $z$ denotes a measurement rather than the latent, giving $\vd_t = \vz_t -
+\vmu_t^-$.)
 
 \paragraph{Least squares, and model mismatch.} As with PCA, one recursion has two
 readings. The Bayesian one above is \emph{exact when the model is
@@ -716,7 +900,7 @@ linear-Gaussian}: \eqref{eq:kf-update} is the true posterior. But the same
 equations are also the \emph{linear minimum-mean-squared-error} (LMMSE)
 estimator: given the linear model \eqref{eq:kf-model} and the noise
 covariances---whatever the underlying noise distribution---they return the best
-estimate of $x_t$ among all \emph{linear} functions of the data. So when
+estimate of $z_t$ among all \emph{linear} functions of the data. So when
 Gaussianity fails the filter degrades gracefully: it is no longer the full
 posterior, nor the best nonlinear estimate, but it is still the best linear one.
 Bayes gives the clean derivation; least squares explains why the filter is
@@ -730,6 +914,156 @@ $P_t = (I - K_tC)P_t^-(I - K_tC)\trp + K_t R K_t\trp$, which stays symmetric
 positive-\emph{semi}definite, or propagate a Cholesky square root of $P_t$. These change the
 arithmetic, not the estimate.
 
+\section{Smoothing and forecasting: using all the data, and running past it}\label{sec:smoothing}
+
+The forward filter of \cref{sec:kalman} reports $p(\vz_t \mid \vy_{1:t})$: the
+belief about the state using only the past, up to now. Two other beliefs are just
+as natural. \emph{Smoothing} uses the \emph{whole} record, $p(\vz_t \mid
+\vy_{1:T})$ with $T \geq t$---the offline, retrospective estimate, and the E-step
+of learning. \emph{Forecasting} looks the other way, $p(\vz_{T+h} \mid
+\vy_{1:T})$, $h$ steps past the last observation. Both fall straight out of the
+same fun facts and the filter quantities already in hand; nothing new to compute
+but a backward sweep and a repeated predict. (Notebook 01's \texttt{rts\_smoother}
+is exactly this section; ``look how much smoother the samples are'' is the payoff
+below.)
+
+\subsection{RTS smoothing: a backward pass}
+
+The forward pass produces, at each $t$, the filtered belief $\vz_t \mid \vy_{1:t}
+\sim \Normal(\vmu_t, P_t)$ and the predicted belief $\vz_{t+1} \mid \vy_{1:t} \sim
+\Normal(\vmu_{t+1}^-, P_{t+1}^-)$. Introduce the \emph{smoothed} belief $\vz_t
+\mid \vy_{1:T} \sim \Normal(\vmu_t^s, P_t^s)$ (superscript $s$ for smoothed,
+parallel to the minus for predicted), together with the lagged cross-covariance
+$P_{t,t+1}^s = \cov(\vz_t, \vz_{t+1} \mid \vy_{1:T})$. The plan: run the filter
+forward once, storing $\vmu_t, P_t, \vmu_t^-, P_t^-$; then sweep $t = T-1, \dots,
+1$ backward.
+
+\paragraph{The Markov decoupling.} One structural fact makes a single backward
+pass enough: conditioned on $\vz_{t+1}$, the past and future observations are
+independent, so
+\begin{equation}\label{eq:sm-markov}
+    p(\vz_t \mid \vz_{t+1}, \vy_{1:T}) = p(\vz_t \mid \vz_{t+1}, \vy_{1:t}) .
+\end{equation}
+Once the next state is known, the future tells us nothing more about $\vz_t$.
+
+\paragraph{The backward conditional.} Build the joint of $(\vz_t, \vz_{t+1})$
+given $\vy_{1:t}$. The marginals are the filtered $\Normal(\vmu_t, P_t)$ and the
+predicted $\Normal(\vmu_{t+1}^-, P_{t+1}^-)$; the cross-block comes from
+$\vz_{t+1} = A\vz_t + \ve_{t+1}$, giving $\cov(\vz_t, \vz_{t+1} \mid \vy_{1:t}) =
+P_t A\trp$. Thus
+\begin{equation}\label{eq:sm-joint}
+    \begin{pmatrix} \vz_t \\ \vz_{t+1} \end{pmatrix} \Big|\, \vy_{1:t}
+    \sim \Normal\!\left(
+        \begin{pmatrix} \vmu_t \\ \vmu_{t+1}^- \end{pmatrix},\;
+        \begin{pmatrix} P_t & P_t A\trp \\ A P_t & P_{t+1}^- \end{pmatrix}
+    \right) .
+\end{equation}
+Conditioning $\vz_t$ on $\vz_{t+1}$ with \cref{fact:cond}, and defining the
+\emph{smoother gain}
+\begin{equation}\label{eq:sm-gain}
+    J_t = P_t A\trp (P_{t+1}^-)^{-1},
+\end{equation}
+gives
+\begin{equation}\label{eq:sm-backcond}
+    \E[\vz_t \mid \vz_{t+1}, \vy_{1:t}] = \vmu_t + J_t(\vz_{t+1} - \vmu_{t+1}^-),
+    \qquad
+    \cov(\vz_t \mid \vz_{t+1}, \vy_{1:t}) = P_t - J_t P_{t+1}^- J_t\trp .
+\end{equation}
+The gain $J_t$ is the backward analogue of the Kalman gain $K_t$ of
+\eqref{eq:kf-update}---how much of the downstream news to trust---and is a
+different object (do not confuse it with the information matrix notebook 01 calls
+\texttt{J\_update}).
+
+\paragraph{Closing the recursion.} Now average the backward conditional
+\eqref{eq:sm-backcond} over the already-smoothed next state $\vz_{t+1} \mid
+\vy_{1:T} \sim \Normal(\vmu_{t+1}^s, P_{t+1}^s)$, legitimate by the Markov
+identity \eqref{eq:sm-markov}. The law of total expectation gives the smoothed
+mean; the law of total covariance (conditional covariance plus the covariance of
+the conditional mean, $J_t P_{t+1}^s J_t\trp$) gives the smoothed covariance; the
+cross term gives the lagged covariance,
+\begin{align}
+    \vmu_t^s &= \vmu_t + J_t(\vmu_{t+1}^s - \vmu_{t+1}^-), \label{eq:sm-mean}\\
+    P_t^s &= P_t + J_t(P_{t+1}^s - P_{t+1}^-) J_t\trp, \label{eq:sm-cov}\\
+    P_{t,t+1}^s &= J_t P_{t+1}^s . \label{eq:sm-cross}
+\end{align}
+The sweep initializes at $t = T$ with $\vmu_T^s = \vmu_T$ and $P_T^s = P_T$: at
+the last step ``all the data'' and ``the data so far'' coincide.
+
+\paragraph{Reading the equations.} The smoothed mean \eqref{eq:sm-mean} is the
+filtered mean plus a correction $J_t(\vmu_{t+1}^s - \vmu_{t+1}^-)$: the gap
+between where the future says the next state landed and where the forward pass
+predicted it, pulled back through $J_t$. If the future confirmed the prediction
+the correction is zero. Uncertainty can only drop: since $P_{t+1}^s \preceq
+P_{t+1}^-$, \eqref{eq:sm-cov} gives $P_t^s \preceq P_t$---smoothing never hurts,
+mirroring the filter's $P_t \le P_t^-$. In scalars ($a$ scalar) the gain is $J_t =
+a P_t / P_{t+1}^-$, the same shape. The lagged covariance \eqref{eq:sm-cross} is
+the second moment $\E[\vz_t \vz_{t+1}\trp \mid \vy_{1:T}]$ that the M-step of EM
+needs (the EM route mentioned in \cref{sec:hokalman}); it is what
+\texttt{rts\_smoother} returns as \texttt{P\_tp1\_t\_s}. This is the
+Rauch--Tung--Striebel smoother \parencite{Rauch1965-rts}; equivalent
+forward--backward and two-filter forms exist \parencite{Sarkka2013-bfs}.
+
+\subsection{Forecasting: the filter with the sensor unplugged}
+
+To predict beyond the data, start from the final filtered belief $\Normal(\vmu_T,
+P_T)$ and iterate \emph{only} the predict step \eqref{eq:kf-predict} (vector form)
+with no update---there are no observations to condition on. Applying it $h$ times
+gives the $h$-step-ahead state forecast in closed form,
+\begin{equation}\label{eq:fc-state}
+    \vmu_{T+h}^- = A^h \vmu_T, \qquad
+    P_{T+h}^- = A^h P_T (A^h)\trp + \sum_{k=0}^{h-1} A^k Q (A^k)\trp .
+\end{equation}
+Pushing through the sensor $\vy = C\vz + \vv$ gives the predicted observation and
+a calibrated predictive interval that widens with $h$,
+\begin{equation}\label{eq:fc-obs}
+    \hat{\vy}_{T+h} = C\vmu_{T+h}^-, \qquad
+    \cov(\vy_{T+h} \mid \vy_{1:T}) = C P_{T+h}^- C\trp + R .
+\end{equation}
+
+\paragraph{Steady state.} For a stable $A$ (spectral radius $< 1$) the forecast
+mean decays to $\mathbf 0$ and the covariance converges to the stationary
+$P_\infty$ solving the discrete Lyapunov equation $P_\infty = A P_\infty A\trp +
+Q$; the observation-forecast covariance tends to $C P_\infty C\trp + R$, which is
+exactly $\Gamma_0$ of \eqref{eq:hk-markov} (the same $P_\infty$ that opens
+\cref{sec:hokalman}). Far ahead, the best guess is just the process mean with
+stationary spread. When instead $|\lambda|(A) \geq 1$---the random walk $a = 1$ of
+\eqref{eq:kf-model}---the covariance grows without bound: forecasts get vague, as
+they should.
+
+\medskip
+In one line: the filter is now, the smoother looks back with all the data, the
+forecast extrapolates the dynamics---one predict/update pair generates all three.
+
+\begin{exercise}[smoothing never hurts]
+Show $P_t^s \preceq P_t$: the smoothed covariance is no larger than the filtered
+one.
+\end{exercise}
+\begin{solution}
+From \eqref{eq:sm-cov} it suffices that $P_{t+1}^- \succeq P_{t+1}^s$. Argue by
+backward induction. At $t = T$, $P_T^s = P_T \preceq P_T^-$ (the filter update
+shrinks the predicted covariance, \eqref{eq:kf-update}). If $P_{t+1}^s \preceq
+P_{t+1}^-$, then $J_t(P_{t+1}^s - P_{t+1}^-)J_t\trp \preceq 0$, so
+\eqref{eq:sm-cov} gives $P_t^s \preceq P_t$; and $P_t \preceq P_t^-$ again by the
+update, closing the induction. Hence smoothing can only reduce uncertainty
+relative to filtering.
+\end{solution}
+
+\begin{exercise}[long-horizon forecast]
+For a stable $A$ (all eigenvalues inside the unit circle), show the $h$-step
+state-forecast covariance $P_{T+h}^-$ converges as $h \to \infty$ to the solution
+$P_\infty$ of the discrete Lyapunov equation $P_\infty = A P_\infty A\trp + Q$, and
+that the observation-forecast covariance tends to $C P_\infty C\trp + R$. Contrast
+with the random walk $a = 1$ of \eqref{eq:kf-model}.
+\end{exercise}
+\begin{solution}
+From \eqref{eq:fc-state}, stability makes $A^h \to 0$, so the first term vanishes
+and the matrix series converges to $P_\infty = \sum_{k\geq 0} A^k Q (A^k)\trp$,
+which satisfies $P_\infty = Q + A P_\infty A\trp$. Applying $C(\cdot)C\trp + R$
+gives the stationary observation covariance $C P_\infty C\trp + R = \Gamma_0$ of
+\eqref{eq:hk-markov}. For $a = 1$ (unit eigenvalue) the series diverges:
+$P_{T+h}^- = P_T + hQ$ grows linearly, so forecasts become arbitrarily uncertain.
+\end{solution}
+
 \section{Optional: learning the dynamics (Ho--Kalman)}\label{sec:hokalman}
 
 \emph{Optional reading, tied to notebook~01.} The filter above assumed the system
@@ -737,13 +1071,13 @@ $(A, C, Q, R)$ was known. Where do those come from? One route is
 probabilistic---EM, exactly as for factor analysis. The other is a fast algebraic
 trick from control theory, \emph{subspace identification}; its classic form is the
 \emph{Ho--Kalman} algorithm \parencite{Katayama2005-jt}, sketched here. Work at
-stationarity, where the latent has settled to $\vx_t \sim \Normal(\mathbf 0,
-P_\infty)$ with $P_\infty = A P_\infty A\trp + Q$ (the discrete Lyapunov equation;
-notebook~01 writes the latent $\vz_t$).
+stationarity, where the latent has settled to $\vz_t \sim \Normal(\mathbf 0,
+P_\infty)$ with $P_\infty = A P_\infty A\trp + Q$ (the discrete Lyapunov
+equation).
 
 \paragraph{Covariances are Markov parameters.} Compute the output autocovariances
-$\Gamma_k = \E[\vy_{t+k}\vy_t\trp]$. Since $\vx_{t+k} = A^k\vx_t + (\text{future
-noise} \perp \vx_t)$ we have $\E[\vx_{t+k}\vx_t\trp] = A^k P_\infty$, so for $k \ge
+$\Gamma_k = \E[\vy_{t+k}\vy_t\trp]$. Since $\vz_{t+k} = A^k\vz_t + (\text{future
+noise} \perp \vz_t)$ we have $\E[\vz_{t+k}\vz_t\trp] = A^k P_\infty$, so for $k \ge
 1$
 \begin{equation}\label{eq:hk-markov}
   \Gamma_k = C A^{k} P_\infty C\trp = C A^{k-1} G, \qquad G := A P_\infty C\trp .
@@ -789,6 +1123,401 @@ likelihood---so it is statistically less efficient than the EM/ML fit and can
 even return an unstable estimate. The usual practice: run Ho--Kalman for a fast,
 initialization-free guess, then polish it with EM. Notebook~01 fits both and
 compares the eigenvalues of the learned $A$.
+
+\section{Variational inference: when the posterior is no longer Gaussian}\label{sec:vi}
+
+Every model so far handed us the posterior in closed form: PPCA
+\eqref{eq:ppca-posterior}, factor analysis \eqref{eq:fa-posterior}, and the Kalman
+update \eqref{eq:kf-update} all rest on \cref{fact:cond}, which conditions one
+Gaussian on another. That gift has a precondition---prior and likelihood must be
+jointly Gaussian (\emph{conjugate}). The moment we left that world, in
+\cref{sec:expfam}, the gift was withdrawn. This section names what breaks and how
+\emph{variational inference} (VI) recovers a workable posterior by turning
+inference into optimization.
+
+\paragraph{The gap.} Bayes' rule reads $p(\vz\mid\vy) = p(\vy\mid\vz)\,p(\vz) /
+p(\vy)$ with evidence
+\begin{equation}\label{eq:vi-evidence}
+    p(\vy) = \int p(\vy\mid\vz)\,p(\vz)\,\mathrm{d}\vz .
+\end{equation}
+Off conjugacy---non-Gaussian observations (spike counts, \cref{sec:expfam}) or
+nonlinear dynamics---the pair $(\vz,\vy)$ is no longer jointly Gaussian, the
+integral \eqref{eq:vi-evidence} has no closed form, and the posterior is
+intractable. Notebook 02 makes the non-conjugacy visible with a 1-D toy (a
+Gaussian likelihood times a Laplace prior) evaluated on a grid; grid evaluation is
+a luxury of one dimension and dies exponentially as $d$ grows. The strategy: stop
+computing $p(\vz\mid\vy)$ exactly and \emph{approximate it by optimization}.
+
+\paragraph{The variational family.} Pick a parametric family $q(\vz;\vphi)$
+meant to approximate $p(\vz\mid\vy)$---say Gaussian $q = \Normal(\vmu, \Sigma_q)$
+with $\vphi = (\vmu, \Sigma_q)$---that we can sample from, evaluate, and whose
+entropy is differentiable. The goal is to choose $\vphi$ so that $q$ is as close as
+possible to the true posterior. Closeness needs a divergence.
+
+\paragraph{KL divergence.} The Kullback--Leibler divergence
+\begin{equation}\label{eq:vi-kl}
+    \mathrm{KL}(q \Vert p) = \E_{q}\!\left[\log\frac{q(\vz)}{p(\vz)}\right] \geq 0,
+    \qquad \text{equality iff } q = p \text{ a.e.}
+\end{equation}
+is non-negative (Gibbs' inequality) and zero only when the two distributions
+agree; it is asymmetric, and reads as the average number of extra nats paid for
+coding samples from $q$ under $p$. VI uses the \emph{reverse} form
+$\mathrm{KL}(q \Vert p(\cdot\mid\vy))$, which---crucially---needs only the
+\emph{unnormalized} posterior $p(\vy,\vz)$, sidestepping the intractable $p(\vy)$.
+
+\paragraph{The ELBO.} Start from $\log p(\vy)$ and multiply-and-divide by $q$
+inside the expectation:
+\begin{equation}\label{eq:vi-decomp}
+    \log p(\vy) = \underbrace{\E_{q}\!\left[\log\frac{p(\vy,\vz)}{q(\vz;\vphi)}\right]}_{\mathcal{L}(\vphi)}
+        + \underbrace{\E_{q}\!\left[\log\frac{q(\vz;\vphi)}{p(\vz\mid\vy)}\right]}_{\mathrm{KL}(q\,\Vert\,p(\cdot\mid\vy))} .
+\end{equation}
+The first term is the \emph{evidence lower bound} $\mathcal{L}(\vphi)$; the second
+is the KL from $q$ to the true posterior. Because that KL is non-negative,
+$\mathcal{L}(\vphi) \leq \log p(\vy)$---hence ``lower bound.'' The bound has two
+readings,
+\begin{equation}\label{eq:vi-elbo}
+    \mathcal{L}(\vphi) = \E_{q}\!\big[\log p(\vy,\vz) - \log q(\vz;\vphi)\big]
+        = \E_{q}\!\big[\log p(\vy\mid\vz)\big] - \mathrm{KL}\!\big(q(\vz;\vphi)\Vert p(\vz)\big) ,
+\end{equation}
+the second exposing the tension: an expected log-likelihood (reconstruction) pulled
+against a KL-to-prior (regularizer). Since $\log p(\vy)$ is a constant in $\vphi$,
+raising $\mathcal{L}$ lowers $\mathrm{KL}(q \Vert p(\cdot\mid\vy))$ by exactly the
+same amount, so
+\begin{equation}\label{eq:vi-argmax}
+    \arg\max_{\vphi}\mathcal{L}(\vphi) = \arg\min_{\vphi}\mathrm{KL}\!\big(q(\vz;\vphi)\Vert p(\vz\mid\vy)\big) .
+\end{equation}
+Inference has become optimization. Dropping the $\vphi$-constant $\log p(\vy)$, the
+objective coded in notebook 02 is $\E_q[\log p(\vy\mid\vz) + \log p(\vz)] + H(q)$,
+with $H(q)$ the entropy of $q$.
+
+\paragraph{Monte Carlo and the reparameterization trick.} The ELBO needs the
+intractable expectation $\E_q[\cdot]$; estimate it with $n$ samples,
+\begin{equation}\label{eq:vi-mc}
+    \mathcal{L}(\vphi) \approx \frac1n\sum_{i=1}^n \big[\log p(\vy\mid\vz_i)
+        + \log p(\vz_i)\big] + H\!\big(q(\vz;\vphi)\big), \qquad \vz_i \sim q(\vz;\vphi) .
+\end{equation}
+The obstacle: drawing $\vz_i \sim q$ naively makes each sample a constant in
+$\vphi$, so $\nabla_{\vphi}$ does not flow through the sampling. The fix is the
+\emph{reparameterization trick}: write the draw as a deterministic, differentiable
+function of $\vphi$ plus parameter-free base noise. For a Gaussian,
+\begin{equation}\label{eq:vi-reparam}
+    \vz = \vmu + L\,\bm{\epsilon}, \quad \bm{\epsilon}\sim\Normal(\mathbf 0, I),
+    \quad L L\trp = \Sigma_q
+    \;\Longrightarrow\;
+    \nabla_{\vphi}\E_{q}[f(\vz)] = \E_{\bm{\epsilon}}\!\big[\nabla_{\vphi} f(\vmu + L\bm{\epsilon})\big] ,
+\end{equation}
+so the draw is Gaussian by \cref{fact:affine} and the gradient now passes through
+$\vmu$ and $L$: a low-variance, autodiff-friendly estimator (\texttt{.rsample} in
+PyTorch). This applies to location--scale families
+\parencite{KingmaWelling2014-vae, Rezende2014-sbp}. When both $q$ and the prior are
+Gaussian the KL-to-prior term is closed form,
+\begin{equation}\label{eq:vi-gaussKL}
+    \mathrm{KL}\!\big(\Normal(\vmu, \Sigma_q)\Vert\Normal(\mathbf 0, I)\big)
+        = \tfrac12\big(\tr\Sigma_q + \vmu\trp\vmu - d - \ln\det\Sigma_q\big) ,
+\end{equation}
+leaving only the reconstruction term to sample.
+
+\paragraph{Where it goes.} Three payoffs close the section. \emph{Consistency:}
+when the model \emph{is} linear-Gaussian, the true posterior is Gaussian, a
+Gaussian $q$ reaches $\mathrm{KL} = 0$, and the ELBO optimum reproduces the exact
+PPCA/FA/Kalman posterior---VI strictly generalizes the conditioning of
+\cref{fact:cond}. \emph{Amortization:} replacing the per-datum $\vphi$ with a
+network mapping $\vy$ to variational parameters, $q_{\vphi}(\vz\mid\vy)$, yields the
+recognition model, or encoder, of a variational autoencoder (\cref{sec:amortized}).
+\emph{XFADS:} applying the recipe to a \emph{sequential} latent---a structured
+Gaussian posterior over the whole trajectory $\vz_{1:T}$, an amortized recognition
+network, a nonlinear dynamics prior $p(\vz_t\mid\vz_{t-1})$, and a (possibly
+Poisson) observation model, all trained by maximizing the ELBO through
+reparameterization---is the Kalman world of \cref{sec:kalman} unshackled from
+linearity and Gaussianity (\cref{sec:xfads}). Notebooks 03--04 fit a ring
+attractor and MC-Maze reaching.
+
+\begin{exercise}[ELBO decomposition]
+Starting from $\log p(\vy)$, insert $1 = \int q(\vz;\vphi)\,\mathrm{d}\vz$ and
+$p(\vz\mid\vy) = p(\vy,\vz)/p(\vy)$ to prove $\log p(\vy) = \mathcal{L}(\vphi) +
+\mathrm{KL}(q(\vz;\vphi)\Vert p(\vz\mid\vy))$. Conclude $\mathcal{L}(\vphi) \leq
+\log p(\vy)$, and that maximizing the ELBO minimizes $\mathrm{KL}(q \Vert
+p(\cdot\mid\vy))$.
+\end{exercise}
+\begin{solution}
+$\log p(\vy) = \E_q[\log p(\vy)] = \E_q\!\big[\log\frac{p(\vy,\vz)}{p(\vz\mid\vy)}\big]
+= \E_q\!\big[\log\frac{p(\vy,\vz)}{q(\vz)}\big] + \E_q\!\big[\log\frac{q(\vz)}{p(\vz\mid\vy)}\big]
+= \mathcal{L}(\vphi) + \mathrm{KL}(q\Vert p(\cdot\mid\vy))$. Gibbs' inequality gives
+$\mathrm{KL}\geq 0$, hence $\mathcal{L}\leq\log p(\vy)$; and since $\log p(\vy)$ is
+independent of $\vphi$, raising $\mathcal{L}$ lowers the KL by the same amount.
+\end{solution}
+
+\begin{exercise}[VI recovers exact conditioning in the linear-Gaussian case]
+For $\vz\sim\Normal(\mathbf 0, I_d)$ and $\vy\mid\vz\sim\Normal(C\vz,
+\Sigma_{\veta})$, argue a Gaussian family $q(\vz;\vphi) = \Normal(\vmu, \Sigma_q)$
+can drive the ELBO gap to zero, and identify the optimal $(\vmu, \Sigma_q)$.
+\end{exercise}
+\begin{solution}
+The true posterior is Gaussian (\cref{fact:cond}, \cref{sec:fa}), so it lies inside
+the family. Taking $\Sigma_q = M^{-1}$ and $\vmu = M^{-1}C\trp\Sigma_{\veta}^{-1}\vy$
+with $M = I_d + C\trp\Sigma_{\veta}^{-1}C$ (eq.~\eqref{eq:fa-M}) makes $q =
+p(\cdot\mid\vy)$, so $\mathrm{KL} = 0$ and $\mathcal{L} = \log p(\vy)$: VI
+reproduces the closed-form FA posterior \eqref{eq:fa-posterior} and strictly
+generalizes it.
+\end{solution}
+
+\section{Amortized inference and the variational autoencoder}\label{sec:amortized}
+
+Every posterior in these notes so far has been a closed-form Gaussian read-off:
+PPCA \eqref{eq:ppca-posterior}, FA \eqref{eq:fa-posterior}, the Kalman update
+\eqref{eq:kf-update}---all resting on \cref{fact:cond}. What if the observation map
+is nonlinear (spikes through a Poisson link, \cref{sec:expfam}) or the dynamical
+prior is nonlinear (the van der Pol and ring-attractor systems of the notebooks)?
+Then $p(\vz\mid\vy)$ has no closed form and the evidence \eqref{eq:vi-evidence} is
+intractable. Two escapes: MCMC (accurate, slow) or variational inference (inference
+as optimization, \cref{sec:vi}). We take the second---then make it \emph{scale}.
+
+\paragraph{Variational inference in one screen.} Fit a tractable $q(\vz;
+\lambda)$ to $p(\vz\mid\vy)$ by minimizing the reverse KL $\mathrm{KL}(q \Vert
+p(\cdot\mid\vy))$. The ELBO identity \eqref{eq:vi-decomp} gives $\log p(\vy) =
+\mathcal{L} + \mathrm{KL} \geq \mathcal{L}$: the ELBO lower-bounds the evidence, and
+maximizing it both fits $q$ to the posterior and bounds the marginal likelihood for
+learning the generative parameters. Its reconstruction-minus-KL form is
+\eqref{eq:vi-elbo}. Notebook 02 does exactly this, numerically, for a 1-D toy
+posterior. The foundational treatments are \parencite{Jordan1999-vi,
+Blei2017-vi}; note the reverse KL is \emph{mode-seeking}, so $q$ prefers to cover
+one mode tightly rather than smear across several.
+
+\paragraph{The bottleneck amortization removes.} Classical VI optimizes a fresh
+$\lambda$ for every datapoint $\vy$---$N$ inner optimizations for $N$
+observations, and a brand-new one for every test trial. Amortized inference
+replaces the per-point optimum $\lambda(\vy)$ with a shared function $\lambda =
+f_{\phi}(\vy)$: one neural network, trained once across all data, that
+\emph{predicts} the variational parameters. This network is the recognition model
+(inference network, encoder) \parencite{Gershman2014-amortized}. The trade is an
+\emph{amortization gap}---the network need not hit each point's exact optimum---
+bought for $O(1)$ test-time inference, a single forward pass.
+
+\paragraph{Recognition network plus reparameterization is a VAE.} Make the
+recognition model an amortized Gaussian,
+\begin{equation}\label{eq:vae-recog}
+    q_{\phi}(\vz\mid\vy) = \Normal\!\big(\vmu_{\phi}(\vy),\; \Sigma_{\phi}(\vy)\big) ,
+\end{equation}
+with mean and (diagonal or Cholesky) covariance emitted by a network. The
+reparameterized draw
+\begin{equation}\label{eq:vae-reparam}
+    \vz = \vmu_{\phi}(\vy) + L_{\phi}(\vy)\,\bm{\epsilon}, \quad
+    \bm{\epsilon}\sim\Normal(\mathbf 0, I_d), \quad
+    \Sigma_{\phi}(\vy) = L_{\phi}(\vy) L_{\phi}(\vy)\trp
+\end{equation}
+makes samples differentiable in $\phi$, yielding a low-variance Monte Carlo
+estimate of $\nabla_{\phi}\mathcal{L}$. Writing the ELBO with explicit
+decoder/encoder parameters,
+\begin{equation}\label{eq:vae-elbo}
+    \log p_{\theta}(\vy) = \mathcal{L}(\theta,\phi;\vy)
+        + \mathrm{KL}\!\big(q_{\phi}(\vz\mid\vy)\Vert p_{\theta}(\vz\mid\vy)\big)
+        \geq \mathcal{L}(\theta,\phi;\vy),
+\end{equation}
+\begin{equation}\label{eq:vae-elbo2}
+    \mathcal{L}(\theta,\phi;\vy) = \E_{q_{\phi}(\vz\mid\vy)}\!\big[\log p_{\theta}(\vy\mid\vz)\big]
+        - \mathrm{KL}\!\big(q_{\phi}(\vz\mid\vy)\Vert p(\vz)\big),
+\end{equation}
+and jointly maximizing it over encoder $\phi$ and decoder $\theta$ by stochastic
+gradient ascent gives the \emph{variational autoencoder}
+\parencite{KingmaWelling2014-vae, Rezende2014-sbp}. Notebook 02 ends precisely at
+this $q_{\phi}(\vz\mid\vy)$ bridge.
+
+\paragraph{Reconnecting to the linear-Gaussian thread.} The encoder is learning to
+imitate the conditioning formula. In the linear-Gaussian case the ideal recognition
+map is \emph{known}: it is the affine posterior mean of \eqref{eq:fa-posterior},
+\begin{equation}\label{eq:vae-lg}
+    \vmu_{\phi}(\vy) = M^{-1}C\trp\Sigma_{\veta}^{-1}\vy, \qquad
+    \Sigma_{\phi} = M^{-1}, \qquad M = I_d + C\trp\Sigma_{\veta}^{-1}C,
+\end{equation}
+so a linear-Gaussian encoder represents the exact posterior with \emph{zero}
+amortization gap. Amortized inference generalizes, rather than competes with,
+Kalman/FA inference. For a moving latent (\cref{sec:kalman}) one amortizes over
+sequences, $q_{\phi}(\vz_{1:T}\mid\vy_{1:T})$: the recognition network plays the
+Kalman filter/smoother's role, but learned and usable under nonlinear dynamics and
+non-Gaussian observations. This is LFADS \parencite{Pandarinath2018-lfads} and
+XFADS \parencite{Dowling2024-xfads}, notebooks 03--04. The recurring caveat
+persists: the latent is identifiable only up to an invertible reparameterization
+(\cref{sec:rotation}).
+
+\begin{exercise}
+Show the ELBO is a genuine lower bound on the log-evidence. Starting from $\log
+p_{\theta}(\vy) = \log\E_{q_{\phi}(\vz\mid\vy)}\!\big[p_{\theta}(\vy,\vz)/
+q_{\phi}(\vz\mid\vy)\big]$, apply Jensen's inequality to move the log inside the
+expectation, and identify the gap with $\mathrm{KL}(q_{\phi}(\vz\mid\vy)\Vert
+p_{\theta}(\vz\mid\vy))$. When is the bound tight?
+\end{exercise}
+\begin{solution}
+Jensen gives $\log\E_q[\cdot] \geq \E_q[\log\cdot] = \E_q[\log p_{\theta}(\vy,\vz) -
+\log q_{\phi}(\vz\mid\vy)] = \mathcal{L}$. Writing $p_{\theta}(\vy,\vz) =
+p_{\theta}(\vz\mid\vy)\,p_{\theta}(\vy)$ and subtracting shows $\log p_{\theta}(\vy)
+- \mathcal{L} = \mathrm{KL}(q_{\phi}\Vert p_{\theta}(\vz\mid\vy)) \geq 0$, tight iff
+$q_{\phi}(\vz\mid\vy) = p_{\theta}(\vz\mid\vy)$ almost everywhere.
+\end{solution}
+
+\begin{exercise}[linear-Gaussian sanity check]
+For the PPCA/FA model the exact posterior \eqref{eq:fa-posterior} is Gaussian with
+mean linear in $\vy$. Show an amortized Gaussian recognition network with affine
+mean $\vmu_{\phi}(\vy) = W\vy$ and constant covariance can represent it exactly
+(zero amortization gap), and give $W$. What does this say about VAEs relative to
+Kalman/FA inference?
+\end{exercise}
+\begin{solution}
+Matching \eqref{eq:fa-posterior}, take $W = M^{-1}C\trp\Sigma_{\veta}^{-1}$ and
+constant $\Sigma_{\phi} = M^{-1}$ with $M = I_d + C\trp\Sigma_{\veta}^{-1}C$; the
+network reproduces the true posterior for every $\vy$. Hence amortized inference
+strictly generalizes closed-form Gaussian conditioning: when the model is
+linear-Gaussian the optimal encoder is affine and recovers the Kalman/FA update,
+and nonlinear $\vmu_{\phi}, \Sigma_{\phi}$ are needed only when the generative
+model is nonlinear.
+\end{solution}
+
+\section{Nonlinear state-space models: XFADS}\label{sec:xfads}
+
+Recall the arc. The Kalman filter (\cref{sec:kalman}) kept a Gaussian belief exact
+because every arrow was linear-Gaussian; Ho--Kalman (\cref{sec:hokalman}) recovered
+the linear system. Two things break for real neural data: the latent dynamics are
+\emph{nonlinear} (ring attractors, limit cycles---notebooks 03--04), and spike
+counts are \emph{non-Gaussian} (Poisson, not $\vy = C\vz + \text{noise}$). XFADS
+\parencite{Dowling2024-xfads} keeps as much of the Kalman/Gaussian structure as it
+can while relaxing both. One-line framing: a variational autoencoder whose decoder
+is a state-space model and whose encoder does structured Gaussian smoothing.
+
+\paragraph{The generative model: nonlinear Gaussian state space.} Replace the
+linear map $A\vz_{t-1}$ of \eqref{eq:kf-model} with a nonlinear mean function
+$f_{\theta}$ (a GRU \parencite{Cho2014-gru} or MLP), keeping Gaussian process
+noise,
+\begin{equation}\label{eq:xf-dyn}
+    \vz_t = f_{\theta}(\vz_{t-1}) + \ve_t, \quad \ve_t\sim\Normal(\mathbf 0, Q),
+    \qquad \vz_1\sim\Normal(\vm_0, P_0),
+\end{equation}
+and replace the Gaussian sensor with an exponential-family emission whose natural
+parameter is the linear read-out $C\vz_t + \vb$ of \cref{sec:expfam},
+\begin{equation}\label{eq:xf-obs}
+    \vy_t \sim p(\vy_t \mid \vz_t), \quad\text{e.g.}\quad
+    \vy_t \sim \mathrm{Poisson}\!\big(\exp(C\vz_t + \vb)\big) \text{ componentwise},
+\end{equation}
+with the Gaussian case $\vy_t\sim\Normal(C\vz_t, R)$ recovering the Kalman sensor
+exactly. This is precisely the Kalman generative model with $A\vz_{t-1}$ swapped for
+$f_{\theta}(\vz_{t-1})$ and the Gaussian likelihood swapped for an exp-family one
+(the code's \texttt{DenseGaussianDynamics} and \texttt{GaussianLikelihood}/Poisson
+modules).
+
+\paragraph{Why exact inference breaks, and the fix.} Once $f_{\theta}$ is nonlinear
+or the likelihood non-Gaussian, the posterior $p(\vz_{1:T}\mid\vy_{1:T})$ is no
+longer Gaussian and \cref{fact:cond} no longer closes the recursion. Two escapes
+from the notes' vocabulary: \emph{linearize} (extended/unscented Kalman---brittle)
+or do \emph{variational inference} (\cref{sec:vi}: turn Bayes into optimization).
+XFADS takes the VI route but insists the variational family keep the
+temporal-correlation structure a smoother needs.
+
+\paragraph{A structured Gaussian posterior.} Define the approximate posterior as a
+multivariate Gaussian over the whole trajectory with a Gauss--Markov
+(block-tridiagonal precision) structure,
+\begin{equation}\label{eq:xf-post}
+    q_{\phi}(\vz_{1:T}\mid\vy_{1:T}) = \Normal(\vmu, \Sigma), \quad
+    J = \Sigma^{-1} \text{ block-tridiagonal (blocks } J_{t,t}, J_{t,t+1}\text{)} ,
+\end{equation}
+a \emph{full smoothing} posterior, not a mean-field-across-time factorization. (LFADS
+\parencite{Pandarinath2018-lfads} uses a GRU generator but an
+initial-condition-driven posterior; deep Kalman filters \parencite{Krishnan2017-dkf}
+use mean-field-in-time inference.) The block-tridiagonal precision is the
+information-form counterpart of the Kalman smoother.
+
+\paragraph{Natural parameters add.} Parameterize each Gaussian by its natural
+(information) form: precision $J = \Sigma^{-1}$ and information vector $h =
+\Sigma^{-1}\vmu$, with density factor $\propto \exp(-\tfrac12\vz\trp J\vz +
+h\trp\vz)$. The key fact, carried straight from the ``precisions add'' reading of
+\eqref{eq:kf-bayes}: multiplying Gaussian factors \emph{adds} their natural
+parameters. XFADS writes the posterior natural parameters at each $t$ as an
+additive decomposition,
+\begin{equation}\label{eq:xf-additive}
+    (h_t, J_t) = (h_t^{\mathrm{dyn}}, J_t^{\mathrm{dyn}})
+        + (h_t^{\mathrm{loc}}, J_t^{\mathrm{loc}})
+        + (h_t^{\mathrm{bwd}}, J_t^{\mathrm{bwd}}) ,
+\end{equation}
+the generalized information-filter update: the dynamics supply the predicted term,
+and two encoders supply data-dependent \emph{pseudo-observation} terms. Where a
+linear-Gaussian sensor would contribute $C\trp R^{-1} C$ and $C\trp R^{-1}\vy_t$, a
+neural network now supplies those pieces.
+
+\paragraph{Local and backward encoders.} Two amortized networks build the data
+terms. The \emph{local} encoder $\alpha_{\phi}$ maps each $\vy_t$ to a per-timestep
+Gaussian potential in natural form, with a low-rank-plus-identity precision so it
+stays cheap at large latent dimension,
+\begin{equation}\label{eq:xf-local}
+    (h_t^{\mathrm{loc}}, L_t) = \alpha_{\phi}(\vy_t), \qquad
+    J_t^{\mathrm{loc}} = L_t L_t\trp, \quad L_t\in\reals^{d\times r},\ r\ll d
+\end{equation}
+(code: \texttt{LocalEncoderLRMvn}, ``LR'' = low rank). This is the nonlinear
+analogue of factor analysis's ``precision-weight the observation before reading it
+into latent space,'' $C\trp\Sigma_{\veta}^{-1}\vy$. The \emph{backward} encoder
+$\beta_{\phi}$ is a reverse-time GRU sweeping the local potentials from $T$ down to
+$t$, summarizing the future $\vy_{t+1:T}$ into a message,
+\begin{equation}\label{eq:xf-backward}
+    (h_t^{\mathrm{bwd}}, L_t^{\mathrm{bwd}}) = \beta_{\phi}(\vy_{t+1:T}), \qquad
+    J_t^{\mathrm{bwd}} = L_t^{\mathrm{bwd}} (L_t^{\mathrm{bwd}})\trp .
+\end{equation}
+This is what upgrades filtering to smoothing: the forward dynamics prediction
+supplies the past, the backward encoder supplies the future, and their natural
+parameters add---an amortized, learned two-filter/information smoother. The belief
+at $t$ is the sum \eqref{eq:xf-additive}, sampled by reparameterization.
+
+\paragraph{Training: one ELBO, end to end.} The objective is the sequence ELBO
+\begin{equation}\label{eq:xf-elbo}
+    \mathcal{L}(\theta, \phi) = \sum_{t=1}^T \E_{q}\!\big[\log p(\vy_t\mid\vz_t)\big]
+        - \mathrm{KL}\!\big(q_{\phi}(\vz_{1:T}\mid\vy_{1:T})\Vert p_{\theta}(\vz_{1:T})\big) ,
+\end{equation}
+the expected exponential-family log-likelihood minus the KL between the structured
+Gaussian posterior and the nonlinear Gaussian prior, Monte Carlo estimated with
+reparameterized samples (notebook 02's ELBO, now over trajectories). All of
+$f_{\theta}$, $C$, $\vb$, $Q$, and the two encoders are trained jointly by
+stochastic gradient ascent---``amortized'' because the encoders replace
+per-sequence optimization with a single forward pass.
+
+\paragraph{Where it sits.} XFADS descends from a line of structured
+variational methods for state-space models: black-box VI for SSMs
+\parencite{Archer2015-bbvi}, structured VAEs that compose graphical models with
+networks \parencite{Johnson2016-svae}, deep Kalman filters
+\parencite{Krishnan2017-dkf}, and LFADS \parencite{Pandarinath2018-lfads}. Its
+contribution is to keep a genuinely structured (block-tridiagonal) Gaussian
+smoothing posterior while scaling to large latent and neuron counts through
+low-rank natural-parameter encoders. Notebook 03 recovers a ring attractor's flow
+field; notebook 04 fits MC-Maze spikes.
+
+\begin{exercise}[Gaussian products add in natural coordinates]
+Two Gaussian factors over $\vz\in\reals^d$, proportional to $\exp(-\tfrac12
+\vz\trp J_1\vz + h_1\trp\vz)$ and $\exp(-\tfrac12\vz\trp J_2\vz + h_2\trp\vz)$, are
+multiplied. Show the product is proportional to a Gaussian with precision $J_1 +
+J_2$ and information vector $h_1 + h_2$, hence mean $(J_1 + J_2)^{-1}(h_1 + h_2)$.
+This is the scalar ``precisions add'' rule of \eqref{eq:kf-bayes} in $d$
+dimensions, and it is why XFADS can add the dynamics, local, and backward terms.
+\end{exercise}
+\begin{solution}
+Multiplying the exponentials and collecting terms in $\vz$: the quadratic term is
+$-\tfrac12\vz\trp(J_1 + J_2)\vz$ and the linear term is $(h_1 + h_2)\trp\vz$, the
+natural form of a Gaussian with precision $J_1 + J_2$ and information $h_1 + h_2$;
+completing the square gives mean $(J_1 + J_2)^{-1}(h_1 + h_2)$. Normalization is
+absorbed into the proportionality constant.
+\end{solution}
+
+\begin{exercise}[XFADS reduces to the Kalman information filter]
+Take $f_{\theta}$ linear, $f_{\theta}(\vz) = A\vz$, and a Gaussian likelihood
+$\vy_t\sim\Normal(C\vz_t, R)$. Show the ideal local pseudo-observation natural
+parameters are $J_t^{\mathrm{loc}} = C\trp R^{-1} C$ and $h_t^{\mathrm{loc}} =
+C\trp R^{-1}\vy_t$, and that adding them to the predicted information reproduces
+the vector Kalman update in information form. Conclude the encoders learn a
+nonlinear, amortized stand-in for $C\trp R^{-1} C$.
+\end{exercise}
+\begin{solution}
+$\log\Normal(\vy_t; C\vz_t, R) = -\tfrac12(\vy_t - C\vz_t)\trp R^{-1}(\vy_t -
+C\vz_t) + \mathrm{const}$ is quadratic in $\vz_t$; its second-derivative
+(precision) contribution is $C\trp R^{-1} C$ and its linear (information)
+contribution is $C\trp R^{-1}\vy_t$. By the previous exercise these add to the
+predicted-belief natural parameters $J_t^-, h_t^-$, giving $J_t = J_t^- + C\trp
+R^{-1} C$ and $h_t = h_t^- + C\trp R^{-1}\vy_t$---the information-form Kalman
+update, equivalent to \eqref{eq:kf-update} (Woodbury converts between covariance
+and information forms).
+\end{solution}
 
 \printbibliography
 
