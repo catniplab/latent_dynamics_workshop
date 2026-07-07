@@ -1,0 +1,164 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=0.9in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+
+% shared solution-box machinery (\ifsolutions toggle); instructor build via
+% \def\SolutionsBuild{} - see the Makefile exercise-solutions-light target
+\input{exercise_setup}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.5em}
+\setlist[enumerate]{topsep=0.2em,itemsep=0.4em,leftmargin=1.6em}
+
+\newcommand{\stepbox}[1]{%
+  \vspace{0.25em}
+  \fcolorbox{black!35}{black!3}{%
+    \begin{minipage}{0.96\linewidth}#1\end{minipage}}}
+
+\begin{document}
+
+\begin{center}
+{\Large \textbf{The 1D Gaussian update}}\\[0.2em]
+{\small combining a prediction with a measurement (${\sim}\,15$ minutes)}
+\end{center}
+
+\vspace{0.5em}
+
+You hold a Gaussian belief about a hidden scalar $x$ (a position, a firing rate,
+a state), and you get one noisy measurement $y$:
+\[
+  x \sim \mathcal{N}(\mu_b, P_b)
+  \qquad\text{(prior belief)},
+  \qquad\qquad
+  y \mid x \sim \mathcal{N}(x, R)
+  \qquad\text{(measurement)} .
+\]
+The posterior $p(x\mid y)$ is again Gaussian. Finding its mean and variance is the
+single conditional-Gaussian manipulation at the heart of the Kalman filter. That
+is the whole exercise. (The lecture notes write the latent as $z$; here $x$ is the
+1D hidden state -- see \S\,\emph{The Kalman filter} in the notes.)
+
+\section*{1. Complete the square}
+
+By Bayes' rule the posterior is the prior times the likelihood,
+\[
+  p(x\mid y) \;\propto\; p(x)\,p(y\mid x)
+  \;\propto\;
+  \exp\!\left[-\tfrac{1}{2}\left(
+      \frac{(x-\mu_b)^2}{P_b} + \frac{(y-x)^2}{R}
+  \right)\right] .
+\]
+The exponent is quadratic in $x$, so the posterior is Gaussian. Expand and collect
+the bracket as $a\,x^2 - 2\,b\,x + \text{const}$.
+
+\begin{enumerate}
+  \item Read off the two coefficients:
+  \[
+    a = \rule{4cm}{0.4pt}
+    \qquad\qquad
+    b = \rule{4cm}{0.4pt}
+  \]
+
+  \begin{solution}
+  $a = \dfrac{1}{P_b} + \dfrac{1}{R}$ \quad(the sum of precisions), \qquad
+  $b = \dfrac{\mu_b}{P_b} + \dfrac{y}{R}$.
+  \end{solution}
+
+  \item Completing the square gives $p(x\mid y)=\mathcal{N}(\mu_{\text{new}},
+  P_{\text{new}})$ with $P_{\text{new}} = 1/a$ and $\mu_{\text{new}} = b/a$. Write
+  both out:
+  \[
+    \frac{1}{P_{\text{new}}} = \rule{4cm}{0.4pt}
+    \qquad\qquad
+    \mu_{\text{new}} = \rule{5cm}{0.4pt}
+  \]
+
+  \begin{solution}
+  $\dfrac{1}{P_{\text{new}}} = \dfrac{1}{P_b} + \dfrac{1}{R}$: \textbf{precisions
+  add}. And $\mu_{\text{new}} = \dfrac{\mu_b/P_b + y/R}{1/P_b + 1/R}$, a
+  precision-weighted average of the prior mean and the measurement.
+  \end{solution}
+
+  \item Define the \emph{gain} $K = \dfrac{P_b}{P_b+R}$. Show the mean and variance
+  take the compact update form
+  \[
+    \mu_{\text{new}} = \mu_b + K\,(y-\mu_b),
+    \qquad\qquad
+    P_{\text{new}} = (1-K)\,P_b .
+  \]
+
+  \begin{solution}
+  Multiply numerator and denominator of $\mu_{\text{new}}$ by $\dfrac{P_bR}{P_b+R}$:
+  $\mu_{\text{new}} = \dfrac{\mu_b R + y P_b}{P_b+R}
+   = \mu_b\dfrac{R}{P_b+R} + y\dfrac{P_b}{P_b+R}
+   = \mu_b + K(y-\mu_b)$, using $\dfrac{R}{P_b+R}=1-K$. And
+  $P_{\text{new}} = \dfrac{1}{1/P_b+1/R} = \dfrac{P_bR}{P_b+R}
+   = \dfrac{R}{P_b+R}P_b = (1-K)P_b$. The quantity $y-\mu_b$ is the
+  \emph{innovation} -- the part of the measurement the prior did not predict.
+  \end{solution}
+\end{enumerate}
+
+\section*{2. What does the gain do?}
+
+Fill in the limits of $K = \dfrac{P_b}{P_b+R}$:
+\[
+  R\to 0:\ K\to \rule{1.6cm}{0.4pt}
+  \quad
+  R\to\infty:\ K\to \rule{1.6cm}{0.4pt}
+  \quad
+  P_b\to 0:\ K\to \rule{1.6cm}{0.4pt}
+  \quad
+  P_b\to\infty:\ K\to \rule{1.6cm}{0.4pt}
+\]
+
+\begin{solution}
+$R\to0\Rightarrow K\to1$ (perfect sensor: trust the measurement);
+$R\to\infty\Rightarrow K\to0$ (useless sensor: ignore it);
+$P_b\to0\Rightarrow K\to0$ (certain prior: ignore the measurement);
+$P_b\to\infty\Rightarrow K\to1$ (no prior: trust the measurement). The gain always
+leans toward whichever source is more certain.
+\end{solution}
+
+\section*{3. One number}
+
+Take $\mu_b = 8$, $P_b = 4$, $y = 10$, $R = 1$. Compute the gain and the update,
+and say whether the posterior mean sits closer to the prior ($8$) or the
+measurement ($10$), and why.
+\[
+  K = \rule{2.5cm}{0.4pt}
+  \qquad
+  \mu_{\text{new}} = \rule{2.5cm}{0.4pt}
+  \qquad
+  P_{\text{new}} = \rule{2.5cm}{0.4pt}
+\]
+
+\begin{solution}
+$K=\dfrac{4}{4+1}=0.8$, \;$\mu_{\text{new}}=8+0.8(10-8)=9.6$, \;
+$P_{\text{new}}=(1-0.8)\cdot4=0.8$. The prior ($P_b=4$) is more uncertain than the
+sensor ($R=1$), so the update leans toward the measurement, landing at $9.6$.
+Observing also shrinks the variance, from $4$ to $0.8$.
+\end{solution}
+
+\vspace{0.5em}
+
+\stepbox{%
+\textbf{This is one Kalman update.}
+\[
+  K=\frac{P_b}{P_b+R},
+  \qquad
+  \mu_{\text{new}}=\mu_b+K(y-\mu_b),
+  \qquad
+  P_{\text{new}}=(1-K)P_b .
+\]
+Put a \emph{prediction} step in front -- move the belief with a dynamics model,
+which inflates its variance -- then apply this update with each new measurement,
+and iterate. That loop is the Kalman filter. For the running-average view, a
+moving target, and the vector form, see the extended worksheet
+(\texttt{kalman\_filter\_exercise}); for the derivations, the \emph{Kalman filter}
+and \emph{smoothing} sections of the notes.}
+
+\end{document}

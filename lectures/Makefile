@@ -2,22 +2,26 @@
 # directory, so no TEXINPUTS setup is needed. Just run `make` from lectures/.
 #
 # Targets (student = solutions hidden, solutions = solutions shown):
-#   make                      -> every PDF below
-#   make student              -> latent_dynamics_notes.pdf
-#   make solutions            -> latent_dynamics_notes_solutions.pdf
-#   make exercise             -> kalman_filter_exercise.pdf            (blanks)
-#   make exercise-solutions   -> kalman_filter_exercise_solutions.pdf  (answer key)
-# Both documents share the \ifsolutions toggle (see exercise_setup.tex); the
+#   make                          -> every PDF below
+#   make student                  -> latent_dynamics_notes.pdf
+#   make solutions                -> latent_dynamics_notes_solutions.pdf
+#   make light                    -> kalman_filter_light.pdf               (default worksheet, ~15 min)
+#   make light-solutions          -> kalman_filter_light_solutions.pdf
+#   make exercise                 -> kalman_filter_exercise.pdf            (extended worksheet)
+#   make exercise-solutions       -> kalman_filter_exercise_solutions.pdf
+# All documents share the \ifsolutions toggle (see exercise_setup.tex); the
 # *_solutions builds prepend \def\SolutionsBuild{}. PDFs are gitignored; compile
 # and commit them only at a version release.
 
 DOC = latent_dynamics_notes
 EX  = kalman_filter_exercise
+EXL = kalman_filter_light
 SHARED  = exercise_setup.tex
 NOTES_DEPS = $(DOC).tex references.bib catniplab.sty math_preamble.tex $(SHARED)
 EX_DEPS    = $(EX).tex math_preamble.tex $(SHARED)
+EXL_DEPS   = $(EXL).tex $(SHARED)
 
-all: student solutions exercise exercise-solutions
+all: student solutions light light-solutions exercise exercise-solutions
 
 student: $(DOC).pdf
 
@@ -32,6 +36,18 @@ $(DOC)_solutions.pdf: $(NOTES_DEPS)
 	latexmk -pdf -interaction=nonstopmode -jobname=$(DOC)_solutions \
 	    -pdflatex='pdflatex -interaction=nonstopmode %O "\def\SolutionsBuild{}\input{%S}"' \
 	    $(DOC).tex
+
+light: $(EXL).pdf
+
+$(EXL).pdf: $(EXL_DEPS)
+	latexmk -pdf -interaction=nonstopmode $(EXL).tex
+
+light-solutions: $(EXL)_solutions.pdf
+
+$(EXL)_solutions.pdf: $(EXL_DEPS)
+	latexmk -pdf -interaction=nonstopmode -jobname=$(EXL)_solutions \
+	    -pdflatex='pdflatex -interaction=nonstopmode %O "\def\SolutionsBuild{}\input{%S}"' \
+	    $(EXL).tex
 
 exercise: $(EX).pdf
 
@@ -48,7 +64,9 @@ $(EX)_solutions.pdf: $(EX_DEPS)
 clean:
 	latexmk -c
 	latexmk -c -jobname=$(DOC)_solutions
+	latexmk -c $(EXL).tex
+	latexmk -c -jobname=$(EXL)_solutions
 	latexmk -c $(EX).tex
 	latexmk -c -jobname=$(EX)_solutions
 
-.PHONY: all student solutions exercise exercise-solutions clean
+.PHONY: all student solutions light light-solutions exercise exercise-solutions clean
