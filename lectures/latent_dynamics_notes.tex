@@ -709,7 +709,11 @@ identity link $A(\theta) = \theta^2/2$, so the mean is $\theta$ and the variance
 is constant---recovering the linear-Gaussian factor-analysis emission of
 \cref{sec:fa}. The message: PPCA and FA are the \emph{Gaussian special case};
 $C\vz + \vb$ is always the natural-parameter map, and only $A(\cdot)$ changes when
-the data change.
+the data change. Applying this generalization to the latent linear model turns
+PCA and factor analysis into \emph{exponential-family} PCA
+\parencite{Collins2001-ef,Ghahramani2009-of}; for neural spike trains the Poisson
+case yields the Poisson linear dynamical system and related low-dimensional
+latent-variable models \parencite{Macke2011-ep,Yu2009-qp,Pfau2013-oi,Buesing2013-ce}.
 
 \subsection{What breaks: no conjugacy}
 
