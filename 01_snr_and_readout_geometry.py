@@ -52,7 +52,7 @@ tr = np.linspace(0, T, nT)
 dt = tr[1] - tr[0]
 z = np.sin(2 * np.pi * frq * tr)[:, None]  # shape (nT, 1)
 
-nNeuron = 200
+nNeuron = 100
 
 # %% [markdown]
 # ## Signal-to-noise ratio of population spike trains
@@ -61,14 +61,54 @@ nNeuron = 200
 # bound on SNR: how much the spike trains carry about the latent per time bin.
 # The Fisher-information view of Poisson observations (and this SNR bound) is
 # developed in the lecture notes' Poisson / exponential-family section
-# (`sec:expfam`). Decibels are a logarithmic unit.
+# (`sec:expfam`), based on:
+#
+# - Jeon, H., & Park, I. M. (2024). Quantifying Signal-to-Noise Ratio in Neural
+#   Latent Trajectories via Fisher Information. 32nd European Signal Processing
+#   Conference (EUSIPCO). arXiv:2408.08752.
+#   - https://arxiv.org/abs/2408.08752
+#   - https://github.com/catniplab/neurofisherSNR
+#
+# Decibels are a logarithmic unit.
+#
+# Below, we visualize how the sorted spike raster changes as the population
+# SNR spans from extremely noisy (-20 dB) to highly structured (+20 dB).
 
 # %%
-C = 2 * rng.standard_normal((nNeuron, 1))
+C_base = rng.standard_normal((nNeuron, 1))
 b = -2.0 + rng.random((1, nNeuron))
 
-SNRdb = SNR_bound_instantaneous(z, C.T, b)
-print(f"{SNRdb:.2f} dB")  # decibel is a logarithmic unit
+# Spanning SNRs from -20 dB to +20 dB
+snr_targets = [-20.0, -10.0, 0.0, 10.0, 20.0]
+fig, axs = plt.subplots(1, len(snr_targets), figsize=(15, 3), sharex=True, sharey=True)
+
+for i, target in enumerate(snr_targets):
+    # Binary search for the scale that yields the target SNR
+    low, high = 0.0001, 100.0
+    for _ in range(30):
+        mid = (low + high) / 2
+        snr = SNR_bound_instantaneous(z, (mid * C_base).T, b)
+        if snr < target:
+            low = mid
+        else:
+            high = mid
+            
+    C_scaled = low * C_base
+    lam = np.exp(z @ C_scaled.T + b)
+    y_scaled = rng.poisson(lam * dt)
+    
+    # Sort the neurons by loading to reveal the travelling band (if SNR is high enough)
+    cidx = np.argsort(C_scaled[:, 0])
+    events = raster_to_events(y_scaled[:, cidx])
+    
+    axs[i].eventplot(events, lw=0.5, color='k')
+    axs[i].set_title(f"SNR = {target:.0f} dB")
+    axs[i].set_xlabel("time bin")
+    if i == 0:
+        axs[i].set_ylabel("sorted neurons")
+
+plt.tight_layout()
+plt.show()
 
 # %% [markdown]
 # ## A 2-D latent for the readout-geometry question
@@ -80,6 +120,19 @@ print(f"{SNRdb:.2f} dB")  # decibel is a logarithmic unit
 z2 = 1.5 * ((tr % 1) - 0.5)[:, np.newaxis]
 Z = np.hstack([z, z2])  # shape [nT, dLatent]
 dLatent = Z.shape[1]
+
+# %%
+plt.subplots(2, 1, figsize=(10, 4))
+plt.subplot(2, 1, 1)
+plt.plot(tr, z)
+plt.ylabel('first latent dim')
+plt.subplot(2, 1, 2)
+plt.plot(tr, z2)
+plt.ylabel('second latent dim')
+plt.xlabel('time')
+plt.tight_layout()
+plt.show()
+
 
 # %% [markdown]
 # ### Random projection observation
@@ -198,8 +251,20 @@ plt.xlabel('time bin'); plt.yticks([]); plt.title('raster plot (sorted by cell t
 # telling an oblique, mixed-selective random projection from a clean
 # axis-aligned code.
 #
-# **Transfer prompt:** on your own recordings, is the population code closer to
+# On your own recordings, is the population code closer to
 # random-projection (every cell mixes several variables) or axis-aligned (each
 # cell tuned to one)? Sort your raster by a candidate loading and see which
-# picture it resembles. Then return to the core sequence: the *Latent Variable
-# Models* notebook infers $z$ and $C$ from spikes like these.
+# picture it resembles.
+#
+# **Clustering the loading matrix:** One could try clustering the loading matrix
+# $C$ to see if the population exhibits some block structure (representing
+# functional cell types). However, keep in mind the **latent factor rotation issue**
+# (see lecture notes, `sec:rotation`). Because any orthogonal rotation of the
+# latents can be compensated by counter-rotating the loading matrix without changing
+# the model's likelihood, the coordinate orientation of $C$ is arbitrary. A random
+# projection could be rotated to look axis-aligned or block-like, or vice versa,
+# meaning any apparent block structure depends heavily on the coordinate basis.
+#
+# ## Mini project idea
+#
+# given a loading matrix $C$, find a factor rotation that maximizes the blockiness of $C$.

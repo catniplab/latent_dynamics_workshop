@@ -121,20 +121,6 @@ y = rng.poisson(lam * dt)
 # %% [markdown]
 # We can make a spike raster. Since we know each neuron's drive (its value in
 # $C$), we can also sort the neurons by it - which reveals a travelling band.
-#
-# > **Exercise (predict, then tweak):** before running, predict what happens to
-# > the *sorted* raster if you flip the sign of the drive (`C = -C`). Then do it
-# > and confirm the travelling band reverses direction.
-#
-# <details>
-# <summary>Solution</summary>
-#
-# Flipping the sign of every loading turns each neuron's excitation into
-# inhibition at the same phase of $z(t)$, so the neurons that fired earliest now
-# fire latest: the sorted band tilts the other way. Insert `C = -C` before the
-# `lam = ...` line and re-run.
-#
-# </details>
 
 # %%
 cidx = np.argsort(C[:, 0])
