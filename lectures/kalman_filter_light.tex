@@ -28,32 +28,32 @@
 
 \vspace{0.5em}
 
-You hold a Gaussian belief about a hidden scalar $x$ (a position, a firing rate,
+You hold a Gaussian belief about a hidden scalar $z$ (a position, a firing rate,
 a state), and you get one noisy measurement $y$:
 \[
-  x \sim \mathcal{N}(\mu_b, P_b)
+  z \sim \mathcal{N}(\mu_b, P_b)
   \qquad\text{(prior belief)},
   \qquad\qquad
-  y \mid x \sim \mathcal{N}(x, R)
+  y \mid z \sim \mathcal{N}(z, R)
   \qquad\text{(measurement)} .
 \]
-The posterior $p(x\mid y)$ is again Gaussian. Finding its mean and variance is the
+The posterior $p(z\mid y)$ is again Gaussian. Finding its mean and variance is the
 single conditional-Gaussian manipulation at the heart of the Kalman filter. That
-is the whole exercise. (The lecture notes write the latent as $z$; here $x$ is the
-1D hidden state -- see \S\,\emph{The Kalman filter} in the notes.)
+is the whole exercise. (We write the latent $z$ and the measurement $y$, matching
+the \emph{Kalman filter} section of the notes.)
 
 \section*{1. Complete the square}
 
 By Bayes' rule the posterior is the prior times the likelihood,
 \[
-  p(x\mid y) \;\propto\; p(x)\,p(y\mid x)
+  p(z\mid y) \;\propto\; p(z)\,p(y\mid z)
   \;\propto\;
   \exp\!\left[-\tfrac{1}{2}\left(
-      \frac{(x-\mu_b)^2}{P_b} + \frac{(y-x)^2}{R}
+      \frac{(z-\mu_b)^2}{P_b} + \frac{(y-z)^2}{R}
   \right)\right] .
 \]
-The exponent is quadratic in $x$, so the posterior is Gaussian. Expand and collect
-the bracket as $a\,x^2 - 2\,b\,x + \text{const}$.
+The exponent is quadratic in $z$, so the posterior is Gaussian. Expand and collect
+the bracket as $a\,z^2 - 2\,b\,z + \text{const}$.
 
 \begin{enumerate}
   \item Read off the two coefficients:
@@ -68,7 +68,7 @@ the bracket as $a\,x^2 - 2\,b\,x + \text{const}$.
   $b = \dfrac{\mu_b}{P_b} + \dfrac{y}{R}$.
   \end{solution}
 
-  \item Completing the square gives $p(x\mid y)=\mathcal{N}(\mu_{\text{new}},
+  \item Completing the square gives $p(z\mid y)=\mathcal{N}(\mu_{\text{new}},
   P_{\text{new}})$ with $P_{\text{new}} = 1/a$ and $\mu_{\text{new}} = b/a$. Write
   both out:
   \[
@@ -123,7 +123,7 @@ $P_b\to\infty\Rightarrow K\to1$ (no prior: trust the measurement). The gain alwa
 leans toward whichever source is more certain.
 \end{solution}
 
-\section*{3. One number}
+\section*{3. Apply the update to numbers}
 
 Take $\mu_b = 8$, $P_b = 4$, $y = 10$, $R = 1$. Compute the gain and the update,
 and say whether the posterior mean sits closer to the prior ($8$) or the
@@ -143,21 +143,66 @@ sensor ($R=1$), so the update leans toward the measurement, landing at $9.6$.
 Observing also shrinks the variance, from $4$ to $0.8$.
 \end{solution}
 
+\section*{4. Move one step forward: predict, then update}
+
+So far $z$ stood still. Now let it evolve between measurements,
+\[
+  z_{t+1} = a\,z_t + e_t,
+  \qquad e_t \sim \mathcal{N}(0, Q),
+  \qquad a = 0.5,\quad Q = 0.8 .
+\]
+Carry your Part~3 posterior $z \sim \mathcal{N}(9.6,\,0.8)$ forward one step, then
+fold in a new measurement.
+
+\begin{enumerate}
+  \item \textbf{Predict.} An affine map sends $\mathcal{N}(\mu, P)$ to
+  $\mathcal{N}(a\mu,\, a^2 P)$, and the independent process noise adds $Q$. Write
+  the predicted belief $\mathcal{N}(\mu^-, P^-)$ before the next measurement:
+  \[
+    \mu^- = \rule{3cm}{0.4pt}
+    \qquad\qquad
+    P^- = \rule{3cm}{0.4pt}
+  \]
+
+  \begin{solution}
+  $\mu^- = a\mu = 0.5\cdot 9.6 = 4.8$, \qquad
+  $P^- = a^2 P + Q = 0.25\cdot 0.8 + 0.8 = 1.0$.
+  The contraction ($a<1$) pulls the mean toward $0$; the process noise inflates
+  the variance.
+  \end{solution}
+
+  \item \textbf{Update.} A new measurement $y = 5$ arrives with $R = 1$. Apply the
+  Part~1 update, now using the \emph{predicted} belief $(\mu^-, P^-)$ as the prior:
+  \[
+    K = \rule{2.3cm}{0.4pt}
+    \quad
+    \mu_{\text{new}} = \rule{2.3cm}{0.4pt}
+    \quad
+    P_{\text{new}} = \rule{2.3cm}{0.4pt}
+  \]
+
+  \begin{solution}
+  $K = \dfrac{P^-}{P^-+R} = \dfrac{1}{1+1} = 0.5$, \quad
+  $\mu_{\text{new}} = 4.8 + 0.5\,(5-4.8) = 4.9$, \quad
+  $P_{\text{new}} = (1-0.5)\cdot 1.0 = 0.5$.
+  \end{solution}
+\end{enumerate}
+
 \vspace{0.5em}
 
 \stepbox{%
-\textbf{This is one Kalman update.}
+\textbf{You just ran one step of the Kalman filter.}
 \[
-  K=\frac{P_b}{P_b+R},
+  K=\frac{P^-}{P^-+R},
   \qquad
-  \mu_{\text{new}}=\mu_b+K(y-\mu_b),
+  \mu_{\text{new}}=\mu^-+K(y-\mu^-),
   \qquad
-  P_{\text{new}}=(1-K)P_b .
+  P_{\text{new}}=(1-K)P^- .
 \]
-Put a \emph{prediction} step in front -- move the belief with a dynamics model,
-which inflates its variance -- then apply this update with each new measurement,
-and iterate. That loop is the Kalman filter. For the running-average view, a
-moving target, and the vector form, see the extended worksheet
+Section~4 was one \emph{predict--update} cycle: move the belief through the
+dynamics (which inflates its variance), then correct it with the measurement.
+Iterating that loop is the Kalman filter. For the running-average view, a
+multi-step example, and the vector form, see the extended worksheet
 (\texttt{kalman\_filter\_exercise}); for the derivations, the \emph{Kalman filter}
 and \emph{smoothing} sections of the notes.}
 
