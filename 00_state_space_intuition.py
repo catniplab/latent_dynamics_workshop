@@ -30,6 +30,26 @@
 # - **Next core notebook:** *Latent Variable Models* - the inverse problem, i.e.
 #   inferring the latent and the model from the spikes alone.
 
+# %% [markdown]
+# ## Setup (Colab)
+# On Colab this clones the repo and moves into it, so `code_pack` imports and the
+# `vanderpol/` data paths below resolve exactly as they do locally. Locally it is
+# a no-op.
+
+# %%
+try:
+    import google.colab
+    _in_colab = True
+except ImportError:
+    _in_colab = False
+
+# %%
+import os
+
+if _in_colab:
+    # !git clone https://github.com/catniplab/latent_dynamics_workshop.git
+    os.chdir("latent_dynamics_workshop")
+
 # %%
 import numpy as np
 import matplotlib.pyplot as plt

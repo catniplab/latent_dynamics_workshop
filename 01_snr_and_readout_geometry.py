@@ -27,6 +27,33 @@
 # same low-D-latent -> Poisson-spikes generative model built there and needs the
 # `neurofisherSNR` external submodule.
 
+# %% [markdown]
+# ## Setup (Colab)
+# On Colab this clones the repo (with submodules) and installs `neurofisherSNR`
+# so both it and `code_pack` are importable. Locally it is a no-op.
+
+# %%
+try:
+    import google.colab
+    _in_colab = True
+except ImportError:
+    _in_colab = False
+
+# %%
+if _in_colab:
+    # !git clone --recurse-submodules https://github.com/catniplab/latent_dynamics_workshop.git
+    # !pip install -e latent_dynamics_workshop/external/neurofisherSNR/
+    pass
+
+# %%
+import os
+import sys
+
+if _in_colab:
+    cwd = os.getcwd()
+    sys.path.append(os.path.join(cwd, "latent_dynamics_workshop"))
+    sys.path.append(os.path.join(cwd, "latent_dynamics_workshop/external/neurofisherSNR"))
+
 # %%
 import numpy as np
 import matplotlib.pyplot as plt
