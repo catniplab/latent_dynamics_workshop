@@ -52,6 +52,31 @@ def raster_to_events(raster):
     return events
 
 
+def sort_by_loading_dim(C, dim):
+    """Return neuron order sorted by signed loading on one latent dimension."""
+    return np.argsort(C[:, dim])
+
+
+def sort_by_dominant_loading(C):
+    """Return neuron order grouped by dominant latent dimension, then loading size."""
+    dominant_dim = np.argmax(np.abs(C), axis=1)
+    active_loading = np.abs(C).max(axis=1)
+    return np.lexsort((active_loading, dominant_dim))
+
+
+def plot_raster(ax, y, title, order=None, ylabel="neurons"):
+    """Plot a spike raster, optionally reordering neurons first."""
+    if order is not None:
+        y = y[:, order]
+
+    ax.eventplot(raster_to_events(y), lw=0.5, color='k')
+    ax.set_xlabel("time bin")
+    ax.set_yticks([])
+    ax.set_title(title)
+    if ylabel:
+        ax.set_ylabel(ylabel)
+
+
 def plot_rotated_latents(z_rot, m_rot, z_true, label, n_samples):
     """Overlay posterior samples (gray), posterior mean, and true latent per dim."""
     fig, axs = plt.subplots(2, 1, figsize=(12, 5))

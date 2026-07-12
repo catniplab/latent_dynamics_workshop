@@ -58,9 +58,10 @@ if _in_colab:
 import numpy as np
 import matplotlib.pyplot as plt
 
+from neurofisherSNR.optimize import optimize_C
 from neurofisherSNR.snr import SNR_bound_instantaneous
 from neurofisherSNR.utils import power_to_dB, power_from_dB
-from code_pack.plotting import raster_to_events
+from code_pack.plotting import plot_raster, sort_by_dominant_loading, sort_by_loading_dim
 
 # fixed seed so the SNR numbers and rasters are reproducible run to run
 rng = np.random.default_rng(20260707)
@@ -80,6 +81,8 @@ dt = tr[1] - tr[0]
 z = np.sin(2 * np.pi * frq * tr)[:, None]  # shape (nT, 1)
 
 nNeuron = 100
+target_rate = 5.0
+max_rate = 100.0
 
 # %% [markdown]
 # ## Signal-to-noise ratio of population spike trains
@@ -101,38 +104,40 @@ nNeuron = 100
 # Below, we visualize how the sorted spike raster changes as the population
 # SNR spans from extremely noisy (-20 dB) to highly structured (+20 dB).
 
+# %% [markdown]
+# **Predict before running:** which SNR target below will be the first where the
+# travelling band is visually clear: `-20`, `-10`, `0`, `10`, or `20` dB?
+#
+# Your prediction:
+
 # %%
 C_base = rng.standard_normal((nNeuron, 1))
-b = -2.0 + rng.random((1, nNeuron))
+b0 = np.zeros((1, nNeuron))
 
 # Spanning SNRs from -20 dB to +20 dB
 snr_targets = [-20.0, -10.0, 0.0, 10.0, 20.0]
 fig, axs = plt.subplots(1, len(snr_targets), figsize=(15, 3), sharex=True, sharey=True)
 
 for i, target in enumerate(snr_targets):
-    # Binary search for the scale that yields the target SNR
-    low, high = 0.0001, 100.0
-    for _ in range(30):
-        mid = (low + high) / 2
-        snr = SNR_bound_instantaneous(z, (mid * C_base).T, b)
-        if snr < target:
-            low = mid
-        else:
-            high = mid
-            
-    C_scaled = low * C_base
-    lam = np.exp(z @ C_scaled.T + b)
+    C_scaled, b_scaled, achieved_snr = optimize_C(
+        x=z,
+        C=C_base,
+        b=b0,
+        tgt_rate_per_bin=target_rate,
+        max_rate_per_bin=max_rate,
+        tgt_snr=target,
+        snr_fn=SNR_bound_instantaneous,
+        priority="mean",
+    )
+    lam = np.exp(z @ C_scaled.T + b_scaled)
     y_scaled = rng.poisson(lam * dt)
-    
-    # Sort the neurons by loading to reveal the travelling band (if SNR is high enough)
-    cidx = np.argsort(C_scaled[:, 0])
-    events = raster_to_events(y_scaled[:, cidx])
-    
-    axs[i].eventplot(events, lw=0.5, color='k')
-    axs[i].set_title(f"SNR = {target:.0f} dB")
-    axs[i].set_xlabel("time bin")
-    if i == 0:
-        axs[i].set_ylabel("sorted neurons")
+    plot_raster(
+        axs[i],
+        y_scaled,
+        f"SNR = {achieved_snr:.0f} dB",
+        order=sort_by_loading_dim(C_scaled, 0),
+        ylabel="sorted neurons" if i == 0 else "",
+    )
 
 plt.tight_layout()
 plt.show()
@@ -162,74 +167,92 @@ plt.show()
 
 
 # %% [markdown]
-# ### Random projection observation
+# ## Readout geometry at matched 2-D SNR
 #
-# Random projection assumes each neuron is driven by *all* latent dimensions by a
-# random amount. The neural manifold is then oblique to the axes: a neuron
-# responds to changes in any direction of the latent state space. [Gao & Ganguli
-# 2015] showed that under random projections few neurons need be sampled to
-# recover the manifold, and *mixed selectivity* appears as a byproduct.
+# Now keep the information budget fixed and change the readout geometry. A
+# random-projection population lets each neuron mix both latent dimensions. An
+# axis-aligned population makes each neuron read out only one latent dimension.
 #
 # - Gao, P., & Ganguli, S. (2015). On Simplicity and Complexity in the Brave New
 #   World of Large-Scale Neuroscience. Current Opinion in Neurobiology, 32,
 #   148-155.
-
-# %%
-C = 0.8 * rng.standard_normal((nNeuron, dLatent))  # random projection
-b = 0.1 * rng.standard_normal(nNeuron) + np.log(5)
-lam = np.exp(Z @ C.T + b)
-y = rng.poisson(lam * dt)
-
-SNRdb = SNR_bound_instantaneous(Z, C.T, b)
-print(f"{SNRdb:.2f} dB")
-
-# %%
-cidx1 = np.lexsort((C[:, 0], C[:, 1]), axis=0)
-cidx2 = np.lexsort((C[:, 1], C[:, 0]), axis=0)
-
-plt.subplots(1, 3, figsize=(10, 3))
-plt.subplot(1, 3, 1)
-plt.eventplot(raster_to_events(y), lw=0.5, color='k')
-plt.xlabel('time bin'); plt.yticks([]); plt.title('raster plot'); plt.ylabel('neurons')
-plt.subplot(1, 3, 2)
-plt.eventplot(raster_to_events(y[:, cidx1]), lw=0.5, color='k')
-plt.xlabel('time bin'); plt.yticks([]); plt.title('sorted by dim 1'); plt.ylabel('sorted neurons')
-plt.subplot(1, 3, 3)
-plt.eventplot(raster_to_events(y[:, cidx2]), lw=0.5, color='k')
-plt.xlabel('time bin'); plt.yticks([]); plt.title('sorted by dim 2'); plt.ylabel('sorted neurons')
-
-# %% [markdown]
-# ### Axis-aligned observation
-#
-# Biologists have long favored neurons tuned to one feature and unmodulated by
-# others. Here each neuron is driven by *either* the first or the second latent
-# dimension. A recent paper argues this is optimal [Whittington et al. 2022].
-#
 # - Whittington, J. C. R., Dorrell, W., Ganguli, S., & Behrens, T. E. J. (2022).
 #   Disentangling with Biological Constraints: A Theory of Functional Cell Types.
 #   arXiv:2210.01768.
+#
+# **Predict before running:** both populations below are scaled to the same
+# 2-D SNR target. Which sorted raster should show two clearer cell groups, and
+# why?
+#
+# Your prediction:
 
 # %%
-bidx = rng.random(nNeuron) < 0.5
-C = 0.8 * rng.standard_normal((nNeuron, dLatent))
-C[bidx, 0] = 0
-C[~bidx, 1] = 0
-b = 0.1 * rng.standard_normal(nNeuron) + np.log(5)
-b[bidx] += 1.5  # boost firing rate for the neurons reading the 2nd latent dim
-lam = np.exp(Z @ C.T + b)
-y = rng.poisson(lam * dt)
+target_snr_2d = 8.0  # After predicting, also try: -5.0, 5.0, 15.0
+b0 = np.zeros((1, nNeuron))
+
+C_random_base = rng.standard_normal((nNeuron, dLatent))
+C_random, b_random, SNRdb_random = optimize_C(
+    x=Z,
+    C=C_random_base,
+    b=b0,
+    tgt_rate_per_bin=target_rate,
+    max_rate_per_bin=max_rate,
+    tgt_snr=target_snr_2d,
+    snr_fn=SNR_bound_instantaneous,
+    priority="mean",
+)
+lam_random = np.exp(Z @ C_random.T + b_random)
+y_random = rng.poisson(lam_random * dt)
+
+axis_mask = rng.random(nNeuron) < 0.5
+C_axis_base = rng.standard_normal((nNeuron, dLatent))
+C_axis_base[axis_mask, 0] = 0
+C_axis_base[~axis_mask, 1] = 0
+C_axis, b_axis, SNRdb_axis = optimize_C(
+    x=Z,
+    C=C_axis_base,
+    b=b0,
+    tgt_rate_per_bin=target_rate,
+    max_rate_per_bin=max_rate,
+    tgt_snr=target_snr_2d,
+    snr_fn=SNR_bound_instantaneous,
+    priority="mean",
+)
+lam_axis = np.exp(Z @ C_axis.T + b_axis)
+y_axis = rng.poisson(lam_axis * dt)
 
 # per-axis SNR bounds, using only the neurons/latent for that axis
-SNRdb1 = SNR_bound_instantaneous(Z[:, [0]], C[:, [0]].T, b)
-SNRdb2 = SNR_bound_instantaneous(Z[:, [1]], C[:, [1]].T, b)
-SNRdb = SNR_bound_instantaneous(Z, C.T, b)
+print(f"random projection SNR: {SNRdb_random:.2f} dB")
+print(f"axis-aligned SNR:     {SNRdb_axis:.2f} dB")
+SNRdb1 = SNR_bound_instantaneous(Z[:, [0]], C_axis[:, [0]].T, b_axis)
+SNRdb2 = SNR_bound_instantaneous(Z[:, [1]], C_axis[:, [1]].T, b_axis)
 print(f"axis 1: {SNRdb1:.2f} dB,  axis 2: {SNRdb2:.2f} dB")
-print(f"full:   {SNRdb:.2f} dB")
 # For axis-aligned loadings the Fisher information is block-diagonal, so the
 # information about the two independent axes adds. The full-population SNR bound
 # therefore sits between the two per-axis bounds - it is NOT their average
 # (that would require equal latent power and equal per-axis noise, which does not
 # hold here: the sine and the sawtooth carry different power).
+
+# %%
+fig, axs = plt.subplots(2, 2, figsize=(10, 6), sharex=True, sharey=True)
+plot_raster(axs[0, 0], y_random, "random projection", ylabel="neurons")
+plot_raster(
+    axs[0, 1],
+    y_random,
+    "random, sorted by z1 loading",
+    order=sort_by_loading_dim(C_random, 0),
+    ylabel="sorted neurons",
+)
+plot_raster(axs[1, 0], y_axis, "axis-aligned", ylabel="neurons")
+plot_raster(
+    axs[1, 1],
+    y_axis,
+    "axis-aligned, sorted by cell type",
+    order=sort_by_dominant_loading(C_axis),
+    ylabel="sorted neurons",
+)
+plt.tight_layout()
+plt.show()
 
 # %% [markdown]
 # > **Stretch (optional):** make the two latents carry equal power - rescale
@@ -243,7 +266,11 @@ print(f"full:   {SNRdb:.2f} dB")
 # ```python
 # z2_eq = z2 * np.sqrt(np.mean(z**2) / np.mean(z2**2))  # equal power
 # Z_eq = np.hstack([z, z2_eq])
-# print(power_to_dB((power_from_dB(SNRdb1) + power_from_dB(SNRdb2)) / 2))
+# SNRdb1_eq = SNR_bound_instantaneous(Z_eq[:, [0]], C_axis[:, [0]].T, b_axis)
+# SNRdb2_eq = SNR_bound_instantaneous(Z_eq[:, [1]], C_axis[:, [1]].T, b_axis)
+# SNRdb_eq = SNR_bound_instantaneous(Z_eq, C_axis.T, b_axis)
+# mean_axis_snr = power_to_dB((power_from_dB(SNRdb1_eq) + power_from_dB(SNRdb2_eq)) / 2)
+# print(f"full: {SNRdb_eq:.2f} dB, mean per-axis: {mean_axis_snr:.2f} dB")
 # ```
 #
 # SNR is (signal power) / (noise power). With axis-aligned loadings the Fisher
@@ -255,20 +282,6 @@ print(f"full:   {SNRdb:.2f} dB")
 # the full SNR moves toward the mean.
 #
 # </details>
-
-# %%
-# sort by which C row entry is dominant, then by loading strength (from C only)
-dominant_dim = np.argmax(np.abs(C), axis=1)
-active_loading = np.abs(C).max(axis=1)
-cidx = np.lexsort((active_loading, dominant_dim))
-
-plt.subplots(1, 2, figsize=(10, 4))
-plt.subplot(1, 2, 1)
-plt.eventplot(raster_to_events(y), lw=0.5, color='k')
-plt.xlabel('time bin'); plt.yticks([]); plt.title('raster plot'); plt.ylabel('neurons')
-plt.subplot(1, 2, 2)
-plt.eventplot(raster_to_events(y[:, cidx]), lw=0.5, color='k')
-plt.xlabel('time bin'); plt.yticks([]); plt.title('raster plot (sorted by cell type)'); plt.ylabel('sorted neurons')
 
 # %% [markdown]
 # ## You can now...
