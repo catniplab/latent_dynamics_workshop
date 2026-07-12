@@ -5,6 +5,9 @@ import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
 
+# tqdm.auto picks the widget bar in notebooks/Colab and a text bar in a plain
+# terminal, so the same call renders correctly across notebook, CLI, and IDE.
+from tqdm.auto import tqdm
 from scipy.integrate import odeint
 
 
@@ -109,8 +112,7 @@ def main():
 
     r = torch.zeros(n_trials, n_time_bins, n_neurons)
 
-    print("Generating data")
-    for trial in range(n_trials):
+    for trial in tqdm(range(n_trials), desc="Generating VDP data"):
         if trial < n_trials//2:
             state00 = np.random.uniform(-0.5, 0.5)
             state01 = np.random.uniform(-0.5, 0.5)
