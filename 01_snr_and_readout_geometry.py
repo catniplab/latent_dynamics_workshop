@@ -135,6 +135,7 @@ for i, target in enumerate(snr_targets):
         axs[i],
         y_scaled,
         f"SNR = {achieved_snr:.0f} dB",
+        dt=dt,
         order=sort_by_loading_dim(C_scaled, 0),
         ylabel="sorted neurons" if i == 0 else "",
     )
@@ -161,7 +162,7 @@ plt.ylabel('first latent dim')
 plt.subplot(2, 1, 2)
 plt.plot(tr, z2)
 plt.ylabel('second latent dim')
-plt.xlabel('time')
+plt.xlabel('time (s)')
 plt.tight_layout()
 plt.show()
 
@@ -235,19 +236,21 @@ print(f"axis 1: {SNRdb1:.2f} dB,  axis 2: {SNRdb2:.2f} dB")
 
 # %%
 fig, axs = plt.subplots(2, 2, figsize=(10, 6), sharex=True, sharey=True)
-plot_raster(axs[0, 0], y_random, "random projection", ylabel="neurons")
+plot_raster(axs[0, 0], y_random, "random projection", dt=dt, ylabel="neurons")
 plot_raster(
     axs[0, 1],
     y_random,
     "random, sorted by z1 loading",
+    dt=dt,
     order=sort_by_loading_dim(C_random, 0),
     ylabel="sorted neurons",
 )
-plot_raster(axs[1, 0], y_axis, "axis-aligned", ylabel="neurons")
+plot_raster(axs[1, 0], y_axis, "axis-aligned", dt=dt, ylabel="neurons")
 plot_raster(
     axs[1, 1],
     y_axis,
     "axis-aligned, sorted by cell type",
+    dt=dt,
     order=sort_by_dominant_loading(C_axis),
     ylabel="sorted neurons",
 )

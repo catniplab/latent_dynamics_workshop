@@ -70,7 +70,7 @@ z = z[:, None]  # update shape: (nT, ) to (nT, 1) for matrix-vector multiplicati
 
 # %%
 fig = plt.figure(figsize=(10, 3))
-plt.plot(tr, z); plt.title('1-D latent process'); plt.xlabel('time')
+plt.plot(tr, z); plt.title('1-D latent process'); plt.xlabel('time (s)')
 
 # %% [markdown]
 # ## One Poisson neuron driven by the latent process
@@ -108,7 +108,7 @@ y = rng.poisson(lam * dt)
 plt.figure(figsize=(10, 2))
 plt.plot(tr, lam, label='firing rate')
 plt.eventplot(np.nonzero(y)[0]/nT*T, lw=0.5, color='k', label='spikes')
-plt.xlim(0, T); plt.xlabel('time'); plt.ylabel('firing rate (spk/s)'); plt.legend()
+plt.xlim(0, T); plt.xlabel('time (s)'); plt.ylabel('firing rate (spk/s)'); plt.legend()
 
 # %% [markdown]
 # ## A population of Poisson neurons driven by a common 1-D latent
@@ -131,11 +131,12 @@ y = rng.poisson(lam * dt)
 
 # %%
 fig, axs = plt.subplots(1, 2, figsize=(10, 4), sharex=True, sharey=True)
-plot_raster(axs[0], y, "raster plot")
+plot_raster(axs[0], y, "raster plot", dt=dt)
 plot_raster(
     axs[1],
     y,
     "raster plot (sorted by drive)",
+    dt=dt,
     order=sort_by_loading_dim(C, 0),
     ylabel="sorted neurons",
 )
@@ -157,9 +158,9 @@ dLatent = Z.shape[1]
 # %%
 plt.subplots(2, 1, figsize=(10, 4))
 plt.subplot(2, 1, 1)
-plt.plot(tr, z ); plt.ylabel('first latent dim'); plt.xlabel('time')
+plt.plot(tr, z ); plt.ylabel('first latent dim'); plt.xlabel('time (s)')
 plt.subplot(2, 1, 2)
-plt.plot(tr, z2); plt.ylabel('second latent dim'); plt.xlabel('time')
+plt.plot(tr, z2); plt.ylabel('second latent dim'); plt.xlabel('time (s)')
 
 # %% [markdown]
 # With two latent dimensions we now face a choice of *how* each neuron reads out
@@ -210,6 +211,7 @@ with h5py.File(file_name, "r") as f:
     X = f["X"][()]
     Y = f["Y"][()]
     Y_softplus = f["Y_softplus"][()]
+    delta = f["delta"][()]  # bin width (s) for the raster time axis
     system_parameters = {k: f[k][()] for k in ("mu", "tau_1", "tau_2", "sigma", "scale")}
 
 # %% [markdown]
@@ -238,8 +240,8 @@ ax.set_title('sample trajectory (true state)'); ax.legend()
 # %% jupyter={"outputs_hidden": false}
 # spike raster generated from the noisy van der Pol latent
 fig, axs = plt.subplots(1, 2, figsize=(10, 3), sharex=True, sharey=True)
-plot_raster(axs[0], Y[0], r'$\exp()$')
-plot_raster(axs[1], Y_softplus[0], r'softplus$()$', ylabel="")
+plot_raster(axs[0], Y[0], r'$\exp()$', dt=delta)
+plot_raster(axs[1], Y_softplus[0], r'softplus$()$', dt=delta, ylabel="")
 
 # %% [markdown]
 # ## You can now...

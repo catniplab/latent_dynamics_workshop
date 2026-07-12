@@ -64,13 +64,14 @@ def sort_by_dominant_loading(C):
     return np.lexsort((active_loading, dominant_dim))
 
 
-def plot_raster(ax, y, title, order=None, ylabel="neurons"):
-    """Plot a spike raster, optionally reordering neurons first."""
+def plot_raster(ax, y, title, *, dt, order=None, ylabel="neurons"):
+    """Plot a spike raster with the time axis in seconds; dt is the bin width."""
     if order is not None:
         y = y[:, order]
 
-    ax.eventplot(raster_to_events(y), lw=0.5, color='k')
-    ax.set_xlabel("time bin")
+    events = [e * dt for e in raster_to_events(y)]  # bin index -> seconds
+    ax.eventplot(events, lw=0.5, color='k')
+    ax.set_xlabel("time (s)")
     ax.set_yticks([])
     ax.set_title(title)
     if ylabel:
