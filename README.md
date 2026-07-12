@@ -71,11 +71,18 @@ See [INSTALL_conda.md](INSTALL_conda.md).
    activate it directly with `source .venv/bin/activate`.
 
 4. (Contributors only) This repo strips notebook outputs on commit via
-   [nbstripout](https://github.com/kynan/nbstripout). After cloning, register the
-   filter locally once so `*.ipynb` diffs stay clean:
+   [nbstripout](https://github.com/kynan/nbstripout). The `.gitattributes` entry
+   ships with the repo, but the filter itself lives in `.git/config`, which is
+   **not** tracked - so you must activate it **once in every clone**, from inside
+   the repo:
    ```bash
    uv tool install nbstripout
    nbstripout --install
+   ```
+   Skip this in a clone and git silently commits notebooks with their outputs
+   (bloated, noisy diffs). Verify it took with:
+   ```bash
+   git config --get filter.nbstripout.clean   # should print an nbstripout path
    ```
 
 5. (Contributors only) Each notebook is paired to a `py:percent` script via
