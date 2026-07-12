@@ -44,6 +44,8 @@ import matplotlib.pyplot as plt
 # fixed seed so the rasters below are reproducible run to run
 rng = np.random.default_rng(20260707)
 
+from code_pack.plotting import plot_raster, plot_two_d_vector_field_from_data, sort_by_loading_dim
+
 # %% [markdown]
 # ## A simple 1-D latent process
 #
@@ -128,20 +130,15 @@ y = rng.poisson(lam * dt)
 # $C$), we can also sort the neurons by it - which reveals a travelling band.
 
 # %%
-cidx = np.argsort(C[:, 0])
-
-# raster_to_events(y) turns a (time x neuron) count matrix into a list of
-# spike-time-bin arrays, one per neuron (see code_pack/plotting.py). We reuse it
-# everywhere instead of hand-rolling the nonzero loop.
-from code_pack.plotting import raster_to_events
-
-plt.subplots(1, 2, figsize=(10, 4))
-plt.subplot(1, 2, 1)
-plt.eventplot(raster_to_events(y), lw=0.5, color='k')
-plt.xlabel('time bin'); plt.yticks([]); plt.title('raster plot'); plt.ylabel('neurons')
-plt.subplot(1, 2, 2)
-plt.eventplot(raster_to_events(y[:, cidx]), lw=0.5, color='k')
-plt.xlabel('time bin'); plt.yticks([]); plt.title('raster plot (sorted by drive)'); plt.ylabel('sorted neurons')
+fig, axs = plt.subplots(1, 2, figsize=(10, 4), sharex=True, sharey=True)
+plot_raster(axs[0], y, "raster plot")
+plot_raster(
+    axs[1],
+    y,
+    "raster plot (sorted by drive)",
+    order=sort_by_loading_dim(C, 0),
+    ylabel="sorted neurons",
+)
 
 # %% [markdown]
 # ## A 2-D latent space
@@ -201,30 +198,19 @@ plt.plot(tr, z2); plt.ylabel('second latent dim'); plt.xlabel('time')
 # %% jupyter={"outputs_hidden": false}
 import h5py
 
-from code_pack.plotting import plot_two_d_vector_field_from_data
 from code_pack.generate_vdp_data import generate_noisy_van_der_pol
 
 # loading data from ./vanderpol/data/poisson_obs.h5
 file_name = "vanderpol/data/poisson_obs.h5"
 
-# dynamics parameters
-data = h5py.File(file_name, 'r')
-system_parameters = {}
-system_parameters['mu'] = data['mu']
-system_parameters['tau_1'] = data['tau_1']
-system_parameters['tau_2'] = data['tau_2']
-system_parameters['sigma'] = data['sigma']
-system_parameters['scale'] = np.array(data['scale'])
-
-Y = np.array(data['Y'])
-X = np.array(data['X'])
-C = np.array(data['C'])
-b = np.array(data['bias'])
-
-n_trials = Y.shape[0]
-n_latents = X.shape[2]
-n_neurons = Y.shape[2]
-n_time_bins = Y.shape[1]
+# Read once into memory (f[key][()] pulls a dataset off disk); the `with` block
+# closes the file. X: latent trajectories, Y / Y_softplus: spikes under the two
+# inverse-links, system_parameters: the van der Pol dynamics constants.
+with h5py.File(file_name, "r") as f:
+    X = f["X"][()]
+    Y = f["Y"][()]
+    Y_softplus = f["Y_softplus"][()]
+    system_parameters = {k: f[k][()] for k in ("mu", "tau_1", "tau_2", "sigma", "scale")}
 
 # %% [markdown]
 # ### Visualizing trajectories
@@ -238,37 +224,22 @@ ax.scatter(X[0, -1, 0], X[0, -1, 1], marker='x', color='red', zorder=10, s=100, 
 
 # overlay the (noise-free) vector field so the trajectory sits on its flow
 system_parameters['sigma'] = 0.0
-dynamic_func = lambda inp: generate_noisy_van_der_pol(inp, np.array([0.0, 5e-3]), system_parameters)
+dynamics_func = lambda inp: generate_noisy_van_der_pol(inp, np.array([0.0, 5e-3]), system_parameters)
 axs_range = {'x_min':-1.5, 'x_max':1.5, 'y_min':-1.5, 'y_max':1.5}
-plot_two_d_vector_field_from_data(dynamic_func, ax, axs_range)
-
-ax.legend()
-ax.set_title('sample trajectory (true state)')
+plot_two_d_vector_field_from_data(dynamics_func, ax, axs_range)
+ax.set_title('sample trajectory (true state)'); ax.legend()
 
 # %% [markdown]
 # ### Effect of the tuning (inverse-link) function
 #
 # The same latent trajectory produces different-looking rasters depending on the
-# inverse-link that turns state into rate: `exp` vs `softplus`, and dense
-# (random-projection) vs axis-aligned loadings. Compare the three below.
+# inverse-link that turns state into rate. Compare `exp` and `softplus` below.
 
 # %% jupyter={"outputs_hidden": false}
-C_tilde = np.array(data['C_tilde'])
-idx = np.lexsort((C_tilde[:, 0], C_tilde[:, 1]), axis=0)  # sort the loading
-
 # spike raster generated from the noisy van der Pol latent
-fig, axs = plt.subplots(1, 3, figsize=(15, 3), sharex=True, sharey=True)
-events = raster_to_events(np.array(data['Y'])[0, :, :])
-events_softplus = raster_to_events(np.array(data['Y_softplus'])[0, :, :])
-events_axis_aligned = raster_to_events(np.array(data['Y_axis'])[0, :, idx].transpose())
-axs[0].eventplot(events, linewidths=0.5, color='k')
-axs[1].eventplot(events_softplus, linewidths=0.5, color='k')
-axs[2].eventplot(events_axis_aligned, linewidths=0.5, color='k')
-axs[0].set_title(r'$\exp()$')
-axs[1].set_title(r'softplus$()$')
-axs[2].set_title('axis aligned')
-axs[0].set_xlabel("Time")
-axs[0].set_ylabel("Neuron")
+fig, axs = plt.subplots(1, 2, figsize=(10, 3), sharex=True, sharey=True)
+plot_raster(axs[0], Y[0], r'$\exp()$')
+plot_raster(axs[1], Y_softplus[0], r'softplus$()$', ylabel="")
 
 # %% [markdown]
 # ## You can now...

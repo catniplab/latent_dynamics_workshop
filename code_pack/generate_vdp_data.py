@@ -58,23 +58,6 @@ def generate_poisson_observations_softplus(states_torch, C, b):
     return rates
 
 
-def generate_poisson_observations_axis_aligned(states_torch, C, b, n_neurons, n_latents):
-    C_tilde = C.detach().clone()
-    neurons_per_latent = n_neurons // n_latents
-
-    for l in range(n_latents):
-        if(l==0):
-            C_tilde[neurons_per_latent+1:, 0] = 0
-        elif(l==n_latents-1):
-            C_tilde[:l*neurons_per_latent, l] = 0
-        else:
-            C_tilde[:l*neurons_per_latent, l] = 0
-            C_tilde[(l+1)*neurons_per_latent+1:, l] = 0
-
-    rates = torch.exp(states_torch @ C_tilde.T + b)
-    return rates, C_tilde
-
-
 def main():
     repo_root = pathlib.Path(__file__).resolve().parents[1]
     data_path = repo_root / 'vanderpol' / 'data' / 'poisson_obs.h5'
@@ -107,7 +90,6 @@ def main():
     t = delta * torch.arange(n_time_bins)
     X = torch.zeros(n_trials, n_time_bins, n_latents)
     Y = torch.zeros(n_trials, n_time_bins, n_neurons)
-    Y_axis = torch.zeros(n_trials, n_time_bins, n_neurons)
     Y_softplus = torch.zeros(n_trials, n_time_bins, n_neurons)
 
     r = torch.zeros(n_trials, n_time_bins, n_neurons)
@@ -127,12 +109,10 @@ def main():
 
         rates = generate_poisson_observations_exp(states_torch, C, b)
         rates_softplus = generate_poisson_observations_softplus(states_torch, C, b)
-        rates_axis, C_tilde = generate_poisson_observations_axis_aligned(states_torch, C, b, n_neurons, n_latents)
 
         r[trial] = delta * rates
         X[trial] = states_torch
         Y[trial] = torch.poisson(r[trial])
-        Y_axis[trial] = torch.poisson(delta * rates_axis)
         Y_softplus[trial] = torch.poisson(delta * rates_softplus)
 
     print("min rates: {}, max rates: {}".format(np.min(np.array(r))/delta, np.max(np.array(r))/delta))
@@ -141,7 +121,6 @@ def main():
     f = h5py.File(data_path, 'w')
 
     f.create_dataset('C', data=C)
-    f.create_dataset('C_tilde', data=C_tilde)
     f.create_dataset('Q', data=Q)
     f.create_dataset('bias', data=b)
     f.create_dataset('delta', data=delta)
@@ -155,7 +134,6 @@ def main():
     f.create_dataset('r', data=r[:, n_cutoff_bins:, :].numpy().astype(np.float32), **gz)
     f.create_dataset('X', data=X[:, n_cutoff_bins:, :].numpy().astype(np.float32), **gz)
     f.create_dataset('Y', data=Y[:, n_cutoff_bins:, :].numpy().astype(np.uint8), **gz)
-    f.create_dataset('Y_axis', data=Y_axis[:, n_cutoff_bins:, :].numpy().astype(np.uint8), **gz)
     f.create_dataset('Y_softplus', data=Y_softplus[:, n_cutoff_bins:, :].numpy().astype(np.uint8), **gz)
 
     # adding dataset params
