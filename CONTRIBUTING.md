@@ -12,9 +12,11 @@ feel like parts of one course, not separate demos with different conventions.
 
 ## Authoring model
 
-Notebooks are paired to `py:percent` scripts via jupytext (see
-`jupytext.toml`). Edit the `.py`, let jupytext sync the `.ipynb`, and commit
-both. Do not hand-edit both copies.
+Master notebooks live in `master_notebooks/*.py`. Edit only those source files,
+then run `./sync_notebooks.sh [name.py]` to generate the root-level student
+`.py` and `.ipynb` copies. Commit the master source and generated student
+copies. To execute a master `.py` directly, run it from the repo root with
+`PYTHONPATH=.`. Do not hand-edit generated root notebooks unless asked.
 
 ---
 
@@ -107,8 +109,8 @@ Use this section order:
 6. Inline micro-exercises.
 7. "You can now..." capability statement + transfer prompt.
 
-A skeleton `.py` belongs in `notebooks/_template.py`; create it from an existing
-notebook if missing.
+A skeleton `.py` belongs in `master_notebooks/_template.py`; create it from an
+existing notebook if missing.
 
 ---
 
@@ -187,23 +189,12 @@ Rules:
 - Require an artifact: a filled Markdown sentence, claim, or explanation. A plot
   alone is not evidence of understanding.
 
-Fill-in exercises may break top-to-bottom execution until filled. The authored
-solution state must run clean; collapsed in-notebook solutions are the escape
-hatch. Predict and tweak exercises should remain runnable throughout.
-
-Put each solution directly below the exercise in a collapsed Markdown
-`<details>` block:
-
-````markdown
-<details>
-<summary>Solution</summary>
-
-```python
-lam = np.exp(a * x + b)
-```
-
-</details>
-````
+Generated student fill-in exercises may break top-to-bottom execution until
+filled. The master solution state must run clean. Keep answers in
+`# BEGIN SOLUTION` / `# END SOLUTION` blocks so `./sync_notebooks.sh` replaces
+them with `# YOUR CODE HERE` and `raise NotImplementedError()` in student
+copies. Put tests that should not reach students in `# BEGIN HIDDEN TESTS` /
+`# END HIDDEN TESTS` blocks.
 
 Do not ship separate solution notebooks or a solutions branch.
 
@@ -310,10 +301,11 @@ Before merging a notebook, confirm:
 - [ ] Stub exercises mark provided code and include an immediate assert check.
 - [ ] Tweak exercises have bounded values and a falsifiable target.
 - [ ] Harder exercises are marked optional stretch.
-- [ ] Each exercise has a collapsed solution.
+- [ ] Fill-in answers live in master-only solution blocks.
 - [ ] Only unsolved fill-in cells error; predict/tweak prompts stay runnable.
 - [ ] Plumbing is not duplicated where a named helper should hold it.
 - [ ] Ends with "you can now..." plus a transfer prompt.
 - [ ] Learner experience matches the rest of the sequence: notation, section
       order, exercise style, visuals, and helper APIs.
-- [ ] `.py` and `.ipynb` are committed and in sync.
+- [ ] Master source and generated student `.py`/`.ipynb` copies are committed
+      and in sync.

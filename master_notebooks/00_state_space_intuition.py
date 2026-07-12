@@ -92,8 +92,9 @@ plt.plot(tr, z); plt.title('1-D latent process'); plt.xlabel('time (s)')
 
 # %%
 a = 5
-# YOUR CODE HERE
-raise NotImplementedError()
+# BEGIN SOLUTION
+b = np.log(2)
+# END SOLUTION
 assert np.isclose(np.exp(b), 2.0)
 lam = np.exp(a * z + b)
 y = rng.poisson(lam * dt)
