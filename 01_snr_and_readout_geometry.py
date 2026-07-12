@@ -190,13 +190,13 @@ cidx2 = np.lexsort((C[:, 1], C[:, 0]), axis=0)
 plt.subplots(1, 3, figsize=(10, 3))
 plt.subplot(1, 3, 1)
 plt.eventplot(raster_to_events(y), lw=0.5, color='k')
-plt.xlabel('time bin'); plt.yticks([]); plt.title('raster plot'); plt.ylabel('neurons');
+plt.xlabel('time bin'); plt.yticks([]); plt.title('raster plot'); plt.ylabel('neurons')
 plt.subplot(1, 3, 2)
 plt.eventplot(raster_to_events(y[:, cidx1]), lw=0.5, color='k')
-plt.xlabel('time bin'); plt.yticks([]); plt.title('sorted by dim 1'); plt.ylabel('sorted neurons');
+plt.xlabel('time bin'); plt.yticks([]); plt.title('sorted by dim 1'); plt.ylabel('sorted neurons')
 plt.subplot(1, 3, 3)
 plt.eventplot(raster_to_events(y[:, cidx2]), lw=0.5, color='k')
-plt.xlabel('time bin'); plt.yticks([]); plt.title('sorted by dim 2'); plt.ylabel('sorted neurons');
+plt.xlabel('time bin'); plt.yticks([]); plt.title('sorted by dim 2'); plt.ylabel('sorted neurons')
 
 # %% [markdown]
 # ### Axis-aligned observation

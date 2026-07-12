@@ -307,7 +307,7 @@ plot_rotated_latents(z_rot_fa, m_rot_fa, z_valid, label="factor analysis", n_sam
 # Note the update precision adds the *predicted* precision $\bar{\mathbf{P}}_t^{-1}$
 # (not $\mathbf{Q}^{-1}$) to the observation information $\mathbf{C}^\top\mathbf{R}^{-1}\mathbf{C}$.
 # Full derivation: notes `sec:kalman`. The **RTS smoother** then passes backward to use
-# *all* the data for each $\mathbf{z}_t$, giving $p(\mathbf{z}_t\mid\mathbf{y}_{1:T})$;
+# *all* the data for each $\mathbf{z}_t$, giving $p(\mathbf{z}_t\mid\mathbf{y}_{1:T})$
 # see notes `sec:smoothing` (RTS smoothing and forecasting).
 
 # %% [markdown]

@@ -94,7 +94,7 @@ from code_pack.utils import load_mc_maze_data, build_mc_maze_ssm
 # # Model and training parameters
 #
 # One config dict drives the graphical model size, the inference network, and
-# training. We only *use* these to rebuild the model that matches the checkpoint;
+# training. We only *use* these to rebuild the model that matches the checkpoint
 # the shapes here must match the ones the pretrained model was fit with.
 
 # %%

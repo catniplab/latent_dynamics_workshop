@@ -14,43 +14,30 @@
 # ---
 
 # %% [markdown]
-# # Intuitions on the State Space Model
+# # Intuitions on the State Space Model for Spike Trains
 #
 # [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/catniplab/latent_dynamics_workshop/blob/main/00_state_space_intuition.ipynb)
 #
-# **Takeaway:** a low-dimensional latent process $z(t)$, passed through an
-# exponential rate link, generates the spike trains of a whole population of
-# Poisson neurons - and the latent can itself carry dynamics.
-#
-# Where to go from here:
-#
-# - **Optional companion:** `01_snr_and_readout_geometry.ipynb` - how much the
-#   population tells you about $z$ (Fisher-information SNR), and how random vs
-#   axis-aligned readouts shape the raster.
-# - **Next core notebook:** *Latent Variable Models* - the inverse problem, i.e.
-#   inferring the latent and the model from the spikes alone.
+# We will explore the generative (probablistic) model for spike trains.
 
 # %% [markdown]
 # ## Setup (Colab)
 # On Colab this clones the repo and moves into it, so `code_pack` imports and the
-# `vanderpol/` data paths below resolve exactly as they do locally. Locally it is
-# a no-op.
+# `vanderpol/` data paths below resolve exactly as they do locally.
 
 # %%
+import os
+
 try:
     import google.colab
     _in_colab = True
 except ImportError:
     _in_colab = False
 
-# %%
-import os
-
 if _in_colab:
     # !git clone https://github.com/catniplab/latent_dynamics_workshop.git
     os.chdir("latent_dynamics_workshop")
 
-# %%
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -76,11 +63,12 @@ T = 10
 frq = 0.3
 tr = np.linspace(0, T, nT)
 dt = tr[1] - tr[0]
-z = np.sin(2 * np.pi * frq * tr) # generate a sinusoid over time
+z = np.sin(2 * np.pi * frq * tr)  # generate a sinusoid over time
+z = z[:, None]  # update shape: (nT, ) to (nT, 1) for matrix-vector multiplications
 
 # %%
 fig = plt.figure(figsize=(10, 3))
-plt.plot(tr, z); plt.title('1-D latent process'); plt.xlabel('time');
+plt.plot(tr, z); plt.title('1-D latent process'); plt.xlabel('time')
 
 # %% [markdown]
 # ## One Poisson neuron driven by the latent process
@@ -116,9 +104,9 @@ lam = np.exp(a * z + b)
 y = rng.poisson(lam * dt)
 
 plt.figure(figsize=(10, 2))
-plt.plot(tr, lam, label='firing rate');
+plt.plot(tr, lam, label='firing rate')
 plt.eventplot(np.nonzero(y)[0]/nT*T, lw=0.5, color='k', label='spikes')
-plt.xlim(0, T); plt.xlabel('time'); plt.yticks([]); plt.legend();
+plt.xlim(0, T); plt.xlabel('time'); plt.ylabel('firing rate (spk/s)'); plt.legend()
 
 # %% [markdown]
 # ## A population of Poisson neurons driven by a common 1-D latent
@@ -127,9 +115,6 @@ plt.xlim(0, T); plt.xlabel('time'); plt.yticks([]); plt.legend();
 # observation dimensions than latent dimensions. Each neuron gets a random amount
 # of "drive" through its loading $C$,
 # $$ \lambda(t) = \exp(z(t)\, C^\top + b). $$
-
-# %%
-z = z[:, None]  # shape: (nT, 1) for matrix-vector multiplications
 
 # %%
 nNeuron = 200
@@ -174,9 +159,9 @@ dLatent = Z.shape[1]
 
 # %%
 plt.subplots(2, 1, figsize=(10, 4))
-plt.subplot(2, 1, 1);
+plt.subplot(2, 1, 1)
 plt.plot(tr, z ); plt.ylabel('first latent dim'); plt.xlabel('time')
-plt.subplot(2, 1, 2);
+plt.subplot(2, 1, 2)
 plt.plot(tr, z2); plt.ylabel('second latent dim'); plt.xlabel('time')
 
 # %% [markdown]
@@ -253,12 +238,12 @@ ax.scatter(X[0, -1, 0], X[0, -1, 1], marker='x', color='red', zorder=10, s=100, 
 
 # overlay the (noise-free) vector field so the trajectory sits on its flow
 system_parameters['sigma'] = 0.0
-dynamic_func = lambda inp : generate_noisy_van_der_pol(inp, np.array([0.0, 5e-3]), system_parameters)
+dynamic_func = lambda inp: generate_noisy_van_der_pol(inp, np.array([0.0, 5e-3]), system_parameters)
 axs_range = {'x_min':-1.5, 'x_max':1.5, 'y_min':-1.5, 'y_max':1.5}
 plot_two_d_vector_field_from_data(dynamic_func, ax, axs_range)
 
 ax.legend()
-ax.set_title('sample trajectory (true state)');
+ax.set_title('sample trajectory (true state)')
 
 # %% [markdown]
 # ### Effect of the tuning (inverse-link) function
@@ -276,14 +261,14 @@ fig, axs = plt.subplots(1, 3, figsize=(15, 3), sharex=True, sharey=True)
 events = raster_to_events(np.array(data['Y'])[0, :, :])
 events_softplus = raster_to_events(np.array(data['Y_softplus'])[0, :, :])
 events_axis_aligned = raster_to_events(np.array(data['Y_axis'])[0, :, idx].transpose())
-axs[0].eventplot(events, linewidths=0.5, color='k');
-axs[1].eventplot(events_softplus, linewidths=0.5, color='k');
-axs[2].eventplot(events_axis_aligned, linewidths=0.5, color='k');
-axs[0].set_title(r'$\exp()$');
-axs[1].set_title(r'softplus$()$');
-axs[2].set_title('axis aligned');
-axs[0].set_xlabel("Time");
-axs[0].set_ylabel("Neuron");
+axs[0].eventplot(events, linewidths=0.5, color='k')
+axs[1].eventplot(events_softplus, linewidths=0.5, color='k')
+axs[2].eventplot(events_axis_aligned, linewidths=0.5, color='k')
+axs[0].set_title(r'$\exp()$')
+axs[1].set_title(r'softplus$()$')
+axs[2].set_title('axis aligned')
+axs[0].set_xlabel("Time")
+axs[0].set_ylabel("Neuron")
 
 # %% [markdown]
 # ## You can now...
@@ -302,3 +287,11 @@ axs[0].set_ylabel("Neuron");
 # (`sec:vi`, `sec:amortized`) and, for dynamical latents, XFADS (`sec:xfads`).
 # Continue with the *Latent Variable Models* notebook, or detour through the
 # optional `01_snr_and_readout_geometry.ipynb` first.
+#
+# Where to go from here:
+#
+# - **Optional companion:** `01_snr_and_readout_geometry.ipynb` - how much the
+#   population tells you about $z$ (Fisher-information SNR), and how random vs
+#   axis-aligned readouts shape the raster.
+# - **Next core notebook:** *Latent Variable Models* - the inverse problem, i.e.
+#   inferring the latent and the model from the spikes alone.

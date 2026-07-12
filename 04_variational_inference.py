@@ -62,7 +62,7 @@ posterior /= np.sum(posterior) * dz
 plt.plot(zr, likelihood, label="$p(y\\mid z)$ likelihood")
 plt.plot(zr, prior, label="$p(z)$ prior")
 plt.plot(zr, posterior, '--', label="$p(z\\mid y)$ posterior")
-plt.xlabel("z"); plt.ylabel("probability density"); plt.legend(); plt.grid();
+plt.xlabel("z"); plt.ylabel("probability density"); plt.legend(); plt.grid()
 
 # %% [markdown]
 # ## Reminder: why we need approximate inference
@@ -124,7 +124,7 @@ ELBO = torch.mean(lik.log_prob(Z) + pri.log_prob(Z)) + q.entropy()  # the ELBO i
 # expectation cannot be differentiated through $\mu,\sigma$. The reparameterization
 # trick rewrites a sample as a deterministic, differentiable function of $\phi$:
 # draw $\epsilon \sim \mathcal{N}(0,1)$ once, then set $z = \mu + \sigma\,\epsilon$.
-# Now gradients flow into $\mu$ and $\sigma$. (PyTorch exposes this as `.rsample()`;
+# Now gradients flow into $\mu$ and $\sigma$. (PyTorch exposes this as `.rsample()`
 # we spell it out by hand to see the mechanism.)
 #
 # **Predict (before running):** if you kept the plain `q.sample()` from Step 2
@@ -186,7 +186,7 @@ for k in trange(10000):
 
 # %%
 plt.plot(ELBO_trace)
-plt.title("convergence"); plt.ylabel("ELBO"); plt.xlabel("gradient steps"); plt.grid();
+plt.title("convergence"); plt.ylabel("ELBO"); plt.xlabel("gradient steps"); plt.grid()
 
 # %%
 q_plot = torch.distributions.normal.Normal(mu.detach(), sigma.detach())
@@ -195,7 +195,7 @@ plt.plot(zr, np.exp(lik.log_prob(zrt).numpy()), label="likelihood")
 plt.plot(zr, np.exp(pri.log_prob(zrt).numpy()), label="prior")
 plt.plot(zr, posterior, '--', label="true posterior")
 plt.plot(zr, np.exp(q_plot.log_prob(zrt).numpy()), label="variational posterior $q$")
-plt.xlabel("z"); plt.ylabel("probability density"); plt.legend(); plt.grid();
+plt.xlabel("z"); plt.ylabel("probability density"); plt.legend(); plt.grid()
 
 # %% [markdown]
 # > **Stretch (optional):** swap the Laplace prior (the `pri` in Step 1) for a
