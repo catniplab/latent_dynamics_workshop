@@ -211,6 +211,7 @@ with h5py.File(file_name, "r") as f:
     X = f["X"][()]
     Y = f["Y"][()]
     Y_softplus = f["Y_softplus"][()]
+    C = f["C"][()]  # loading matrix, used to sort neurons in the raster
     delta = f["delta"][()]  # bin width (s) for the raster time axis
     system_parameters = {k: f[k][()] for k in ("mu", "tau_1", "tau_2", "sigma", "scale")}
 
@@ -238,10 +239,12 @@ ax.set_title('sample trajectory (true state)'); ax.legend()
 # inverse-link that turns state into rate. Compare `exp` and `softplus` below.
 
 # %% jupyter={"outputs_hidden": false}
-# spike raster generated from the noisy van der Pol latent
+# spike raster generated from the noisy van der Pol latent, neurons sorted by
+# their loading on the first latent dim so the travelling band is visible
+order = sort_by_loading_dim(C, 0)
 fig, axs = plt.subplots(1, 2, figsize=(10, 3), sharex=True, sharey=True)
-plot_raster(axs[0], Y[0], r'$\exp()$', dt=delta)
-plot_raster(axs[1], Y_softplus[0], r'softplus$()$', dt=delta, ylabel="")
+plot_raster(axs[0], Y[0], r'$\exp()$', dt=delta, order=order)
+plot_raster(axs[1], Y_softplus[0], r'softplus$()$', dt=delta, order=order, ylabel="")
 
 # %% [markdown]
 # ## You can now...
