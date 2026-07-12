@@ -29,42 +29,33 @@
 
 # %% [markdown]
 # ## Setup (Colab)
-# On Colab this clones the repo (with submodules) and installs `neurofisherSNR`
-# so both it and `code_pack` are importable. Locally it is a no-op.
+# On Colab this clones the repo (with submodules) and moves into it, then installs
+# `neurofisherSNR`, so it and `code_pack` import exactly as they do locally.
 
 # %%
+import os
+
 try:
     import google.colab
     _in_colab = True
 except ImportError:
     _in_colab = False
 
-# %%
 if _in_colab:
     # !git clone --recurse-submodules https://github.com/catniplab/latent_dynamics_workshop.git
-    # !pip install -e latent_dynamics_workshop/external/neurofisherSNR/
-    pass
+    os.chdir("latent_dynamics_workshop")
+    # !pip install -e external/neurofisherSNR/
 
-# %%
-import os
-import sys
-
-if _in_colab:
-    cwd = os.getcwd()
-    sys.path.append(os.path.join(cwd, "latent_dynamics_workshop"))
-    sys.path.append(os.path.join(cwd, "latent_dynamics_workshop/external/neurofisherSNR"))
-
-# %%
 import numpy as np
 import matplotlib.pyplot as plt
+
+# fixed seed so the SNR numbers and rasters are reproducible run to run
+rng = np.random.default_rng(20260707)
 
 from neurofisherSNR.optimize import optimize_C
 from neurofisherSNR.snr import SNR_bound_instantaneous
 from neurofisherSNR.utils import power_to_dB, power_from_dB
 from code_pack.plotting import plot_raster, sort_by_dominant_loading, sort_by_loading_dim
-
-# fixed seed so the SNR numbers and rasters are reproducible run to run
-rng = np.random.default_rng(20260707)
 
 # %% [markdown]
 # ## Rebuild the generative model from notebook 00
