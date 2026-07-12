@@ -236,7 +236,14 @@ ax.set_title('sample trajectory (true state)'); ax.legend()
 # ### Effect of the tuning (inverse-link) function
 #
 # The same latent trajectory produces different-looking rasters depending on the
-# inverse-link that turns state into rate. Compare `exp` and `softplus` below.
+# inverse-link that turns state into rate. The exponential link grows without
+# bound,
+# $$ \lambda(t) = \exp(z(t)\, C^\top + b), $$
+# while the softplus link is near-linear for large drive and only bends
+# exponentially near threshold,
+# $$ \lambda(t) = \operatorname{softplus}(z(t)\, C^\top + b)
+#    = \log\!\bigl(1 + e^{\,z(t)\, C^\top + b}\bigr). $$
+# Compare `exp` and `softplus` below.
 
 # %% jupyter={"outputs_hidden": false}
 # spike raster generated from the noisy van der Pol latent, neurons sorted by
