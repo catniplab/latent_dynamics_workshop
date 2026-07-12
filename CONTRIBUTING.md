@@ -82,11 +82,11 @@ Treat a working Setup cell, import path, and file path as a contract:
    manual edits, and the Colab badge works.
 6. **Object before theory.** Show the spike train, trajectory, or phenomenon
    before formalizing the model.
-7. **One active step per concept.** Each concept needs at least one small student
-   action.
+7. **One active step per concept.** Each concept needs at least one prediction,
+   implementation, or written claim. Looking at output does not count.
 8. **Keep the learner experience consistent.** Reduce cognitive load by reusing
    notation, section order, exercise style, visual conventions, and helper APIs.
-   Keep `x` as latent, `y` as observations, `C` as loading, and recurring helper
+   Keep `z` as latent, `y` as observations, `C` as loading, and recurring helper
    signatures stable.
 9. **Progressive disclosure.** Do not introduce a new concept, tool, and dataset
    in the same cell.
@@ -114,11 +114,64 @@ notebook if missing.
 
 ## Exercises
 
-Use 1-2 inline micro-exercises per notebook, placed where the concept lives:
+Use 1-2 inline micro-exercises per notebook, placed where the concept lives.
+Avoid the fluency illusion: scrolling a finished notebook with pre-rendered
+outputs feels like learning, but is not. Ship notebooks with outputs cleared,
+and require a written prediction or claim before the confirming run.
 
-- **Predict:** "before running the next cell, what happens if `a` doubles?"
-- **Fill one line:** one `# YOUR CODE HERE` inside an otherwise complete cell.
-- **Tweak and observe:** "change `frq` and rerun; explain the plot."
+Exercise forms:
+
+- **Predict, then run.** Put a Markdown prompt immediately before the revealing
+  cell, with a visible answer slot:
+
+  ```markdown
+  Before running: as `noise_std` goes `0.1 -> 5.0`, what happens to the width of
+  the confidence interval? Does coverage change? Write one sentence.
+
+  Your prediction:
+  ```
+
+- **Fill a small stub.** The student writes the concept, not the scaffolding:
+
+  ```python
+  def log_likelihood(x, mu, sigma):
+      """
+      x : (N,) array of observations
+      returns: scalar log p(x | mu, sigma)
+      """
+      # ============ YOUR CODE HERE (about 3 lines) ============
+      raise NotImplementedError
+      # ========================================================
+  ```
+
+  Mark scaffold clearly:
+
+  ```python
+  # ---- PROVIDED: do not edit ----
+  def plot_posterior(samples, ax=None):
+      ...
+  ```
+
+  Then put a self-check cell immediately below:
+
+  ```python
+  assert np.isclose(log_likelihood(x, 2.0, 1.0), -3.7568, atol=1e-3)
+  print("passed!")
+  ```
+
+- **Tweak with a target.** Do not ask students to "explore" a knob. Give a
+  falsifiable endpoint. Breaking things is often the best target: the failure
+  mode is the concept.
+
+  ```text
+  Find the smallest n where the CLT approximation is visually acceptable; then
+  find a distribution where that answer is wrong by 10x.
+
+  Break it: find parameters where the estimator is confidently wrong, and say why.
+
+  Two of these three settings give the same MSE for different reasons. Which two,
+  and what are the reasons?
+  ```
 
 Rules:
 
@@ -127,6 +180,12 @@ Rules:
 - The cell must run once the missing line is filled.
 - Non-stretch exercises alone must cover every concept's active step.
 - Mark harder prompts with `> **Stretch (optional):**`.
+- Give 3-4 specific values instead of free rein, chosen to straddle a qualitative
+  transition, e.g. `10, 50, 500`.
+- Use sliders only for fast intuition about a smooth relationship. If the goal
+  is reasoning about mechanism, make students retype discrete values.
+- Require an artifact: a filled Markdown sentence, claim, or explanation. A plot
+  alone is not evidence of understanding.
 
 Fill-in exercises may break top-to-bottom execution until filled. The authored
 solution state must run clean; collapsed in-notebook solutions are the escape
@@ -184,7 +243,7 @@ Lecture notes are the compact companion to the notebooks, not a textbook.
 
 1. **One idea per section.** Section headings should map to notebook takeaways.
 2. **Share notation with code.** Use the same symbols and variable names:
-   `x`, `y`, `C`, `lam`.
+   `z`, `y`, `C`, `lam`.
 3. **Notes derive; notebooks do.** Put derivations in notes once, with only the
    shortest honest path to the result. Put tangents in `Optional` sections.
 4. **Object before theory.** Start from the plot, phenomenon, or question.
@@ -243,9 +302,13 @@ Before merging a notebook, confirm:
 
 - [ ] Takeaway statable in one sentence.
 - [ ] Runs top-to-bottom clean, no manual edits, Colab badge works.
+- [ ] Notebook outputs are cleared before shipping.
 - [ ] Every key equation has adjacent, name-matched implementation.
 - [ ] No visible non-concept cell over ~15 lines.
 - [ ] Every concept has at least one non-stretch micro-exercise.
+- [ ] Prediction/tweak exercises require a written answer before the reveal.
+- [ ] Stub exercises mark provided code and include an immediate assert check.
+- [ ] Tweak exercises have bounded values and a falsifiable target.
 - [ ] Harder exercises are marked optional stretch.
 - [ ] Each exercise has a collapsed solution.
 - [ ] Only unsolved fill-in cells error; predict/tweak prompts stay runnable.
