@@ -14,14 +14,15 @@
 # ---
 
 # %% [markdown]
-# # SNR and readout geometry (optional companion)
+# # SNR and loading geometry (optional companion)
 #
-# [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/catniplab/latent_dynamics_workshop/blob/main/01_snr_and_readout_geometry.ipynb)
+# [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/catniplab/latent_dynamics_workshop/blob/main/01_snr_and_loading_geometry.ipynb)
 #
 # **Takeaway:** a Fisher-information SNR bound says how much a Poisson population
-# tells you about its latent $z$, and *how* neurons read out $z$ - all dimensions
-# at once (random projection) or one axis each (axis-aligned) - reshapes the
-# raster without changing that information budget much.
+# tells you about its latent $z$, and how the loading matrix $C$ maps $z$ to
+# neurons - all dimensions at once (random projection) or one axis each
+# (axis-aligned) - reshapes the raster without changing that information budget
+# much.
 #
 # This is an optional detour off `00_state_space_intuition.ipynb`; it reuses the
 # same low-D-latent -> Poisson-spikes generative model built there and needs the
@@ -134,10 +135,10 @@ plt.tight_layout()
 plt.show()
 
 # %% [markdown]
-# ## A 2-D latent for the readout-geometry question
+# ## A 2-D latent for the loading-geometry question
 #
 # Add a centered sawtooth as a second latent (as in notebook 00),
-# $z_2(t) = 1.5\,((t \bmod 1) - 0.5)$, so we have two dimensions to read out.
+# $z_2(t) = 1.5\,((t \bmod 1) - 0.5)$, so neurons can load onto two dimensions.
 
 # %%
 z2 = 1.5 * ((tr % 1) - 0.5)[:, np.newaxis]
@@ -158,11 +159,12 @@ plt.show()
 
 
 # %% [markdown]
-# ## Readout geometry at matched 2-D SNR
+# ## Loading geometry at matched 2-D SNR
 #
-# Now keep the information budget fixed and change the readout geometry. A
-# random-projection population lets each neuron mix both latent dimensions. An
-# axis-aligned population makes each neuron read out only one latent dimension.
+# Now keep the information budget fixed and change the loading geometry. A
+# random-projection loading matrix lets each neuron mix both latent dimensions.
+# An axis-aligned loading matrix makes each neuron load onto only one latent
+# dimension.
 #
 # - Gao, P., & Ganguli, S. (2015). On Simplicity and Complexity in the Brave New
 #   World of Large-Scale Neuroscience. Current Opinion in Neurobiology, 32,
@@ -280,8 +282,8 @@ plt.show()
 # ## You can now...
 #
 # ...quantify how informative a Poisson population is about its latent (the
-# Fisher-information SNR bound) and read a raster for its readout geometry -
-# telling an oblique, mixed-selective random projection from a clean
+# Fisher-information SNR bound) and interpret a raster through its loading
+# geometry - telling an oblique, mixed-selective random projection from a clean
 # axis-aligned code.
 #
 # On your own recordings, is the population code closer to

@@ -160,10 +160,10 @@ plt.subplot(2, 1, 2)
 plt.plot(tr, z2); plt.ylabel('second latent dim'); plt.xlabel('time (s)')
 
 # %% [markdown]
-# With two latent dimensions we now face a choice of *how* each neuron reads out
-# the latent space (all dimensions at once, or one axis each). That readout
+# With two latent dimensions we now face a choice of *how* each neuron loads onto
+# the latent space (all dimensions at once, or one axis each). That loading
 # geometry - and how much information the population carries about $z$ - is the
-# subject of the optional companion `01_snr_and_readout_geometry.ipynb`.
+# subject of the optional companion `01_snr_and_loading_geometry.ipynb`.
 
 # %% [markdown]
 # ## A dynamical law governing the latent states
@@ -268,12 +268,12 @@ plot_raster(axs[1], Y_softplus[0], r'softplus$()$', dt=delta, order=order, ylabe
 # and the model. That is variational and amortized inference over latent
 # variables and, for dynamical latents, XFADS.
 # Continue with the *Latent Variable Models* notebook, or detour through the
-# optional `01_snr_and_readout_geometry.ipynb` first.
+# optional `01_snr_and_loading_geometry.ipynb` first.
 #
 # Where to go from here:
 #
-# - **Optional companion:** `01_snr_and_readout_geometry.ipynb` - how much the
+# - **Optional companion:** `01_snr_and_loading_geometry.ipynb` - how much the
 #   population tells you about $z$ (Fisher-information SNR), and how random vs
-#   axis-aligned readouts shape the raster.
+#   axis-aligned loadings shape the raster.
 # - **Next core notebook:** *Latent Variable Models* - the inverse problem, i.e.
 #   inferring the latent and the model from the spikes alone.

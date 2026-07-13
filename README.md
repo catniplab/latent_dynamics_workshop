@@ -19,7 +19,7 @@ pretrained checkpoint where training would otherwise be slow.
 | # | Notebook | Path | What it covers |
 |---|----------|------|----------------|
 | 00 | `00_state_space_intuition` | core | latent process -> Poisson spikes; latents carry dynamics |
-| 01 | `01_snr_and_readout_geometry` | optional (extends 00) | Fisher-information SNR; random vs axis-aligned readouts |
+| 01 | `01_snr_and_loading_geometry` | optional (extends 00) | Fisher-information SNR; random vs axis-aligned loadings |
 | 02 | `02_linear_lvms` | core | PCA -> Factor Analysis -> Kalman/RTS smoothing |
 | 03 | `03_system_id_and_em` | optional (extends 02) | Ho-Kalman subspace ID and EM |
 | 04 | `04_variational_inference` | core | ELBO, KL, the reparameterization trick |

@@ -1,10 +1,10 @@
 # TODO
 
-## 01 - SNR and readout geometry
+## 01 - SNR and loading geometry
 
-- Move the axis-aligned vs random-projection readout demo here (removed from
+- Move the axis-aligned vs random-projection loading demo here (removed from
   `00` on 2026-07-12, where it was mislabeled as an inverse-link effect). `01` is
-  the notebook that owns readout geometry. It currently rebuilds its generative
+  the notebook that owns loading geometry. It currently rebuilds its generative
   model in memory, so add the axis-aligned loading (block-diagonal `C_tilde`) and
   its raster there rather than reading from the h5. The old generator code for
   this - `generate_poisson_observations_axis_aligned` and the `Y_axis`/`C_tilde`
