@@ -21,6 +21,13 @@
 # We build a probabilistic model that generates spike trains from a latent state.
 
 # %% [markdown]
+# > **On Colab, save your work.** You opened a temporary copy - nothing you type
+# > is saved until you make your own. You can work first, then do
+# > **File > Save a copy in Drive**; it snapshots all your edits and outputs, and
+# > that copy autosaves afterward. Just save before closing the tab, since a
+# > closed tab is the only way to lose unsaved work.
+
+# %% [markdown]
 # ## Setup
 # On Google Colab this clones the repo and moves into it, so `code_pack` imports and the
 # `vanderpol/` data paths below resolve exactly as they do locally.
