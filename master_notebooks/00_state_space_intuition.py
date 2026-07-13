@@ -176,9 +176,8 @@ plt.plot(tr, z2); plt.ylabel('second latent dim'); plt.xlabel('time (s)')
 # smoothing / forecasting machinery exploits.
 
 # %% [markdown]
-# The van der Pol data are pre-generated and loaded below. Maintainers can
-# regenerate them with `python code_pack/generate_vdp_data.py`; do not run that
-# during the workshop.
+# The van der Pol HDF5 is generated below before loading. The file is large and
+# is not committed to the repo, so fresh Colab sessions must create it.
 
 # %% [markdown]
 # ### van der Pol oscillator
@@ -192,15 +191,18 @@ plt.plot(tr, z2); plt.ylabel('second latent dim'); plt.xlabel('time (s)')
 # For simulation we Euler-integrate a *noisy* version on a discrete time grid
 # ($\mu=1.5$). The exact discrete update - including a coordinate rescaling and
 # the transition-noise scaling - lives in `code_pack/generate_vdp_data.py`, which
-# is the source of truth; here we only load the saved data.
+# is the source of truth. The generator uses fixed seeds, so rerunning it is
+# deterministic.
 
 # %% jupyter={"outputs_hidden": false}
 import h5py
+from pathlib import Path
 
-from code_pack.generate_vdp_data import generate_noisy_van_der_pol
+from code_pack.generate_vdp_data import main as generate_vdp_data, generate_noisy_van_der_pol
 
-# loading data from ./vanderpol/data/poisson_obs.h5
-file_name = "vanderpol/data/poisson_obs.h5"
+# Regenerate the deterministic HDF5 each run; Colab clones do not include it.
+generate_vdp_data()
+file_name = Path("vanderpol/data/poisson_obs.h5")
 
 # Read once into memory (f[key][()] pulls a dataset off disk); the `with` block
 # closes the file. X: latent trajectories, Y / Y_softplus: spikes under the two
