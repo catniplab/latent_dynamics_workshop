@@ -28,8 +28,8 @@
 # ELBO is optimized over a neural network instead of two scalars.
 #
 # The math here (KL, ELBO, the reparameterization trick) is derived in full in the
-# **variational inference** section of the lecture notes (`sec:vi`); here we build
-# the intuition by doing it on a 1-D toy problem.
+# **variational inference** section of the lecture notes; here we build the
+# intuition by doing it on a 1-D toy problem.
 
 # %%
 import numpy as np
@@ -70,8 +70,8 @@ plt.xlabel("z"); plt.ylabel("probability density"); plt.legend(); plt.grid()
 # The grid works in 1-D, but for most likelihoods and priors the normalizer
 # $p(y) = \int p(y\mid z)\,p(z)\,dz$ is intractable unless the two are *conjugate*
 # (a rare convenience). In the neural setting the likelihood is Poisson spike
-# counts (`sec:expfam`) and the prior is a temporal dynamics model (`sec:smoothing`),
-# so exact inference is off the table. We instead *approximate* the posterior.
+# counts and the prior is a temporal dynamics model, so exact inference is off the
+# table. We instead *approximate* the posterior.
 #
 # We only assume we can evaluate and sample $p(z)$ and $p(y\mid z)$ efficiently.
 # We use PyTorch distributions so everything is autodifferentiable.
@@ -105,8 +105,8 @@ q = torch.distributions.normal.Normal(mu, sigma)
 #    = \log p(y) - d_{\mathrm{KL}}\big(q(z;\phi)\,\|\,p(z\mid y)\big), $$
 # where $H(\cdot)$ is the entropy. Because $\log p(y)$ is a constant in $\phi$,
 # **maximizing the ELBO is the same as minimizing the KL** - the two differ only by
-# that constant. (The full derivation, including the sign bookkeeping and the KL
-# definition, lives in `sec:vi` of the notes.)
+# that constant. The lecture notes give the full derivation, including the sign
+# bookkeeping and the KL definition.
 #
 # We estimate the two expectations by Monte Carlo with $n$ samples $z_i \sim q(z;\phi)$:
 # $$ \widehat{\mathrm{ELBO}}(\phi) = \frac{1}{n}\sum_i \big[\log p(y\mid z_i) + \log p(z_i)\big] + H(q(z;\phi)). $$
@@ -230,9 +230,9 @@ plt.xlabel("z"); plt.ylabel("probability density"); plt.legend(); plt.grid()
 # own optimization over $\phi$. But that optimization is itself a function -
 # observation in, optimal $\phi$ out - so we can *amortize* it by training a neural
 # network $q_\phi(z\mid y)$ to output the variational parameters directly. That is
-# the recognition model / encoder of a **variational autoencoder** (`sec:amortized`
-# in the notes). XFADS applies exactly this amortized ELBO to state-space models,
-# where $p(z)$ is a temporal dynamics prior and $p(y\mid z)$ is Poisson (`sec:xfads`).
+# the recognition model / encoder of a **variational autoencoder**. XFADS applies
+# exactly this amortized ELBO to state-space models, where $p(z)$ is a temporal
+# dynamics prior and $p(y\mid z)$ is Poisson.
 #
 # **Transfer prompt:** take your own model - a likelihood plus a prior over a
 # latent - write down its ELBO, and identify which parameters need the

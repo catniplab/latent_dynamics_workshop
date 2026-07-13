@@ -25,14 +25,12 @@
 # state-space models. It ties together three ideas you have already met in this
 # workshop:
 #
-# - **Poisson / Gaussian observations** from a latent (lecture notes: exponential-family
-#   observations, `sec:expfam`),
-# - **filtering and smoothing** to infer the latent path (`sec:smoothing`),
-# - **variational inference** with an **amortized recognition network**
-#   (`sec:vi`, `sec:amortized`).
+# - **Poisson / Gaussian observations** from a latent,
+# - **filtering and smoothing** to infer the latent path,
+# - **variational inference** with an **amortized recognition network**.
 #
-# The XFADS model itself is summarized in the lecture notes section **XFADS**
-# (`sec:xfads`). See also Dowling, Zhao & Park (2024),
+# The XFADS model itself is summarized in the lecture notes section **XFADS**.
+# See also Dowling, Zhao & Park (2024),
 # [XFADS](https://arxiv.org/abs/2403.01371) (NeurIPS 2024).
 #
 # > **Branch points.**
@@ -264,7 +262,7 @@ valid_loader = torch.utils.data.DataLoader(
 # %% [markdown]
 # ## 4. Assemble the state-space model
 #
-# XFADS has four learnable-or-fixed pieces (lecture notes `sec:xfads`):
+# XFADS has four learnable-or-fixed pieces:
 #
 # - **Likelihood** `p(y | z)`: a Gaussian readout. **Important:** here we hand the
 #   model the ground-truth readout `C` (frozen, `requires_grad_(False)`) and fix the
@@ -279,7 +277,7 @@ valid_loader = torch.utils.data.DataLoader(
 # - **Dynamics** `p(z_t | z_{t-1})`: a GRU-based nonlinear Gaussian transition -
 #   **this is what XFADS learns.**
 # - **Encoders**: local + backward recognition networks that amortize the posterior
-#   over `z` (`sec:amortized`).
+#   over `z`.
 
 # %% id="2e9a0d03984446ba"
 # Likelihood: readout is H then C (H is identity here), observation noise R fixed.
@@ -317,8 +315,8 @@ ssm = LowRankNonlinearStateSpaceModel(
 # ## 5. Load the trained model
 #
 # The core path loads a checkpoint we trained for you, so the notebook runs in
-# seconds. Training XFADS maximizes a variational ELBO (`sec:vi`); the from-scratch
-# recipe is in the optional cell just below.
+# seconds. Training XFADS maximizes a variational ELBO; the from-scratch recipe is
+# in the optional cell just below.
 
 # %% id="checkpoint-load"
 ckpts_path = 'latent_dynamics_workshop/ckpts/ring_attractor' if _in_colab else './ckpts/ring_attractor'
@@ -437,4 +435,4 @@ plt.show()
 # phenomenon you started from?
 #
 # **Next:** the following core notebook applies this same XFADS machinery to real
-# neural spike trains (MC-Maze) with Poisson observations (`sec:expfam`).
+# neural spike trains (MC-Maze) with Poisson observations.

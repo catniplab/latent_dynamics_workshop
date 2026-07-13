@@ -81,8 +81,7 @@ max_rate = 100.0
 # We use the `neurofisherSNR` package to estimate the Fisher-information upper
 # bound on SNR: how much the spike trains carry about the latent per time bin.
 # The Fisher-information view of Poisson observations (and this SNR bound) is
-# developed in the lecture notes' Poisson / exponential-family section
-# (`sec:expfam`), based on:
+# developed in the lecture notes' Poisson observation section, based on:
 #
 # - Jeon, H., & Park, I. M. (2024). Quantifying Signal-to-Noise Ratio in Neural
 #   Latent Trajectories via Fisher Information. 32nd European Signal Processing
@@ -293,7 +292,7 @@ plt.show()
 # **Clustering the loading matrix:** One could try clustering the loading matrix
 # $C$ to see if the population exhibits some block structure (representing
 # functional cell types). However, keep in mind the **latent factor rotation issue**
-# (see lecture notes, `sec:rotation`). Because any orthogonal rotation of the
+# from the lecture notes. Because any orthogonal rotation of the
 # latents can be compensated by counter-rotating the loading matrix without changing
 # the model's likelihood, the coordinate orientation of $C$ is arbitrary. A random
 # projection could be rotated to look axis-aligned or block-like, or vice versa,

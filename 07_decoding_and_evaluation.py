@@ -26,8 +26,8 @@
 # pretrained model. The first section repeats `06`'s setup so this notebook runs on
 # its own; skim it and move to the evaluation sections.
 #
-# Background in the lecture notes: *Poisson observations* (`sec:expfam`),
-# *RTS smoothing and forecasting* (`sec:smoothing`), and *XFADS* (`sec:xfads`).
+# Background in the lecture notes: *Poisson observations*,
+# *RTS smoothing and forecasting*, and *XFADS*.
 
 # %% [markdown]
 # ## Setup (repeats `06` - run and move on)

@@ -55,8 +55,8 @@ from code_pack.plotting import plot_raster, plot_two_d_vector_field_from_data, s
 #
 # Note: these latents are *hand-chosen deterministic* signals, picked so the
 # generated spikes are easy to eyeball. In the lecture notes the latent is
-# instead a random variable, $z\sim\mathcal{N}(0, I_d)$ (see the notation and
-# PPCA sections, `sec:ppca`); here we prescribe $z(t)$ by hand.
+# instead a random variable, $z\sim\mathcal{N}(0, I_d)$; here we prescribe
+# $z(t)$ by hand.
 
 # %%
 # simulate a simple latent process
@@ -84,14 +84,13 @@ plt.plot(tr, z); plt.title('1-D latent process'); plt.xlabel('time (s)')
 # exponential inverse-link is the convenient choice,
 # $$ \lambda(t) = \exp(a\, z(t) + b), $$
 # so $\exp(b)$ is the baseline rate (at $z=0$) and $a$ is the gain. This is the
-# Poisson / exponential-family observation model derived in the lecture notes
-# (`sec:expfam`).
+# Poisson observation model derived in the lecture notes.
 #
 # > **Exercise (fill one line):** set the baseline firing rate $\exp(b)$ to
 # > 2 Hz. Replace the placeholder (exception) with a line of code that sets the variable `b`.
 
 # %%
-a = 5
+a = 3
 # YOUR CODE HERE
 raise NotImplementedError()
 assert np.isclose(np.exp(b), 2.0)
@@ -110,6 +109,10 @@ plt.xlim(0, T); plt.xlabel('time (s)'); plt.ylabel('firing rate (spk/s)'); plt.l
 # observation dimensions than latent dimensions. Each neuron gets a random amount
 # of "drive" through its loading $C$,
 # $$ \lambda(t) = \exp(z(t)\, C^\top + b). $$
+#
+# **Shape convention.** The lecture notes write one time point as a column vector,
+# $y_t = C z_t$. In code we stack time along rows: `z` has shape
+# `(time, latent_dim)`, so the readout is `z @ C.T`, producing `(time, neurons)`.
 
 # %%
 nNeuron = 200
@@ -169,7 +172,7 @@ plt.plot(tr, z2); plt.ylabel('second latent dim'); plt.xlabel('time (s)')
 # In continuous time,
 # $$ \dot{z} = f(z(t)), $$
 # where $f$ is a smooth vector field. This Markovian latent is exactly what the
-# smoothing / forecasting machinery in the notes exploits (`sec:smoothing`).
+# smoothing / forecasting machinery exploits.
 
 # %% [markdown]
 # The van der Pol data are pre-generated and loaded below. Maintainers can
@@ -259,8 +262,8 @@ plot_raster(axs[1], Y_softplus[0], r'softplus$()$', dt=delta, order=order, ylabe
 #
 # What we did here is the *forward* (generative) direction. The rest of the
 # workshop tackles the inverse problem: given only the spikes, infer the latent
-# and the model. That is statistical inference over latent variables
-# (`sec:vi`, `sec:amortized`) and, for dynamical latents, XFADS (`sec:xfads`).
+# and the model. That is variational and amortized inference over latent
+# variables and, for dynamical latents, XFADS.
 # Continue with the *Latent Variable Models* notebook, or detour through the
 # optional `01_snr_and_readout_geometry.ipynb` first.
 #

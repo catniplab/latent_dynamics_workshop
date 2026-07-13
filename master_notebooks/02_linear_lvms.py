@@ -28,10 +28,9 @@
 # - *Next core notebook:* variational inference, once the observations become
 #   non-Gaussian (Poisson spikes) and the tidy closed forms below stop applying.
 #
-# The math lives in the lecture notes; here we *do* it. Section links point to the notes:
-# `sec:ppca` (Probabilistic PCA), `sec:fa` (Factor analysis), `sec:rotation` /
-# `sec:scale` (the rotation and scale ambiguities), `sec:kalman` (the Kalman filter),
-# and `sec:smoothing` (RTS smoothing and forecasting).
+# The math lives in the lecture notes; here we *do* it. Relevant sections are
+# Probabilistic PCA, factor analysis, the rotation and scale ambiguities, the
+# Kalman filter, and RTS smoothing and forecasting.
 
 # %% [markdown]
 # ## Setup (Colab)
@@ -77,7 +76,7 @@ from xfads.prob_utils import (
 # %%
 # Minimal config: 2 latent dimensions, run on CPU unless a GPU is available.
 n_latents = 2
-seed = 1234
+seed = 20270712
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 pl.seed_everything(seed, workers=True)
@@ -111,7 +110,7 @@ from code_pack.plotting import plot_rotated_latents
 # $$
 #
 # We keep the latent named `z` throughout (matching the `xfads` code and the notes'
-# `z`-convention). Full derivations of everything below are in the notes; see `sec:kalman`.
+# `z`-convention). Full derivations of everything below are in the lecture notes.
 
 # %%
 # Simulation parameters
@@ -179,7 +178,7 @@ plt.grid(True)
 # PCA finds directions of maximum variance. It ignores both observation noise and
 # time, and corresponds to the $\sigma^2 \to 0$ limit of a linear-Gaussian model
 # $\mathbf{z}\sim\mathcal{N}(0,\mathbf{I})$, $\mathbf{y}\mid\mathbf{z}\sim\mathcal{N}(\mathbf{C}\mathbf{z}, \sigma^2\mathbf{I})$.
-# Derivation and the exact PPCA connection: notes `sec:ppca`.
+# The lecture notes derive the exact PPCA connection.
 
 # %%
 pca = PCA(n_components=2)
@@ -191,8 +190,8 @@ m_pca = torch.tensor(m_pca.reshape(n_valid, n_time_bins, -1), dtype=torch.float3
 # %% [markdown]
 # Each column below is a principal component - a dominant instantaneous population
 # pattern. The left panel already hints the raw PCA latent does not match the truth:
-# a latent variable model is only identifiable up to rotation and scale (`sec:rotation`,
-# `sec:scale`), so we must *align* before comparing.
+# a latent variable model is only identifiable up to rotation and scale, so we must
+# *align* before comparing.
 
 # %%
 fig, axs = plt.subplots(1, 2, figsize=(12, 5))
@@ -240,8 +239,9 @@ plt.show()
 # \mathbf{m} = \mathbf{P}\,\mathbf{C}^\top \mathbf{R}^{-1}(\mathbf{y}-\mathbf{b}).
 # $$
 #
-# Full derivation: notes `sec:fa`. The key term is $\mathbf{R}^{-1}$: because `R_diag`
-# is non-constant here, each neuron is weighted by its *precision* (inverse noise).
+# The factor-analysis derivation in the lecture notes highlights the key term:
+# $\mathbf{R}^{-1}$. Because `R_diag` is non-constant here, each neuron is weighted
+# by its *precision* (inverse noise).
 
 # %% [markdown]
 # > **Micro-exercise (fill one line).** Complete the precision-weighted readout below.
@@ -306,9 +306,8 @@ plot_rotated_latents(z_rot_fa, m_rot_fa, z_valid, label="factor analysis", n_sam
 #
 # Note the update precision adds the *predicted* precision $\bar{\mathbf{P}}_t^{-1}$
 # (not $\mathbf{Q}^{-1}$) to the observation information $\mathbf{C}^\top\mathbf{R}^{-1}\mathbf{C}$.
-# Full derivation: notes `sec:kalman`. The **RTS smoother** then passes backward to use
-# *all* the data for each $\mathbf{z}_t$, giving $p(\mathbf{z}_t\mid\mathbf{y}_{1:T})$
-# see notes `sec:smoothing` (RTS smoothing and forecasting).
+# The **RTS smoother** then passes backward to use *all* the data for each
+# $\mathbf{z}_t$, giving $p(\mathbf{z}_t\mid\mathbf{y}_{1:T})$.
 
 # %% [markdown]
 # > **Micro-exercise (predict, then tweak).** Before running: as the observation noise
@@ -322,7 +321,7 @@ plot_rotated_latents(z_rot_fa, m_rot_fa, z_valid, label="factor analysis", n_sam
 # > As $\mathbf{R}\to 0$ the Kalman gain $\to 1$: the filter trusts each observation and
 # > tracks it tightly (jumpier). Inflating `Q` (more process noise) also loosens the
 # > prior smoothing, so samples get jumpier; inflating `R` makes the smoother lean on
-# > the dynamics and produce smoother, more prior-dominated trajectories. See `sec:kalman`.
+# > the dynamics and produce smoother, more prior-dominated trajectories.
 # >
 # > </details>
 
@@ -379,4 +378,4 @@ plt.grid(True)
 # - *Optional:* [`03_system_id_and_em`](03_system_id_and_em.ipynb) - here we *knew* `A`,
 #   `C`, `Q`, `R`; there we learn the dynamics from data (Ho-Kalman ID, EM).
 # - *Core:* variational inference, for when the observations are Poisson spikes rather
-#   than Gaussian and these closed forms no longer exist (notes `sec:expfam`, `sec:vi`).
+#   than Gaussian and these closed forms no longer exist.

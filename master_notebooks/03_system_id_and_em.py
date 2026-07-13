@@ -24,7 +24,7 @@
 # subspace method, and probabilistically with one EM M-step.
 #
 # This is the optional companion to the core notebook 02. Full derivation of the
-# Ho-Kalman algorithm is in the notes, `sec:hokalman`; we only summarize it here.
+# Ho-Kalman algorithm is in the lecture notes; we only summarize it here.
 
 # %% [markdown]
 # ## Setup (Colab)
@@ -81,7 +81,7 @@ from code_pack.plotting import plot_rotated_latents
 
 # %% [markdown]
 # ## Recreate the spiral data and the true-parameter smoother
-# Same generative model as notebook 02 (see `sec:kalman`). We also run the RTS smoother
+# Same generative model as notebook 02. We also run the RTS smoother
 # with the *true* parameters, because the EM M-step below needs a posterior to start from.
 
 # %%
@@ -120,7 +120,7 @@ m_s, P_s, P_tp1_t_s, z_s = rts_smoother(m_p, P_p, m_f, P_f, mean_fn.A, n_samples
 # ## Ho-Kalman subspace identification
 #
 # The Ho-Kalman algorithm recovers the system non-iteratively from output statistics.
-# In one paragraph (full version in notes `sec:hokalman`):
+# In one paragraph:
 #
 # 1. Estimate output autocovariances $\Gamma_k=\mathbb{E}[\mathbf{y}_{t+k}\mathbf{y}_t^\top]$
 #    and stack them into a block **Hankel** matrix $H$.
@@ -234,7 +234,7 @@ A_hat_em, C_hat_em, Q_hat_em, R_hat_em = prob_utils.em_update_batch(m_s, P_s, P_
 #
 # > **Stretch (optional).** Fill in the EM eigenvalues below and plot all three on the unit
 # > circle. Which estimate lands closer to the true eigenvalues? Why can Ho-Kalman even
-# > return an *unstable* estimate ($|\lambda|>1$)? (See `sec:hokalman`.)
+# > return an *unstable* estimate ($|\lambda|>1$)?
 # >
 # > <details>
 # > <summary>Solution</summary>
@@ -285,5 +285,4 @@ plt.show()
 #
 # **Back to the core track:** the linear-Gaussian story ends here. When observations are
 # Poisson spikes, the E-step posterior is no longer Gaussian in closed form, and we turn to
-# variational inference (notes `sec:vi`), amortized inference / VAEs (`sec:amortized`), and
-# finally XFADS (`sec:xfads`).
+# variational inference, amortized inference / VAEs, and finally XFADS.

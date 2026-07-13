@@ -34,9 +34,9 @@
 # - This is the last XFADS applications notebook; the earlier `03_XFADS_ring_attractor`
 #   shows the same machinery on a synthetic system where ground truth is known.
 #
-# Background in the lecture notes: *Poisson observations* (`sec:expfam`),
-# *RTS smoothing and forecasting* (`sec:smoothing`), *variational inference*
-# (`sec:vi`), *amortized inference / VAE* (`sec:amortized`), and *XFADS* (`sec:xfads`).
+# Background in the lecture notes: *Poisson observations*,
+# *RTS smoothing and forecasting*, *variational inference*,
+# *amortized inference / VAE*, and *XFADS*.
 #
 # Reference: [Dowling, Zhao, Park. 2024](https://arxiv.org/abs/2403.01371).
 
@@ -245,7 +245,7 @@ test_dataloader = torch.utils.data.DataLoader(y_test_dataset, batch_size=y_valid
 # local/backward encoders for amortized inference.
 #
 # For the full construction see the paper's Methods and the lecture notes on
-# *amortized inference / VAE* (`sec:amortized`) and *XFADS* (`sec:xfads`).
+# *amortized inference / VAE* and *XFADS*.
 #
 # <p align="center">
 #   <img src="https://github.com/catniplab/latent_dynamics_workshop/blob/main/img/ssm_diagram.png?raw=1" width=1000/>
@@ -339,12 +339,12 @@ if cfg.device == 'cuda':
 # set to zero for missing observations, which is exactly what lets us **forecast**.
 # The encoder splits into a **local** encoder (current observation) and a **backward**
 # encoder (future observations). The derivation lives in the lecture notes:
-# *variational inference* (`sec:vi`) and *amortized inference / VAE* (`sec:amortized`).
+# *variational inference* and *amortized inference / VAE*.
 #
 # With the trained model we can now run three inference modes over the same encoder:
 # **smoothing** (use all time), **filtering** (use the past only), and **forecasting**
 # (roll the dynamics forward with no data). See *RTS smoothing and forecasting*
-# (`sec:smoothing`).
+# in the lecture notes.
 
 # %% [markdown]
 # ## Smoothing: $q(z_t \mid y_{1:T})$ uses the whole trial
@@ -383,7 +383,7 @@ with torch.no_grad():
 # where $\mu_\theta$ is the learned transition (`dynamics_mod.mean_fn`) and $Q^{1/2}$
 # is the per-dimension process-noise std. This is an open-loop generative rollout: no
 # data enters after `bin_prd_start`. The nonlinear generalization of the Kalman predict
-# step is derived in the notes, *RTS smoothing and forecasting* (`sec:smoothing`).
+# step is derived in the lecture notes' *RTS smoothing and forecasting* section.
 
 # %%
 cat_f_p = lambda f, p: torch.cat([f, p], dim=2)  # stitch filtered prefix + forecast
@@ -486,7 +486,7 @@ with torch.no_grad():
 # $$\hat r_t = \Delta \cdot \exp\big(\text{readout}(z_t)\big),$$
 #
 # averaged over the `n_samples` posterior samples. We build reconstructed rates from
-# smoothed, filtered, and forecasted latents. See *Poisson observations* (`sec:expfam`).
+# smoothed, filtered, and forecasted latents.
 
 # %%
 rates_train_s = (cfg.bin_sz * torch.exp(seq_vae.ssm.likelihood_pdf.readout_fn(z_s_train)).mean(dim=0)).cpu().detach().numpy()
