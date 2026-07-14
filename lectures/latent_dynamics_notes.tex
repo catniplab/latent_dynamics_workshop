@@ -1496,8 +1496,8 @@ Kalman/FA inference. For a moving latent (\cref{sec:kalman}) one amortizes over
 sequences, $q_{\phi}(\vz_{1:T}\mid\vy_{1:T})$: the recognition network plays the
 Kalman filter/smoother's role, but learned and usable under nonlinear dynamics and
 non-Gaussian observations. This is LFADS \parencite{Pandarinath2018-lfads} and
-XFADS \parencite{Dowling2024-xfads}, notebooks 05--06. The recurring caveat
-persists: the latent is identifiable only up to an invertible reparameterization
+XFADS \parencite{Dowling2024-xfads}.
+The recurring caveat persists: the latent is identifiable only up to an invertible linear/affine transformation
 (\cref{sec:rotation}).
 
 \begin{exercise}[linear-Gaussian sanity check]
