@@ -18,7 +18,7 @@
 #
 # [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/catniplab/latent_dynamics_workshop/blob/main/04_variational_inference.ipynb)
 #
-# **Takeaway:** variational inference turns an intractable posterior into an
+# Variational inference turns an intractable posterior into an
 # optimization problem - pick a family $q(z;\phi)$, then maximize the ELBO to make
 # $q$ hug the true posterior $p(z\mid y)$.
 #
@@ -35,6 +35,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
+from tqdm.auto import trange  # env-agnostic: notebook widget on Colab, console bar otherwise
+
+# fixed seed so the ELBO trace and fitted q are reproducible run to run
+torch.manual_seed(20260714)
 
 # %% [markdown]
 # ## The object: an exact posterior on a grid
@@ -143,21 +147,14 @@ ELBO = torch.mean(lik.log_prob(Z) + pri.log_prob(Z)) + q.entropy()  # the ELBO i
 
 # %% [markdown]
 # **Fill one line:** turn the standard-normal noise `eps` into a differentiable
-# sample of $q(z;\phi)$.
-#
-# <details>
-# <summary>Solution</summary>
-#
-# ```python
-# Z = eps * sigma + mu
-# ```
-#
-# </details>
+# sample of $q(z;\phi)$ by scaling by $\sigma$ and shifting by $\mu$.
 
 # %%
 sn = torch.distributions.normal.Normal(torch.tensor([0.0]), torch.tensor([1.0]))
 eps = sn.sample(torch.Size([nMC]))  # standard-normal noise, independent of phi
-Z = eps  # YOUR CODE HERE: reparameterize - scale by sigma and shift by mu
+# YOUR CODE HERE
+raise NotImplementedError()
+assert Z.requires_grad  # a reparameterized sample must carry gradients to mu, sigma
 
 # %% [markdown]
 # ## Step 4: maximize the ELBO with SGD
@@ -168,13 +165,36 @@ Z = eps  # YOUR CODE HERE: reparameterize - scale by sigma and shift by mu
 # %%
 optimizer = torch.optim.SGD([mu, sigma], lr=1e-3)  # try Adam instead (see the stretch below)
 
-# %%
-from tqdm.notebook import trange
+# %% [markdown]
+# > **Stretch (optional):** `sigma` is optimized unconstrained here. At this lr / step
+# > count it stays positive, but nothing stops a step from driving it $\le 0$, which
+# > gives NaNs in `Normal.entropy()`/`log_prob`. Fix this by optimizing an unconstrained
+# > parameter and mapping it through a strictly positive transform - an **exponential**,
+# > $\sigma = e^{\rho}$, so the raw parameter $\rho$ can roam all of $\mathbb{R}$ while
+# > $\sigma$ stays positive. Re-parameterize, re-run, and confirm the fit is unchanged.
+# >
+# > <details>
+# > <summary>Solution</summary>
+# >
+# > ```python
+# > rho = torch.tensor([np.log(5.0)], requires_grad=True)  # sigma = exp(rho); start at sigma=5
+# > optimizer = torch.optim.SGD([mu, rho], lr=1e-3)
+# > for k in trange(10000):
+# >     sigma = torch.exp(rho)                       # always > 0, no NaN guard needed
+# >     q = torch.distributions.normal.Normal(mu, sigma)
+# >     Z = sn.sample(torch.Size([nMC])) * sigma + mu
+# >     nELBO = -torch.mean(lik.log_prob(Z) + pri.log_prob(Z)) - q.entropy()
+# >     optimizer.zero_grad(); nELBO.backward(); optimizer.step()
+# > ```
+# > The exponential map is a bijection from $\mathbb{R}$ to $(0,\infty)$, so gradient
+# > descent on $\rho$ can never produce an invalid $\sigma$. The fitted posterior is the
+# > same; you have only changed the coordinates you optimize in. This is exactly how
+# > libraries parameterize scale parameters (and what XFADS does for its covariances).
+# >
+# > </details>
 
 # %%
-# Note: sigma is optimized unconstrained here. At this lr / step count it stays
-# positive, but a softplus or log-sigma reparameterization would guard against
-# sigma <= 0 (which would produce NaNs in Normal.entropy()/log_prob).
+# Note: sigma is optimized unconstrained here (see the stretch above for the exp fix).
 ELBO_trace = []
 for k in trange(10000):
     Z = sn.sample(torch.Size([nMC])) * sigma + mu  # reparameterization trick, fresh noise each step
@@ -233,7 +253,3 @@ plt.xlabel("z"); plt.ylabel("probability density"); plt.legend(); plt.grid()
 # the recognition model / encoder of a **variational autoencoder**. XFADS applies
 # exactly this amortized ELBO to state-space models, where $p(z)$ is a temporal
 # dynamics prior and $p(y\mid z)$ is Poisson.
-#
-# **Transfer prompt:** take your own model - a likelihood plus a prior over a
-# latent - write down its ELBO, and identify which parameters need the
-# reparameterization trick to receive gradients.

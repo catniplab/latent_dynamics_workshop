@@ -8,9 +8,9 @@
 #       format_name: percent
 #       format_version: '1.3'
 #   kernelspec:
-#     display_name: Python (lvmworkshop)
+#     display_name: Python 3 (ipykernel)
 #     language: python
-#     name: lvmworkshop
+#     name: python3
 # ---
 
 # %% [markdown]
@@ -18,7 +18,7 @@
 #
 # [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/catniplab/latent_dynamics_workshop/blob/main/06_xfads_mc_maze.ipynb)
 #
-# **Takeaway:** a trained XFADS state-space model turns spikes into a low-dimensional
+# A trained XFADS state-space model turns spikes into a low-dimensional
 # latent `z` that we can *smooth*, *filter*, *forecast*, and read back out as
 # single-neuron firing rates.
 #
@@ -40,6 +40,11 @@
 #
 # Reference: [Dowling, Zhao, Park. 2024](https://arxiv.org/abs/2403.01371).
 
+# %% [markdown]
+# ## Setup (Colab)
+# On Colab this clones the repo and installs `xfads`. Locally it is a no-op
+# (install `xfads` once with `pip install -e external/xfads/`).
+
 # %%
 try:
     import google.colab
@@ -47,36 +52,22 @@ try:
 except ImportError:
     _in_colab = False
 
-# %% [markdown]
-# # Installation
-#
-# The XFADS package is installed editable from the submodule. Locally, run this once
-# in your terminal from the workshop root (with the conda environment active):
-#
-# `pip install -e external/xfads/`
-#
-# On Colab the next two cells clone the repo and install it for you.
-
-# %%
 if _in_colab:
-    # !git clone --recurse-submodules https://github.com/catniplab/latent_dynamics_workshop.git
-    pass
-
-# %%
-import sys
-import os
-
-cwd = os.getcwd()
-if _in_colab:
-    sys.path.append(os.path.join(cwd, "latent_dynamics_workshop"))
-    sys.path.append(os.path.join(cwd, "latent_dynamics_workshop/external/xfads"))
-
-# %%
-if _in_colab:
+    # The MC-Maze data ships inside the xfads submodule, so we init just that one
+    # (not --recurse-submodules, which would also pull nlb_tools/neurofisherSNR).
+    # !git clone https://github.com/catniplab/latent_dynamics_workshop.git
+    # !cd latent_dynamics_workshop && git submodule update --init external/xfads
     # !pip install -e latent_dynamics_workshop/external/xfads/
     pass
 
-# %%
+import os
+import sys
+
+if _in_colab:
+    cwd = os.getcwd()
+    sys.path.append(os.path.join(cwd, "latent_dynamics_workshop"))
+    sys.path.append(os.path.join(cwd, "latent_dynamics_workshop/external/xfads"))
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -91,7 +82,7 @@ from code_pack.plotting import plot_single_reaches, plot_spikes_and_behavior
 from code_pack.utils import load_mc_maze_data, build_mc_maze_ssm
 
 # %% [markdown]
-# # Model and training parameters
+# ## Model and training parameters
 #
 # One config dict drives the graphical model size, the inference network, and
 # training. We only *use* these to rebuild the model that matches the checkpoint
@@ -137,7 +128,7 @@ cfg = {
     'bin_sz': 20e-3,
     'bin_sz_ms': 20,
 
-    'seed': 1234,
+    'seed': 20260714,
     'default_dtype': torch.float32,
 }
 
@@ -161,7 +152,7 @@ if cfg.device == 'cuda':
     torch.cuda.empty_cache()
 
 # %% [markdown]
-# # Load the data
+# ## Load the data
 #
 # <p align="center">
 #   <img src="https://github.com/catniplab/latent_dynamics_workshop/blob/main/img/maze.png?raw=1"/>
@@ -236,7 +227,7 @@ valid_dataloader = torch.utils.data.DataLoader(y_val_dataset, batch_size=y_valid
 test_dataloader = torch.utils.data.DataLoader(y_test_dataset, batch_size=y_valid_obs.shape[0], shuffle=False)
 
 # %% [markdown]
-# # Building the state-space model
+# ## Building the state-space model
 #
 # A state-space model needs two pieces: a **dynamics model** for how the latent `z`
 # evolves, and an **observation (likelihood) model** for how `z` generates spikes.
@@ -265,7 +256,7 @@ seq_vae = LightningMonkeyReaching(ssm, cfg, n_bins_enc, bin_prd_start)
 seq_vae.ssm.eval()
 
 # %% [markdown]
-# # Load the pretrained checkpoint
+# ## Load the pretrained checkpoint
 #
 # Training XFADS on CPU is slow, so we ship a pretrained checkpoint and load it.
 # Set `train_from_scratch = True` only if you want to (slowly) retrain; the default
@@ -328,7 +319,7 @@ if cfg.device == 'cuda':
     torch.cuda.empty_cache()
 
 # %% [markdown]
-# # Inference network: one encoder, three modes
+# ## Inference network: one encoder, three modes
 #
 # Inspired by conjugate Bayesian inference, XFADS writes the natural parameters of
 # the approximate posterior as a **sum** of a prior term and a data-dependent term:
@@ -479,7 +470,7 @@ with torch.no_grad():
 # </details>
 
 # %% [markdown]
-# # Reconstruct firing rates from the latents
+# ## Reconstruct firing rates from the latents
 #
 # The Poisson readout turns any latent sample into an expected spike count per bin:
 #
@@ -543,7 +534,7 @@ fig.tight_layout()
 plt.show()
 
 # %% [markdown]
-# # You can now...
+# ## You can now...
 #
 # ...take a trained XFADS model and, from population spikes, infer a latent `z` under
 # **smoothing**, **filtering**, and **forecasting**, then read it back out as

@@ -8,9 +8,9 @@
 #       format_name: percent
 #       format_version: '1.3'
 #   kernelspec:
-#     display_name: Python (lvmworkshop)
+#     display_name: Python 3 (ipykernel)
 #     language: python
-#     name: lvmworkshop
+#     name: python3
 # ---
 
 # %% [markdown]
@@ -18,7 +18,7 @@
 #
 # [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/catniplab/latent_dynamics_workshop/blob/main/07_decoding_and_evaluation.ipynb)
 #
-# **Takeaway:** score the latents and rates from `06` four ways - ridge decoding of
+# Score the latents and rates from `06` four ways - ridge decoding of
 # hand velocity, k-step forecast R2, a PCA-dimension sweep, and predictive
 # log-likelihood - to see how filtering, smoothing, and forecasting compare.
 #
@@ -30,10 +30,11 @@
 # *RTS smoothing and forecasting*, and *XFADS*.
 
 # %% [markdown]
-# ## Setup (repeats `06` - run and move on)
+# ## Setup (Colab; repeats `06` - run and move on)
 #
-# Detect Colab, install XFADS, rebuild the model, load the checkpoint, and recompute
-# the smoothed / filtered / forecasted latents and reconstructed rates.
+# On Colab this clones the repo and installs `xfads`; locally it is a no-op. Then we
+# rebuild the model, load the checkpoint, and recompute the smoothed / filtered /
+# forecasted latents and reconstructed rates.
 
 # %%
 try:
@@ -42,26 +43,22 @@ try:
 except ImportError:
     _in_colab = False
 
-# %%
 if _in_colab:
-    # !git clone --recurse-submodules https://github.com/catniplab/latent_dynamics_workshop.git
-    pass
-
-# %%
-import sys
-import os
-
-cwd = os.getcwd()
-if _in_colab:
-    sys.path.append(os.path.join(cwd, "latent_dynamics_workshop"))
-    sys.path.append(os.path.join(cwd, "latent_dynamics_workshop/external/xfads"))
-
-# %%
-if _in_colab:
+    # The MC-Maze data ships inside the xfads submodule, so we init just that one
+    # (not --recurse-submodules, which would also pull nlb_tools/neurofisherSNR).
+    # !git clone https://github.com/catniplab/latent_dynamics_workshop.git
+    # !cd latent_dynamics_workshop && git submodule update --init external/xfads
     # !pip install -e latent_dynamics_workshop/external/xfads/
     pass
 
-# %%
+import os
+import sys
+
+if _in_colab:
+    cwd = os.getcwd()
+    sys.path.append(os.path.join(cwd, "latent_dynamics_workshop"))
+    sys.path.append(os.path.join(cwd, "latent_dynamics_workshop/external/xfads"))
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -91,7 +88,7 @@ cfg = {
     'p_mask_y_in': 0.0, 'p_local_dropout': 0.4, 'p_backward_dropout': 0.0,
     'device': 'cpu', 'data_device': 'cpu',
     'lr': 1e-3, 'lr_gamma_decay': 0.997, 'n_epochs': 3, 'batch_sz': 128,
-    'bin_sz': 20e-3, 'bin_sz_ms': 20, 'seed': 1234, 'default_dtype': torch.float32,
+    'bin_sz': 20e-3, 'bin_sz_ms': 20, 'seed': 20260714, 'default_dtype': torch.float32,
 }
 
 class Cfg(dict):
@@ -143,7 +140,7 @@ rates_test_f = rate_of(z_f_test)
 rates_test_p = rate_of(z_p_test)
 
 # %% [markdown]
-# # 1. Decode hand velocity with ridge regression
+# ## 1. Decode hand velocity with ridge regression
 #
 # A linear (ridge) decoder maps reconstructed rates to hand velocity. We fit on
 # smoothed **training** rates, then score the smoothed / filtered / forecasted
@@ -234,7 +231,7 @@ plot_spikes_and_decoded_behavior(y_test_obs.cpu(), vel_test.cpu(), vel_hat_test_
                                  torch.randperm(y_test_obs.size(0))[:4], event_bin=move_onset_bin)
 
 # %% [markdown]
-# # 2. k-step forecast: how far ahead can we decode?
+# ## 2. k-step forecast: how far ahead can we decode?
 #
 # Start the forecast at each bin `k`, roll the latents forward to the end of the
 # trial, reconstruct rates, and decode velocity. The resulting R2-vs-`k` curve shows
@@ -287,7 +284,7 @@ plt.show()
 # </details>
 
 # %% [markdown]
-# # 3. PCA sweep: how many latent dimensions matter for decoding?
+# ## 3. PCA sweep: how many latent dimensions matter for decoding?
 #
 # Compress the smoothed encoding-window latents to `k` principal components, decode
 # velocity from those `k` PCs, and plot test R2 vs `k`. The second panel ranks the
@@ -299,7 +296,7 @@ r2_scores = pca_vs_r2(z_s_train[:, :, :n_bins_enc, :].mean(dim=0),
                       vel_train, vel_test, max_pcs=40)
 
 # %% [markdown]
-# # 4. Predictive log-likelihood
+# ## 4. Predictive log-likelihood
 #
 # The Poisson log-likelihood of the held-out spikes under each reconstruction tells us,
 # per time bin, how well the model *predicts* the data (not just the trial-averaged
@@ -394,7 +391,7 @@ plt.show()
 plot_trials(y_test_obs, rates_test_s)
 
 # %% [markdown]
-# # You can now...
+# ## You can now...
 #
 # ...evaluate a latent dynamical model four complementary ways: linear decoding of
 # behavior, k-step forecasting quality, dimension-vs-decoding sweeps, and predictive

@@ -18,7 +18,7 @@
 #
 # [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/catniplab/latent_dynamics_workshop/blob/main/05_xfads_ring_attractor.ipynb)
 #
-# **Takeaway:** given only noisy high-dimensional observations, XFADS recovers the
+# Given only noisy high-dimensional observations, XFADS recovers the
 # *nonlinear latent vector field* that generated them - here, a 2D ring attractor.
 #
 # XFADS is a structured variational autoencoder for nonlinear Gaussian
@@ -40,38 +40,32 @@
 # > - **Next core notebook:** XFADS applied to real neural spike trains (MC-Maze).
 
 # %% [markdown]
-# ## Setup
-#
-# On Colab we clone the repo and install the `xfads` package. Locally, install it
-# once with `pip install -e external/xfads/` and skip these cells.
+# ## Setup (Colab)
+# On Colab this clones the repo and installs `xfads`. Locally it is a no-op.
 
-# %% id="Ok-TCt-4IWj8"
+# %%
 try:
     import google.colab
     _in_colab = True
 except ImportError:
     _in_colab = False
 
-# %% colab={"base_uri": "https://localhost:8080/"} id="i34FFj7SIbHE"
 if _in_colab:
-    # !git clone --recurse-submodules https://github.com/catniplab/latent_dynamics_workshop.git
-    pass
-
-# %% id="fGE66k4UIbJI"
-import sys
-import os
-
-cwd = os.getcwd()
-if _in_colab:
-    sys.path.append(os.path.join(cwd, "latent_dynamics_workshop"))
-    sys.path.append(os.path.join(cwd, "latent_dynamics_workshop/external/xfads"))
-
-# %% colab={"base_uri": "https://localhost:8080/"} id="Qh_s-NIiI4AD"
-if _in_colab:
+    # This notebook only needs the xfads submodule, so we init just that one
+    # (not --recurse-submodules, which would also pull nlb_tools/neurofisherSNR).
+    # !git clone https://github.com/catniplab/latent_dynamics_workshop.git
+    # !cd latent_dynamics_workshop && git submodule update --init external/xfads
     # !pip install -e latent_dynamics_workshop/external/xfads/
     pass
 
-# %% id="fDaXapziIaka"
+import os
+import sys
+
+if _in_colab:
+    cwd = os.getcwd()
+    sys.path.append(os.path.join(cwd, "latent_dynamics_workshop"))
+    sys.path.append(os.path.join(cwd, "latent_dynamics_workshop/external/xfads"))
+
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
@@ -125,7 +119,7 @@ cfg_dict = {
     'batch_sz': 128,
     'bin_sz': 20e-3,
     'bin_sz_ms': 20,
-    'seed': 1234,
+    'seed': 20260714,
     'default_dtype': torch.float32,
 }
 
