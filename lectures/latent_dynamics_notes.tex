@@ -682,9 +682,9 @@ integers and stays non-negative.
 We keep the linear latent-to-parameter map $C\vz + \vb$, swap only the Gaussian emission for a
 Poisson one, and watch which pieces of the linear-Gaussian machinery survive.
 
-Technically, any simple point process can be fully characterized by its conditional intensity function,
-and further it can be approximated as a Poisson distribution given small enough bin size
-\parencite{Kass2014-st}.
+Technically, any simple point process can be fully characterized by its conditional
+intensity function \parencite{Daley1988-te}, and further it can be approximated as a
+Poisson distribution given small enough bin size \parencite{Kass2014-st}.
 
 \subsection{Poisson distribution}
 
@@ -706,12 +706,13 @@ crux of \cref{ex:poisson-noise}.
 \end{funfact}
 
 This is also why, for count data, a factor-analysis mindset is better posed than
-PCA. Because $\var(y_i) = \mu_i$ scales with each coordinate's rate, the
+PCA. Because $\var(y_i) = \mu_i$ scales with each neuron's rate, the
 observation noise is inherently \emph{heteroscedastic}: a high-rate neuron is
 noisier, in absolute terms, than a low-rate one. PCA's isotropic $\sigma^2 I_m$
 (\cref{sec:scale}) cannot represent that, whereas factor analysis's
 per-coordinate $\sigma_i^2$ can. The Poisson emission below sidesteps the choice
 entirely by tying the noise to the rate directly.
+This is why often PCA on neural data collapses to capture a single neuron with the highest firing rate.
 
 \subsection{The model}
 
