@@ -60,9 +60,9 @@
 \addbibresource{references.bib}
 
 % override catniplab's default "manuscript in preparation" running header
-\setheadercenter{Linear-Gaussian latent variable models}
+\setheadercenter{State-Space Models}
 
-\title{Latent Neural Dynamics as State Space Models}
+\title{State Space Models for Latent Neural Dynamics}
 \author{I.~Memming Park}
 \date{\today}
 
@@ -850,7 +850,8 @@ overdispersion parameter), not from a separable additive noise term.
 
 So far the latent was static---one hidden cause per observation. Let it now
 \emph{evolve in time}. The same linear-Gaussian machinery, made sequential, is
-the workhorse of latent \emph{dynamics}; for a full treatment see the standard
+the workhorse of latent \emph{dynamics}---the \emph{Kalman filter}
+\parencite{Kalman1960-wt}. For a full treatment see the standard
 references on linear estimation and Bayesian filtering
 \parencite{Kailath2000-le,Sarkka2013-bfs}.
 
@@ -1182,10 +1183,12 @@ representatives of these families.
     PCA / PPCA & Gaussian & static low-rank & eigen / closed-form & \parencite{Tipping1999-cv} \\
     Factor analysis & Gaussian & static low-rank & EM & \parencite{Bishop2006-to} \\
     GPFA & Gaussian & GP smoothness & closed-form GP & \parencite{Yu2009-qp} \\
-    LDS / Kalman & Gaussian & linear dynamics & closed-form (Kalman/RTS) & \cref{sec:kalman} \\
+    LDS / Kalman & Gaussian & linear dynamics & closed-form (Kalman/RTS) & \parencite{Kalman1960-wt,Rauch1965-rts} \\
     PLDS & Poisson & linear dynamics & Laplace / variational & \parencite{Macke2011-ep} \\
     vLGP & point process & GP smoothness & variational & \parencite{Zhao2016a} \\
-    cvHM (linear-time GP) & point proc.\ / general & GP (Hida--Mat\'ern) & CVI, linear time & \parencite{Dowling2023c} \\
+    cvHM & point proc.\ / general & GP (Hida--Mat\'ern) & CVI, linear time & \parencite{Dowling2023c} \\
+    rSLDS & Gaussian / count & recurrent switching linear & Gibbs (P\'olya--gamma) & \parencite{Linderman2017-tb} \\
+    TrSLDS & Gaussian & tree-structured switching & Gibbs (P\'olya--gamma) & \parencite{Nassar2018b} \\
     XFADS & exponential family & nonlinear dynamics & amortized structured VI & \parencite{Dowling2024-xfads} \\
     \bottomrule
   \end{tabular}
