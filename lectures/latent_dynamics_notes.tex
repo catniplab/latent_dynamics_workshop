@@ -79,9 +79,10 @@ treatment in Bishop's \emph{Pattern Recognition and Machine Learning}
 \parencite{Bishop2006-to}.
 
 State-space models (SSMs) are a broad class of models for structured
-data. These notes move from weak structure to stronger structure: static
-low-rank latent variables, linear dynamics, nonlinear dynamics, and approximate
-inference for spike counts.
+data; for a review of their use in neural data analysis see
+\parencite{Paninski2010-bk}. These notes move from weak structure to stronger
+structure: static low-rank latent variables, linear dynamics, nonlinear dynamics,
+and approximate inference for spike counts.
 
 The Python notebooks are the active part of the course; these notes explain the
 derivations behind them and focus on neural spike train analysis.
@@ -120,8 +121,8 @@ A \emph{vector} $\vx = (x_1, \dots, x_d)$ is just a list of $d$ numbers; we writ
 $\vx \in \reals^d$. Bold lowercase letters ($\vx, \vy, \veta$) are vectors,
 capital letters ($C, \Sigma$) are matrices, and $A\trp$ is the transpose of $A$.
 We write $I_n$ for the $n \times n$ \emph{identity matrix} (ones on the diagonal,
-zeros elsewhere); the subscript names its size, e.g.\ $I_m$ and $I_d$ below. A
-bare $I$ means the identity whose size is fixed by context.
+zeros elsewhere); the subscript names its size, e.g.\ $I_m$ and $I_d$ below. We
+drop the subscript, writing a bare $I$, when the size is clear from context.
 
 The main distribution in these notes is the \emph{Gaussian} (a.k.a.\ \emph{normal})
 distribution. In one dimension, a random number $x$ with mean
@@ -150,13 +151,10 @@ $\vm$ and $\Sigma$.
 
 \section{Gaussian fun facts}\label{sec:facts}
 
-Both PPCA and factor analysis are \emph{linear-Gaussian}: the observation is a
-linear image of a Gaussian latent, plus independent Gaussian noise. Two facts do
-most of the work---how a Gaussian behaves under an affine map, and how a jointly
-Gaussian pair marginalizes and conditions. The key closure property is that
-linear transformations and conditioning keep the distribution Gaussian. We take
-that property as given here (it follows cleanly from characteristic functions);
-the proofs below then pin down the resulting mean and covariance.
+Two facts do most of the work---how a Gaussian behaves under an affine map, and
+how a jointly Gaussian pair marginalizes and conditions. The key closure
+property is that linear transformations and conditioning keep the distribution
+Gaussian. We take that property as given here (see standard textbooks).
 
 \begin{funfact}[Affine maps keep Gaussians Gaussian]\label{fact:affine}
 Let $\vx \sim \Normal(\vm, \Sigma)$ and $\vy = A\vx + \vb$ for a fixed matrix
@@ -188,16 +186,6 @@ be \emph{independent}. Then their sum is again Gaussian,
     \vx + \vz \sim \Normal(\vm_1 + \vm_2,\; \Sigma_1 + \Sigma_2).
 \end{equation}
 \end{funfact}
-
-\begin{proof}
-A sum of independent Gaussians is Gaussian (stack them into
-$\begin{psmallmatrix}\vx\\\vz\end{psmallmatrix}$, which is jointly Gaussian, and
-apply \cref{fact:affine} with $A = [\,I \;\; I\,]$). Matching moments,
-$\E[\vx+\vz] = \vm_1 + \vm_2$, and by independence the cross terms vanish,
-\begin{equation}
-    \cov(\vx + \vz) = \cov(\vx) + \cov(\vz) = \Sigma_1 + \Sigma_2. \qedhere
-\end{equation}
-\end{proof}
 
 \emph{One dimension.} Two independent bell curves add to a wider bell:
 $\Normal(\mu_1, \sigma_1^2)$ and $\Normal(\mu_2, \sigma_2^2)$ sum to
@@ -233,38 +221,6 @@ and the \emph{conditional} of $\va$ given $\vb$ is Gaussian with
 \end{align}
 \end{funfact}
 
-\begin{proof}
-The marginal is immediate: $\va = [\,I \;\; 0\,]\begin{psmallmatrix}\va\\\vb\end{psmallmatrix}$
-is an affine map of a Gaussian, so \cref{fact:affine} gives
-$\va \sim \Normal(\vm_a, \Sigma_{aa})$.
-
-For the conditional, subtract off the part of $\va$ that $\vb$ can explain and
-define the \emph{residual}
-\begin{equation}\label{eq:residual}
-    \vr = (\va - \vm_a) - \Sigma_{ab}\Sigma_{bb}^{-1}(\vb - \vm_b).
-\end{equation}
-Being an affine function of the joint Gaussian \eqref{eq:joint}, $\vr$ is Gaussian
-with mean $\mathbf 0$. It is \emph{uncorrelated} with $\vb$,
-\begin{equation}
-    \cov(\vr, \vb)
-        = \Sigma_{ab} - \Sigma_{ab}\Sigma_{bb}^{-1}\Sigma_{bb}
-        = 0,
-\end{equation}
-and for jointly Gaussian vectors uncorrelated means independent. Its covariance is
-\begin{equation}
-    \cov(\vr)
-        = \Sigma_{aa}
-          - 2\,\Sigma_{ab}\Sigma_{bb}^{-1}\Sigma_{ba}
-          + \Sigma_{ab}\Sigma_{bb}^{-1}\Sigma_{bb}\Sigma_{bb}^{-1}\Sigma_{ba}
-        = \Sigma_{aa} - \Sigma_{ab}\Sigma_{bb}^{-1}\Sigma_{ba}.
-\end{equation}
-Rearranging \eqref{eq:residual},
-$\va = \vm_a + \Sigma_{ab}\Sigma_{bb}^{-1}(\vb - \vm_b) + \vr$. Conditioning on
-$\vb$ freezes the middle term, while $\vr$---independent of $\vb$---keeps its
-distribution. This gives the mean \eqref{eq:condmean} and covariance
-\eqref{eq:condcov}.
-\end{proof}
-
 Equation \eqref{eq:marginal} says marginalizing is \emph{free}---ignore the
 blocks you do not care about. The conditional mean \eqref{eq:condmean} is the
 prior mean $\vm_a$ nudged by the observed discrepancy $\vb - \vm_b$, and the
@@ -293,11 +249,11 @@ means are zero. The \emph{generative model} is
         \label{eq:ppca-obs}
 \end{align}
 \end{genmodel}
+\noindent
 with $\vz$ and $\veta$ independent. The latent $\vz \in \reals^d$ are
 latent factors; the loading matrix $C \in \reals^{m\times d}$ maps them into the
-$m$ observed dimensions; and every observed coordinate gets the \emph{same}
-noise variance $\sigma^2$---the ``isotropic'' assumption that distinguishes
-PPCA from factor analysis later.
+$m$ observed dimensions; and every observed coordinate gets the \emph{same} (isotropic)
+noise variance $\sigma^2$.
 
 Writing out the shapes makes the \textit{dimensionality reduction} visible. The model
 only requires $m \geq d$, but the regime of interest is $d \ll m$: a handful of
@@ -319,7 +275,7 @@ and thin,
 Reading $C$ by its columns $C = [\,\vc_1 \;\cdots\; \vc_d\,]$, the model is
 $\vy = \sum_{k=1}^d z_k \vc_k + \veta$: each latent coordinate $z_k$ turns on a
 loading direction $\vc_k \in \reals^m$, and the observation is their weighted sum
-plus noise.
+plus private noise.
 
 \paragraph{What does $\vy$ look like?}
 Because $\vy$ is a linear image of the Gaussian $\vz$ plus independent Gaussian
@@ -330,8 +286,7 @@ combining the affine map (\cref{fact:affine}) on $C\vz$ with the independent sum
     \vy \sim \Normal\!\left(\mathbf 0,\; \underbrace{C C\trp + \sigma^2 I_m}_{\displaystyle \Sigma_{\vy}}\right).
 \end{equation}
 So PPCA models the data covariance as a low-rank part $C C\trp$ plus an isotropic
-floor $\sigma^2 I_m$. Writing $C = [\,\vc_1\ \cdots\ \vc_d\,]$ through its columns
-$\vc_k \in \reals^m$, the low-rank part is a sum of $d$ rank-one outer
+floor $\sigma^2 I_m$. The low-rank part is a sum of $d$ rank-one outer
 products---the tall $m \times d$ block $C$ times the wide $d \times m$ block
 $C\trp$,
 \begin{equation}\label{eq:ppca-lowrank}
@@ -341,7 +296,7 @@ $C\trp$,
     \framebox[1.8cm]{\raisebox{0mm}[4.5mm][2.5mm]{$C\trp$}}
     \quad=\quad \sum_{k=1}^d \vc_k \vc_k\trp ,
 \end{equation}
-one bump of shared variance per latent factor. Each $\vc_k \vc_k\trp$ is rank
+spreading the shared variance per latent factor. Each $\vc_k \vc_k\trp$ is rank
 one, and summing the $d$ of them gives a rank-$d$ matrix ($\rank C C\trp = d$
 when the loading columns are linearly independent, and at most $d$ in general).
 The observation covariance is these few strong directions of shared variation
@@ -378,24 +333,13 @@ the posterior collapses to
 \end{equation}
 (The covariance follows from
 $I_d - C\trp(CC\trp+\sigma^2 I_m)^{-1}C = I_d - M^{-1} C\trp C = I_d - M^{-1}(M - \sigma^2 I_d) = \sigma^2 M^{-1}$,
-using $C\trp C = M - \sigma^2 I_d$.) Now the only inverse is the small $d \times d$
-matrix $M$. The posterior mean is a linear read-out of $\vy$---not the naive
+using $C\trp C = M - \sigma^2 I_d$.) The posterior mean is a linear read-out of $\vy$---not the naive
 $C\trp\vy$, but shrunk through $M^{-1}$; as $\sigma^2 \to 0$ it approaches the
 least-squares projection $(C\trp C)^{-1}C\trp\vy$ onto the latent subspace.
 
-\begin{exercise}[optional stretch]
-Show observing $\vy$ never increases uncertainty about $\vz$: the posterior
-covariance $\sigma^2 M^{-1}$ satisfies $I_d - \sigma^2 M^{-1} \succeq 0$.
-\end{exercise}
-\begin{solution}
-$I_d - \sigma^2 M^{-1} = M^{-1}(M - \sigma^2 I_d) = M^{-1} C\trp C$. Since $M$ and
-$C\trp C$ share eigenvectors ($M = C\trp C + \sigma^2 I_d$), the product is
-symmetric with nonnegative eigenvalues, so $M^{-1}C\trp C \succeq 0$.
-\end{solution}
-
 \subsection{Learning: maximum likelihood}
 
-The parameters $C$ and $\sigma^2$ are fit by maximizing the likelihood of the
+The parameters $C$ and $\sigma^2$ can be fit by maximizing the likelihood of the
 data $\{\vy_n\}_{n=1}^N$ under the marginal \eqref{eq:ppca-marginal}. Each
 $\vy_n \sim \Normal(\mathbf 0, \Sigma_{\vy})$ with $\Sigma_{\vy} = C C\trp +
 \sigma^2 I_m$, so the log-likelihood is
@@ -435,8 +379,7 @@ the reduction assumes $d < m$),
 i.e.\ the leftover variance PPCA cannot explain, spread uniformly. So PPCA
 recovers the principal subspace: the columns of $C_{\mathrm{ML}}$ span the
 top-$d$ eigenvectors of $S$---exactly PCA's directions---with the residual
-variance folded into $\sigma^2$. As $\sigma^2 \to 0$ the loadings collapse onto
-the scaled principal axes and PPCA reduces to classical PCA.
+variance folded into $\sigma^2$.
 
 \paragraph{PPCA is PCA, made probabilistic.}
 Both return the \emph{same subspace}. The PPCA loading \eqref{eq:ppca-ML} is $U_d$
@@ -489,7 +432,7 @@ Here $\vz$ and $\veta$ are independent and the noise is zero-mean Gaussian with 
 The zeros off the diagonal say the noise in different coordinates is
 uncorrelated; the diagonal entries $\sigma_i^2$ let each coordinate be exactly as
 noisy as it needs to be. In the classical vocabulary the latent $\vz$ are the
-\emph{common factors} (shared across all coordinates), the loading columns
+\emph{common factors} (shared across coordinates), the loading columns
 $\vc_k$ say how strongly each factor drives each coordinate, and $\veta$ is the
 \emph{unique} (or specific) noise, private to each coordinate.
 
@@ -536,8 +479,7 @@ $\Sigma_{\veta}$ is diagonal. The data enters the posterior mean as
 $C\trp \Sigma_{\veta}^{-1}\vy$: each coordinate is \emph{precision-weighted} by
 $1/\sigma_i^2$ before being read into the latent space, so noisy coordinates
 (large $\sigma_i^2$) are automatically discounted---the consequence of letting the
-noise vary per dimension. Setting all $\sigma_i^2 = \sigma^2$ collapses $M$ and
-\eqref{eq:fa-posterior} back to the PPCA posterior \eqref{eq:ppca-posterior}.
+noise vary per dimension.
 
 \subsection{Learning: EM, not eigenvectors}
 
@@ -626,8 +568,8 @@ sharply there.
 loadings interpretable---ideally each variable loading on only a few factors.
 This is \emph{factor rotation} (e.g.\ \emph{varimax}, which drives each column
 toward a ``simple structure''); it changes the description, never the fit. The
-lesson is a cautionary one: an individual factor has no intrinsic meaning.
-Defined only up to rotation, its meaning must come from \emph{outside} the
+lesson is a cautionary one: \textbf{an individual factor has no intrinsic meaning}.
+Defined only up to factor rotation, its meaning must come from \emph{outside} the
 model---either by fixing a rotation convention or by anchoring the factors to
 known covariates (a stimulus, behavior, or condition) through post-hoc
 regression. ``What factor $k$ represents'' is always a statement about that
@@ -657,7 +599,7 @@ PCA and PPCA enjoy no such property. The isotropic floor is not preserved,
     D(\sigma^2 I_m)D = \sigma^2 D^2 = \diag(\sigma^2 a_1^2, \dots, \sigma^2 a_m^2),
 \end{equation}
 which is no longer isotropic unless all $a_i$ are equal---a rescaled PPCA model
-is an FA model, not a PPCA one. Equivalently, PCA diagonalizes $S$, and rescaling
+is an FA model, not vice versa. Equivalently, PCA diagonalizes $S$, and rescaling
 sends $S \mapsto DSD$, whose eigenvectors bear no simple relation to those of $S$.
 Change the units of your variables and PCA hands you different principal axes.
 This is exactly why PCA is usually run on \emph{standardized} (z-scored) data---to
@@ -683,29 +625,30 @@ Poisson one, and identify which pieces of the linear-Gaussian machinery still ap
 
 Technically, any simple point process can be fully characterized by its conditional
 intensity function \parencite{Daley1988-te}, and further it can be approximated as a
-Poisson distribution given small enough bin size \parencite{Kass2014-st}.
+Poisson distribution with a history dependent firing rate
+given small enough bin size \parencite{Kass2014-st}.
 
 \subsection{Poisson distribution}
 
 A \emph{Poisson} random variable $y \in \{0, 1, 2, \dots\}$ counts events that
 occur independently at a constant expected rate over a fixed interval. Its
-probability mass function has a single parameter $\mu > 0$, the expected count,
+probability mass function has a single parameter $\lambda > 0$, the expected count,
 \begin{equation}\label{eq:poisson-pmf}
-    P(y = k) = \frac{\mu^k\, e^{-\mu}}{k!}, \qquad k = 0, 1, 2, \dots
+    P(y = k) = \frac{\lambda^k\, e^{-\lambda}}{k!}, \qquad k = 0, 1, 2, \dots
 \end{equation}
 
 \begin{funfact}[Poisson mean equals variance]\label{fact:poisson-moments}
-For $y \sim \mathrm{Poisson}(\mu)$,
+For $y \sim \mathrm{Poisson}(\lambda)$,
 \begin{equation}\label{eq:poisson-moments}
-    \E[y] = \var(y) = \mu .
+    \E[y] = \var(y) = \lambda .
 \end{equation}
-The one parameter $\mu$ sets both the location and the spread; the Fano factor
+The one parameter $\lambda$ sets both the location and the spread; the Fano factor
 $\var(y)/\E[y]$ is exactly $1$. There is no separate noise scale to choose---the
 crux of \cref{ex:poisson-noise}.
 \end{funfact}
 
 This is also why, for count data, a factor-analysis mindset is better posed than
-PCA. Because $\var(y_i) = \mu_i$ scales with each neuron's rate, the
+PCA. Because $\var(y_i) = \lambda_i$ scales with each neuron's rate, the
 observation noise is inherently \emph{heteroscedastic}: a high-rate neuron is
 noisier, in absolute terms, than a low-rate one. PCA's isotropic $\sigma^2 I_m$
 (\cref{sec:scale}) cannot represent that, whereas factor analysis's
@@ -736,14 +679,12 @@ baseline log-rate, and a step in the latent moves every neuron's rate
 \emph{multiplicatively} (an additive shift in log-rate). The shapes are the PPCA
 shapes of \eqref{eq:ppca-shapes} unchanged---$C \in \reals^{m\times d}$ tall and
 thin, $\vz \in \reals^d$---with a new bias $\vb \in \reals^m$ and the linear
-output reinterpreted as a log-rate rather than a mean. Throughout we take
-$\Delta = \mathrm{d}t$ the bin width; setting $\Delta = 1$ absorbs it into $\vb$.
+output reinterpreted as a log-rate rather than a mean.
+%Throughout we take $\Delta = \mathrm{d}t$ the bin width; setting $\Delta = 1$ absorbs it into $\vb$.
 
 \subsection{The log-likelihood}
 
-The Poisson pmf for one neuron is $p(y_i \mid \vz) = (\Delta\lambda_i)^{y_i}
-e^{-\Delta\lambda_i}/y_i!$. Taking logs and using $\log\lambda_i = \theta_i =
-\vc_i\trp\vz + b_i$, then summing over the conditionally independent neurons,
+Summing over the conditionally independent neurons, the Poisson log-likelihood gives,
 \begin{equation}\label{eq:expfam-loglik}
     \log p(\vy \mid \vz) = \sum_{i=1}^m \Big[\, y_i\,(\vc_i\trp\vz + b_i)
         - \Delta\, e^{\vc_i\trp\vz + b_i} \,\Big] + \mathrm{const}(\vy, \Delta) .
@@ -773,29 +714,23 @@ moments,
     \E[y_i \mid \vz] = A'(\theta_i), \qquad \var(y_i \mid \vz) = A''(\theta_i) .
 \end{equation}
 For the Poisson $A(\theta) = e^{\theta}$, so $\E[y_i\mid\vz] = \var(y_i\mid\vz) =
-\lambda_i$ (mean equals variance---the Fano factor is $1$). For a Gaussian with
+\lambda_i$ (\cref{fact:poisson-moments}). For a Gaussian with
 identity link $A(\theta) = \theta^2/2$, so the mean is $\theta$ and the variance
 is constant---recovering the linear-Gaussian factor-analysis emission of
 \cref{sec:fa}. The message: PPCA and FA are the \emph{Gaussian special case};
 $C\vz + \vb$ is always the natural-parameter map, and only $A(\cdot)$ changes when
 the data change. Applying this generalization to the latent linear model turns
 PCA and factor analysis into \emph{exponential-family} PCA
-\parencite{Collins2001-ef,Ghahramani2009-of}; for neural spike trains the Poisson
-case yields the Poisson linear dynamical system and related low-dimensional
-latent-variable models \parencite{Macke2011-ep,Yu2009-qp,Pfau2013-oi,Buesing2013-ce}.
+\parencite{Collins2001-ef,Ghahramani2009-of}.
 
 \subsection{What breaks: no conjugacy}
 
 In the linear-Gaussian case \cref{fact:cond} gave an exact Gaussian
-posterior $p(\vz\mid\vy)$ and a closed-form marginal $p(\vy)$. With a Poisson
-emission both vanish. The posterior $p(\vz\mid\vy) \propto p(\vy\mid\vz)\,p(\vz)$
-is no longer Gaussian---the likelihood \eqref{eq:expfam-loglik} is not a quadratic
-in $\vz$---and the marginal $p(\vy) = \int p(\vy\mid\vz)\,p(\vz)\,\mathrm{d}\vz$
-has no closed form. Thus the conditioning fun fact no longer applies. There
-is no $M$ matrix, no closed-form posterior, no eigen-solution. We must
-approximate.
+posterior $p(\vz\mid\vy)$ and a closed-form marginal $p(\vy)$.
+But in general, the posterior $p(\vz\mid\vy) \propto p(\vy\mid\vz)\,p(\vz)$
+is no longer Gaussian.
 
-\subsection{What survives: log-concavity, MAP, Laplace}
+\subsection{log-concavity, MAP, Laplace approximation}
 
 Not all structure is lost. With the exponential link the log-joint
 \eqref{eq:expfam-logjoint} is \emph{concave} in $\vz$. Its gradient is a
@@ -806,16 +741,16 @@ against the prior pull,
 \end{equation}
 and its Hessian is negative definite everywhere,
 \begin{equation}\label{eq:expfam-hess}
-    \nabla^2_{\vz}\log p(\vz, \vy) = -\big(C\trp \diag(\Delta\bm{\lambda})\,C + I_d\big) \prec 0 .
+    \nabla^2_{\vz}\log p(\vz, \vy) = -\big(I_d + C\trp \diag(\Delta\bm{\lambda})\,C\big) \prec 0 .
 \end{equation}
 So the log-joint has a \emph{unique} maximizer, the MAP estimate $\hat{\vz} =
 \arg\max_{\vz}\log p(\vz,\vy)$, found by Newton's method---equivalently
 iteratively reweighted least squares (IRLS), the standard GLM solver. Expanding
-the log-joint to second order at $\hat{\vz}$ gives the \emph{Laplace
-approximation} to the posterior,
+the log-joint to second order at $\hat{\vz}$ yields the
+\emph{Laplace approximation} (Gaussian approximation at the mode) to the posterior,
 \begin{equation}\label{eq:expfam-laplace}
     p(\vz \mid \vy) \approx \Normal\!\Big(\hat{\vz},\;
-        \big(C\trp \diag(\Delta\hat{\bm{\lambda}})\,C + I_d\big)^{-1}\Big),
+        \big(I_d + C\trp \diag(\Delta\hat{\bm{\lambda}})\,C\big)^{-1}\Big),
     \qquad \hat{\bm{\lambda}} = \exp(C\hat{\vz} + \vb) .
 \end{equation}
 Compare the posterior precision with factor analysis's constant $M = I_d + C\trp
@@ -834,24 +769,42 @@ The matrix multiplying the loading in \eqref{eq:expfam-laplace},
                      = \sum_{i=1}^m \Delta\lambda_i\, \vc_i \vc_i\trp ,
 \end{equation}
 is the \emph{Fisher information} that the population's spike counts carry about
-the latent $\vz$---the expected curvature of $-\log p(\vy\mid\vz)$. It sets a
-Cram\'er--Rao floor: any unbiased estimate obeys $\cov(\hat{\vz}) \succeq
-\mathcal{I}(\vz)^{-1}$, and the Laplace posterior covariance
-$(\mathcal{I}(\vz)+I_d)^{-1}$ is exactly this floor sharpened by the unit-variance
-prior. Read elementwise, each neuron adds $\Delta\lambda_i\,\vc_i\vc_i\trp$:
-information grows with firing rate and with the number of neurons, and is shaped
-by how the tuning directions $\vc_i$ tile the latent space. A natural
-\emph{signal-to-noise ratio} compares the latent's signal power to this
-inverse-Fisher noise floor,
-\begin{equation}\label{eq:expfam-snr}
-    \mathrm{SNR}(\vz) = \frac{\tr \cov(\vz)}{\tr \mathcal{I}(\vz)^{-1}} .
+the latent $\vz$---the expected curvature of $-\log p(\vy\mid\vz)$. The factor
+$\Delta$ appears because here $\lambda_i(\vz)$ is a firing rate per unit time; if
+$\lambda_i(\vz)$ is already the expected count in one bin, as in
+\textcite{Jeon2024b}, $\Delta$ is absorbed into $\lambda_i$. Read elementwise,
+each neuron adds $\Delta\lambda_i\,\vc_i\vc_i\trp$: information grows with firing
+rate and with the number of neurons, and is shaped by how the tuning directions
+$\vc_i$ tile the latent space.
+
+For an unbiased estimator that uses only one time bin, the Cram\'er--Rao bound
+gives a local lower bound on estimation error,
+\begin{equation}\label{eq:expfam-crb}
+    \cov(\hat{\vz}\mid \vz) \succeq \mathcal{I}(\vz)^{-1}, \qquad
+    \E\!\left[\|\hat{\vz}-\vz\|^2 \mid \vz\right]
+        \ge \tr \mathcal{I}(\vz)^{-1}.
 \end{equation}
-\textcite{Jeon2024b} turn this into a practical upper bound on the SNR of
-\emph{inferred} neural latent trajectories---the bound scales with the per-neuron
-Fisher information and the observation overdispersion---and show that inference
-which exploits temporal regularity (the smoothing of \cref{sec:smoothing})
-approaches it. Notebook~\texttt{01} measures this bound for random versus
-axis-aligned loadings.
+This is a likelihood-only bound. The Laplace approximation above uses a related
+Bayesian object: posterior precision is prior precision plus likelihood Fisher
+information, $I_d+\mathcal{I}(\vz)$.
+
+\textcite{Jeon2024b} use \eqref{eq:expfam-crb} to bound the SNR of an inferred
+latent trajectory,
+\begin{equation}\label{eq:expfam-snr}
+    \mathrm{SNR}(\hat{\vz})
+    =
+    \frac{\E[\|\vz\|^2]}{\E[\|\hat{\vz}-\vz\|^2]}
+    \le
+    \frac{\E[\|\vz\|^2]}{\E\!\left[\tr \mathcal{I}(\vz)^{-1}\right]} .
+\end{equation}
+For centered latents, the numerator is $\tr\cov(\vz)$; for whitened
+$d$-dimensional latents it is $d$. Notebook~\texttt{01} computes this bound by
+averaging $\tr \mathcal{I}(\vz_t)^{-1}$ over time. In a one-dimensional
+log-linear model with fixed mean firing rate, the bound scales with tuning
+strength, per-neuron Fisher information, and, to first order, the excess Fano
+factor. Temporal smoothness can then improve empirical inference SNR beyond the
+single-bin value, which is the point of the smoothing methods in
+\cref{sec:smoothing}.
 
 \subsection{Learning}
 
@@ -993,7 +946,7 @@ linear-Gaussian}: \eqref{eq:kf-update} is the true posterior. But the same
 equations are also the \emph{linear minimum-mean-squared-error} (LMMSE)
 estimator: given the linear model \eqref{eq:kf-model} and the noise
 covariances---whatever the underlying noise distribution---they return the best
-estimate of $z_t$ among all \emph{linear} functions of the data. So when
+estimate of $z_t$ among all \emph{linear} functions of the data (Kalman himself preferred this). So when
 Gaussianity fails the filter degrades gracefully: it is no longer the full
 posterior, nor the best nonlinear estimate, but it is still the best linear one.
 Bayes gives the clean derivation; least squares explains why the filter is useful
@@ -1342,7 +1295,7 @@ computing $p(\vz\mid\vy)$ exactly and \emph{approximate it by optimization}.
 meant to approximate $p(\vz\mid\vy)$---say Gaussian $q = \Normal(\vmu, \Sigma_q)$
 with $\vphi = (\vmu, \Sigma_q)$---that we can sample from, evaluate, and whose
 entropy is differentiable. The goal is to choose $\vphi$ so that $q$ is as close as
-possible to the true posterior. Closeness needs a divergence.
+possible to the true posterior. Closeness is measured by a divergence.
 
 \paragraph{KL divergence.} The Kullback--Leibler divergence
 \begin{equation}\label{eq:vi-kl}
@@ -1495,8 +1448,10 @@ amortization gap. Amortized inference generalizes, rather than competes with,
 Kalman/FA inference. For a moving latent (\cref{sec:kalman}) one amortizes over
 sequences, $q_{\phi}(\vz_{1:T}\mid\vy_{1:T})$: the recognition network plays the
 Kalman filter/smoother's role, but learned and usable under nonlinear dynamics and
-non-Gaussian observations. This is LFADS \parencite{Pandarinath2018-lfads} and
-XFADS \parencite{Dowling2024-xfads}.
+non-Gaussian observations.
+For neural spike trains the Poisson case with Kalman filter model yields the Poisson linear dynamical system (PLDS)
+and related low-dimensional latent-variable models \parencite{Macke2011-ep,Yu2009-qp,Pfau2013-oi,Buesing2013-ce}.
+For nonlinear dynamical model we get models such as LFADS \parencite{Pandarinath2018-lfads} and XFADS \parencite{Dowling2024-xfads}.
 The recurring caveat persists: the latent is identifiable only up to an invertible linear/affine transformation
 (\cref{sec:rotation}).
 
