@@ -62,7 +62,7 @@
 % override catniplab's default "manuscript in preparation" running header
 \setheadercenter{Linear-Gaussian latent variable models}
 
-\title{Latent Neural Dynamics Lecture}
+\title{Latent Neural Dynamics as State Space Models}
 \author{I.~Memming Park}
 \date{\today}
 
@@ -71,15 +71,20 @@
 
 \paragraph{How to read these notes.}
 The sections are roughly self-contained, so skip any whose results you already
-know---most readers can jump straight to probabilistic PCA
-(\cref{sec:ppca}). The notation and Gaussian fun facts below are a quick
+know---most readers can jump straight to probabilistic PCA (\cref{sec:ppca}).
+The notation and Gaussian fun facts below are a quick
 reference to consult as needed; each fun fact comes with its one-dimensional
 special case for intuition. These notes complement the standard textbook
 treatment in Bishop's \emph{Pattern Recognition and Machine Learning}
 \parencite{Bishop2006-to}.
 
-The notebooks are the active part of the course; these notes explain the
-derivations behind them. The core path is notebooks \texttt{00}, \texttt{02},
+State space models (SSMs) are a very general class of methods useful for data analysis.
+In this lecture, we will cover increasing degree of structure that represents
+both (1) stronger assumptions, and (2) hypothesis class on the structure of observed neural data.
+
+The python notebooks are the active part of the course; these notes explain the
+derivations behind them and focuses on neural spike train analysis.
+The core path is notebooks \texttt{00}, \texttt{02},
 \texttt{04}, \texttt{05}, and \texttt{06}. Notebooks \texttt{01}, \texttt{03},
 and \texttt{07} are optional companions that deepen a nearby idea.
 
@@ -376,17 +381,6 @@ using $C\trp C = M - \sigma^2 I_d$.) Now the only inverse is the small $d \times
 matrix $M$. The posterior mean is a linear read-out of $\vy$---not the naive
 $C\trp\vy$, but shrunk through $M^{-1}$; as $\sigma^2 \to 0$ it approaches the
 least-squares projection $(C\trp C)^{-1}C\trp\vy$ onto the latent subspace.
-
-\begin{exercise}
-Using the posterior \eqref{eq:ppca-posterior}, show that as $\sigma^2 \to 0$ the
-posterior mean $M^{-1}C\trp\vy$ approaches the least-squares projection
-$(C\trp C)^{-1}C\trp\vy$ (assume $C$ has full column rank).
-\end{exercise}
-\begin{solution}
-As $\sigma^2 \to 0$, $M = C\trp C + \sigma^2 I_d \to C\trp C$, which is
-invertible when $C$ has full column rank; hence
-$M^{-1}C\trp\vy \to (C\trp C)^{-1}C\trp\vy$.
-\end{solution}
 
 \begin{exercise}[optional stretch]
 Show observing $\vy$ never increases uncertainty about $\vz$: the posterior
@@ -880,24 +874,6 @@ so the tidy $A'$/$A''$ moment identities no longer hold exactly. Notebook 00
 compares $\exp$ against softplus emissions. The same
 exponential-family read-out reappears on top of the latent-dynamics machinery in
 the sections that follow.
-
-\begin{exercise}[gradient, Hessian, concavity]
-For the Poisson model with log link, differentiate the log-joint
-$\log p(\vz,\vy) = \sum_i[\,y_i(\vc_i\trp\vz + b_i) - \Delta e^{\vc_i\trp\vz + b_i}\,]
-- \tfrac12\vz\trp\vz$ to show $\nabla_{\vz} = C\trp(\vy - \Delta\bm{\lambda}) - \vz$
-and $\nabla^2_{\vz} = -(C\trp\diag(\Delta\bm{\lambda})C + I_d)$. Conclude the
-Hessian is negative definite, so the MAP $\hat{\vz}$ is unique.
-\end{exercise}
-\begin{solution}
-Since $\partial_{\vz}(\vc_i\trp\vz) = \vc_i$ and $\partial_{\vz}e^{\vc_i\trp\vz +
-b_i} = \lambda_i\vc_i$, the gradient sums $y_i\vc_i - \Delta\lambda_i\vc_i =
-C\trp(\vy - \Delta\bm{\lambda})$ minus the prior term $\vz$. Differentiating
-again, each neuron contributes $-\Delta\lambda_i\vc_i\vc_i\trp$, giving
-$-C\trp\diag(\Delta\bm{\lambda})C$, and the prior adds $-I_d$. Since
-$\Delta\lambda_i > 0$, $C\trp\diag(\Delta\bm{\lambda})C \succeq 0$ and $I_d \succ
-0$, so the Hessian is negative definite and the log-joint is strictly concave;
-its stationary point is the unique maximum.
-\end{solution}
 
 \begin{exercise}[Poisson has no free noise scale]\label{ex:poisson-noise}
 Show that for the Poisson emission $\E[y_i\mid\vz] = \var(y_i\mid\vz) =
@@ -1420,35 +1396,6 @@ reparameterization---extends the Kalman framework of \cref{sec:kalman} beyond
 linearity and Gaussianity (\cref{sec:xfads}). Notebooks 05--06 fit a ring
 attractor and MC-Maze reaching.
 
-\begin{exercise}[ELBO decomposition]
-Starting from $\log p(\vy)$, insert $1 = \int q(\vz;\vphi)\,\mathrm{d}\vz$ and
-$p(\vz\mid\vy) = p(\vy,\vz)/p(\vy)$ to prove $\log p(\vy) = \mathcal{L}(\vphi) +
-\mathrm{KL}(q(\vz;\vphi)\Vert p(\vz\mid\vy))$. Conclude $\mathcal{L}(\vphi) \leq
-\log p(\vy)$, and that maximizing the ELBO minimizes $\mathrm{KL}(q \Vert
-p(\cdot\mid\vy))$.
-\end{exercise}
-\begin{solution}
-$\log p(\vy) = \E_q[\log p(\vy)] = \E_q\!\big[\log\frac{p(\vy,\vz)}{p(\vz\mid\vy)}\big]
-= \E_q\!\big[\log\frac{p(\vy,\vz)}{q(\vz)}\big] + \E_q\!\big[\log\frac{q(\vz)}{p(\vz\mid\vy)}\big]
-= \mathcal{L}(\vphi) + \mathrm{KL}(q\Vert p(\cdot\mid\vy))$. Gibbs' inequality gives
-$\mathrm{KL}\geq 0$, hence $\mathcal{L}\leq\log p(\vy)$; and since $\log p(\vy)$ is
-independent of $\vphi$, raising $\mathcal{L}$ lowers the KL by the same amount.
-\end{solution}
-
-\begin{exercise}[VI recovers exact conditioning in the linear-Gaussian case]
-For $\vz\sim\Normal(\mathbf 0, I_d)$ and $\vy\mid\vz\sim\Normal(C\vz,
-\Sigma_{\veta})$, argue a Gaussian family $q(\vz;\vphi) = \Normal(\vmu, \Sigma_q)$
-can drive the ELBO gap to zero, and identify the optimal $(\vmu, \Sigma_q)$.
-\end{exercise}
-\begin{solution}
-The true posterior is Gaussian (\cref{fact:cond}, \cref{sec:fa}), so it lies inside
-the family. Taking $\Sigma_q = M^{-1}$ and $\vmu = M^{-1}C\trp\Sigma_{\veta}^{-1}\vy$
-with $M = I_d + C\trp\Sigma_{\veta}^{-1}C$ (eq.~\eqref{eq:fa-M}) makes $q =
-p(\cdot\mid\vy)$, so $\mathrm{KL} = 0$ and $\mathcal{L} = \log p(\vy)$: VI
-reproduces the closed-form FA posterior \eqref{eq:fa-posterior} and strictly
-generalizes it.
-\end{solution}
-
 \section{Amortized inference and the variational autoencoder}\label{sec:amortized}
 
 Every posterior in these notes so far has been a closed-form Gaussian read-off:
@@ -1526,21 +1473,6 @@ non-Gaussian observations. This is LFADS \parencite{Pandarinath2018-lfads} and
 XFADS \parencite{Dowling2024-xfads}, notebooks 05--06. The recurring caveat
 persists: the latent is identifiable only up to an invertible reparameterization
 (\cref{sec:rotation}).
-
-\begin{exercise}
-Show the ELBO is a genuine lower bound on the log-evidence. Starting from $\log
-p_{\theta}(\vy) = \log\E_{q_{\phi}(\vz\mid\vy)}\!\big[p_{\theta}(\vy,\vz)/
-q_{\phi}(\vz\mid\vy)\big]$, apply Jensen's inequality to move the log inside the
-expectation, and identify the gap with $\mathrm{KL}(q_{\phi}(\vz\mid\vy)\Vert
-p_{\theta}(\vz\mid\vy))$. When is the bound tight?
-\end{exercise}
-\begin{solution}
-Jensen gives $\log\E_q[\cdot] \geq \E_q[\log\cdot] = \E_q[\log p_{\theta}(\vy,\vz) -
-\log q_{\phi}(\vz\mid\vy)] = \mathcal{L}$. Writing $p_{\theta}(\vy,\vz) =
-p_{\theta}(\vz\mid\vy)\,p_{\theta}(\vy)$ and subtracting shows $\log p_{\theta}(\vy)
-- \mathcal{L} = \mathrm{KL}(q_{\phi}\Vert p_{\theta}(\vz\mid\vy)) \geq 0$, tight iff
-$q_{\phi}(\vz\mid\vy) = p_{\theta}(\vz\mid\vy)$ almost everywhere.
-\end{solution}
 
 \begin{exercise}[linear-Gaussian sanity check]
 For the PPCA/FA model the exact posterior \eqref{eq:fa-posterior} is Gaussian with
