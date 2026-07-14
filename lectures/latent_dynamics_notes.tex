@@ -1536,14 +1536,14 @@ natural parameter is the linear read-out $C\vz_t + \vb$ of \cref{sec:expfam},
 \begin{genmodel}{XFADS (nonlinear Gaussian state space)}
 \begin{align}
     \vz_t &= f_{\theta}(\vz_{t-1}) + \ve_t, \quad \ve_t\sim\Normal(\mathbf 0, Q),
-        \qquad \vz_1\sim\Normal(\vm_0, P_0), \label{eq:xf-dyn}\\
-    \vy_t &\sim p(\vy_t \mid \vz_t), \quad\text{e.g.}\quad
-        \vy_t \sim \mathrm{Poisson}\!\big(\exp(C\vz_t + \vb)\big) \text{ componentwise},
-        \label{eq:xf-obs}
+        \qquad \vz_0\sim\Normal(\vm_0, P_0), \label{eq:xf-dyn}\\
+    \vy_t &\sim p(\vy_t \mid \vz_t)
 \end{align}
 \end{genmodel}
-with the Gaussian case $\vy_t\sim\Normal(C\vz_t, R)$ recovering the Kalman sensor
-exactly. This is precisely the Kalman generative model with $A\vz_{t-1}$ swapped for
+\noindent
+with $\vy_t \sim \mathrm{Poisson}\!\big(\exp(C\vz_t + \vb)\big)$ we can handle spike trains, and
+with the Gaussian case $\vy_t\sim\Normal(C\vz_t, R)$ we recover the Kalman sensor exactly.
+This is the Kalman generative model with $A\vz_{t-1}$ swapped for
 $f_{\theta}(\vz_{t-1})$ and the Gaussian likelihood swapped for an exp-family one
 (the code's \texttt{DenseGaussianDynamics} and \texttt{GaussianLikelihood}/Poisson
 modules).
