@@ -78,12 +78,13 @@ special case for intuition. These notes complement the standard textbook
 treatment in Bishop's \emph{Pattern Recognition and Machine Learning}
 \parencite{Bishop2006-to}.
 
-State space models (SSMs) are a very general class of methods useful for data analysis.
-In this lecture, we will cover increasing degree of structure that represents
-both (1) stronger assumptions, and (2) hypothesis class on the structure of observed neural data.
+State-space models (SSMs) are a broad class of models for structured
+data. These notes move from weak structure to stronger structure: static
+low-rank latent variables, linear dynamics, nonlinear dynamics, and approximate
+inference for spike counts.
 
-The python notebooks are the active part of the course; these notes explain the
-derivations behind them and focuses on neural spike train analysis.
+The Python notebooks are the active part of the course; these notes explain the
+derivations behind them and focus on neural spike train analysis.
 The core path is notebooks \texttt{00}, \texttt{02},
 \texttt{04}, \texttt{05}, and \texttt{06}. Notebooks \texttt{01}, \texttt{03},
 and \texttt{07} are optional companions that deepen a nearby idea.
@@ -1409,8 +1410,8 @@ leaving only the reconstruction term to sample.
 \paragraph{Where it goes.} Three consequences close the section. \emph{Consistency:}
 when the model \emph{is} linear-Gaussian, the true posterior is Gaussian, a
 Gaussian $q$ reaches $\mathrm{KL} = 0$, and the ELBO optimum reproduces the exact
-PPCA/FA/Kalman posterior---VI strictly generalizes the conditioning of
-\cref{fact:cond}. \emph{Amortization:} replacing the per-datum $\vphi$ with a
+PPCA/FA/Kalman posterior---VI contains the conditioning of \cref{fact:cond} as a
+special case. \emph{Amortization:} replacing the per-datum $\vphi$ with a
 network mapping $\vy$ to variational parameters, $q_{\vphi}(\vz\mid\vy)$, yields the
 recognition model, or encoder, of a variational autoencoder (\cref{sec:amortized}).
 \emph{XFADS:} applying the recipe to a \emph{sequential} latent---a structured
