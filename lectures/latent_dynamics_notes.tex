@@ -691,7 +691,7 @@ Summing over the conditionally independent neurons, the Poisson log-likelihood g
 \end{equation}
 Three pieces: a \emph{linear} term $y_i\,\theta_i$ (data times natural
 parameter), a \emph{convex penalty} $\Delta e^{\theta_i}$ (the expected count),
-and a data-only constant $\log(y_i!) - y_i\log\Delta$ that never touches $\vz$.
+and a data-only constant $y_i\log\Delta - \log(y_i!)$ that never touches $\vz$.
 Adding the log-prior gives the log-joint, the object both inference and learning
 optimize,
 \begin{equation}\label{eq:expfam-logjoint}
@@ -708,13 +708,16 @@ Poisson and Gaussian are not rivals; they are two members of the same
     \qquad \theta_i = \vc_i\trp\vz + b_i,
 \end{equation}
 with $\theta_i$ the natural parameter (always the affine image $C\vz + \vb$) and
-$A(\cdot)$ the \emph{log-partition} function. The log-partition carries the
-moments,
+$A(\cdot)$ the \emph{log-partition} function. The base measure $h$ can absorb
+terms that depend on $y_i$ and $\Delta$ but not on $\theta_i$. The log-partition
+carries the moments,
 \begin{equation}\label{eq:expfam-moments}
     \E[y_i \mid \vz] = A'(\theta_i), \qquad \var(y_i \mid \vz) = A''(\theta_i) .
 \end{equation}
-For the Poisson $A(\theta) = e^{\theta}$, so $\E[y_i\mid\vz] = \var(y_i\mid\vz) =
-\lambda_i$ (\cref{fact:poisson-moments}). For a Gaussian with
+For our binned-count Poisson model $A(\theta) = \Delta e^{\theta}$, so
+$\E[y_i\mid\vz] = \var(y_i\mid\vz) = \Delta\lambda_i$
+(\cref{fact:poisson-moments}); setting $\Delta=1$ recovers the usual
+$A(\theta)=e^\theta$. For a Gaussian with
 identity link $A(\theta) = \theta^2/2$, so the mean is $\theta$ and the variance
 is constant---recovering the linear-Gaussian factor-analysis emission of
 \cref{sec:fa}. The message: PPCA and FA are the \emph{Gaussian special case};
@@ -837,9 +840,10 @@ in the Poisson model?
 \end{exercise}
 \begin{solution}
 For $y\sim\mathrm{Poisson}(\mu)$, mean $=$ variance $= \mu$, here $\mu =
-\Delta\lambda_i$; equivalently $A(\theta) = e^{\theta}$ gives $A' = A'' = e^{\theta}
-= \lambda_i$. Unlike FA's diagonal $\Sigma_{\veta}$, the Poisson observation noise
-is fixed by the rate itself---there is no independent $\sigma_i^2$ to fit.
+\Delta\lambda_i$; equivalently $A(\theta) = \Delta e^{\theta}$ gives $A' = A'' =
+\Delta e^{\theta} = \Delta\lambda_i$. Unlike FA's diagonal $\Sigma_{\veta}$, the
+Poisson observation noise is fixed by the rate itself---there is no independent
+$\sigma_i^2$ to fit.
 Heterogeneous variability across neurons must come from the rates (through $C,
 \vb$) or from a richer emission (e.g.\ negative binomial, which adds an
 overdispersion parameter), not from a separable additive noise term.
@@ -1075,11 +1079,11 @@ the correction is zero. Uncertainty can only drop: since $P_{t+1}^s \preceq
 P_{t+1}^-$, \eqref{eq:sm-cov} gives $P_t^s \preceq P_t$---smoothing never hurts,
 mirroring the filter's $P_t \le P_t^-$. In scalars ($a$ scalar) the gain is $J_t =
 a P_t / P_{t+1}^-$, the same shape. The lagged covariance \eqref{eq:sm-cross} is
-the second moment $\E[\vz_t \vz_{t+1}\trp \mid \vy_{1:T}]$ that the M-step of EM
-needs (the EM route mentioned in \cref{sec:hokalman}); it is what
-\texttt{rts\_smoother} returns as \texttt{P\_tp1\_t\_s}, and notebook~02 shows how
-much the backward pass tightens the single-trial samples. This is the RTS smoother
-\parencite{Rauch1965-rts}.
+not itself the second moment. The EM M-step needs
+$\E[\vz_t\vz_{t+1}\trp\mid\vy_{1:T}]$, obtained by adding back the smoothed means:
+$P_{t,t+1}^s + \vmu_t^s(\vmu_{t+1}^s)\trp$.
+Notebook~02 shows how much the backward pass tightens the single-trial samples.
+This is the RTS smoother \parencite{Rauch1965-rts}.
 
 \subsection{Forecasting: the filter with the sensor unplugged}
 
@@ -1249,12 +1253,17 @@ the first (each block is the one above times $A$). Solving with the pseudoinvers
 \begin{equation}\label{eq:hk-A}
   A = \mathcal{O}_{\uparrow}^{\dagger}\, \mathcal{O}_{\downarrow} .
 \end{equation}
-Finally $G$ is the first block column of $\mathcal K$; $Q$ follows from the
-factorization, $P_\infty$ from the Lyapunov equation, and the sensor noise from
-$\Gamma_0 = C P_\infty C\trp + R$, i.e.\ $R = \Gamma_0 - C P_\infty C\trp$.
+Finally $G$ is the first block column of $\mathcal K$. At this point Ho--Kalman has
+identified a linear realization $(A,C,G)$ up to a change of latent basis. Turning
+that realization into an LDS covariance initialization is a separate
+covariance-matching step: for a stable $A$, choose a process covariance $Q$ (the
+notebook uses the controllability factor as a pragmatic initialization), solve
+$P_\infty = A P_\infty A\trp + Q$, and set the sensor noise from
+$\Gamma_0 = C P_\infty C\trp + R$. These $Q$ and $R$ estimates are not uniquely
+identified by the Hankel factorization alone; EM can refine them.
 
-\paragraph{Why bother.} One SVD, no iteration, and out comes a full linear
-dynamical system. But it only matches moments---it never touches the
+\paragraph{Why bother.} One SVD, no iteration, and out comes a usable linear
+realization. But it only matches moments---it never touches the
 likelihood---so it is statistically less efficient than the EM/ML fit and can
 even return an unstable estimate. The usual practice: run Ho--Kalman for a fast,
 initialization-free guess, then refine it with EM. Notebook~03 fits both and
@@ -1531,22 +1540,23 @@ information-form counterpart of the Kalman smoother.
 \Sigma^{-1}\vmu$, with density factor $\propto \exp(-\tfrac12\vz\trp J\vz +
 h\trp\vz)$. The key fact, carried straight from the ``precisions add'' reading of
 \eqref{eq:kf-bayes}: multiplying Gaussian factors \emph{adds} their natural
-parameters. XFADS writes the posterior natural parameters at each $t$ as an
-additive decomposition,
+parameters. For the whole trajectory, XFADS writes
 \begin{equation}\label{eq:xf-additive}
-    (h_t, J_t) = (h_t^{\mathrm{dyn}}, J_t^{\mathrm{dyn}})
-        + (h_t^{\mathrm{loc}}, J_t^{\mathrm{loc}})
-        + (h_t^{\mathrm{bwd}}, J_t^{\mathrm{bwd}}) ,
+    (h, J) = (h^{\mathrm{dyn}}, J^{\mathrm{dyn}})
+        + (h^{\mathrm{loc}}, J^{\mathrm{loc}})
+        + (h^{\mathrm{bwd}}, J^{\mathrm{bwd}}) ,
 \end{equation}
-the generalized information-filter update: the dynamics supply the predicted term,
-and two encoders supply data-dependent \emph{pseudo-observation} terms. Where a
+where $h$ stacks the time-specific information vectors and $J$ is the
+block-tridiagonal trajectory precision. The dynamics term supplies the
+block-tridiagonal prior structure; the local and backward encoders add
+data-dependent block-diagonal \emph{pseudo-observation} terms. Where a
 linear-Gaussian sensor would contribute $C\trp R^{-1} C$ and $C\trp R^{-1}\vy_t$, a
 neural network now supplies those pieces.
 
 \paragraph{Local and backward encoders.} Two amortized networks build the data
 terms. The \emph{local} encoder $\alpha_{\phi}$ maps each $\vy_t$ to a per-timestep
-Gaussian potential in natural form, with a low-rank-plus-identity precision so it
-stays cheap at large latent dimension,
+Gaussian potential in natural form, with a low-rank precision update so it stays
+cheap at large latent dimension,
 \begin{equation}\label{eq:xf-local}
     (h_t^{\mathrm{loc}}, L_t) = \alpha_{\phi}(\vy_t), \qquad
     J_t^{\mathrm{loc}} = L_t L_t\trp, \quad L_t\in\reals^{d\times r},\ r\ll d
