@@ -18,7 +18,7 @@
 #
 # [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/catniplab/latent_dynamics_workshop/blob/main/03_system_id_and_em.ipynb)
 #
-# **Takeaway:** in [`02_linear_lvms`](02_linear_lvms.ipynb) we *knew* the system
+# In [`02_linear_lvms`](02_linear_lvms.ipynb) we *knew* the system
 # $(\mathbf{A},\mathbf{C},\mathbf{Q},\mathbf{R})$; here we *estimate* the linear
 # dynamics straight from the observations - non-iteratively with the Ho-Kalman
 # subspace method, and probabilistically with one EM M-step.
@@ -37,13 +37,14 @@ try:
 except ImportError:
     _in_colab = False
 
-# %%
 if _in_colab:
-    # !git clone --recurse-submodules https://github.com/catniplab/latent_dynamics_workshop.git
+    # This notebook only needs the xfads submodule, so we init just that one
+    # (not --recurse-submodules, which would also pull nlb_tools/neurofisherSNR).
+    # !git clone https://github.com/catniplab/latent_dynamics_workshop.git
+    # !cd latent_dynamics_workshop && git submodule update --init external/xfads
     # !pip install -e latent_dynamics_workshop/external/xfads/
     pass
 
-# %%
 import os
 import sys
 
@@ -52,7 +53,6 @@ if _in_colab:
     sys.path.append(os.path.join(cwd, "latent_dynamics_workshop"))
     sys.path.append(os.path.join(cwd, "latent_dynamics_workshop/external/xfads"))
 
-# %%
 import torch
 import matplotlib.pyplot as plt
 import numpy as np
@@ -67,17 +67,15 @@ from xfads.prob_utils import (
     align_latent_variables,
 )
 
-# %%
+from code_pack.plotting import plot_rotated_latents
+
+# Minimal config: 2 latent dimensions, run on CPU unless a GPU is available.
 n_latents = 2
-seed = 1234
+seed = 20270714  # same seed as notebook 02, so the recreated spiral data matches
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 pl.seed_everything(seed, workers=True)
 torch.set_default_dtype(torch.float32)
-
-
-# %%
-from code_pack.plotting import plot_rotated_latents
 
 # %% [markdown]
 # ## Recreate the spiral data and the true-parameter smoother
@@ -240,7 +238,6 @@ A_hat_em, C_hat_em, Q_hat_em, R_hat_em = prob_utils.em_update_batch(m_s, P_s, P_
 # > <summary>Solution</summary>
 # >
 # > ```python
-# > eig_true = torch.linalg.eigvals(mean_fn.A)
 # > eig_kh = torch.linalg.eigvals(A_hat_kh)
 # > eig_em = torch.linalg.eigvals(A_hat_em)
 # > ```
@@ -253,8 +250,9 @@ A_hat_em, C_hat_em, Q_hat_em, R_hat_em = prob_utils.em_update_batch(m_s, P_s, P_
 
 # %%
 eig_true = torch.linalg.eigvals(mean_fn.A)
-eig_kh = torch.linalg.eigvals(A_hat_kh)
-eig_em = torch.linalg.eigvals(A_hat_em)  # YOUR CODE HERE (stretch)
+# YOUR CODE HERE
+raise NotImplementedError()
+assert eig_kh.shape == eig_true.shape == eig_em.shape
 
 fig, ax = plt.subplots(figsize=(5, 5))
 theta = np.linspace(0, 2 * np.pi, 200)
@@ -282,6 +280,17 @@ plt.show()
 # **Transfer prompt.** On your own recording, use Ho-Kalman to initialize `A`, then run an
 # actual EM *loop* (alternating E- and M-steps): does iterating past this single M-step
 # tighten the eigenvalues toward a stable system?
+#
+# **Explore further.** Ho-Kalman is the classical entry point to *subspace identification*.
+# Modern, more numerically robust variants estimate the state sequence directly from data
+# projections rather than from Hankel-ed covariances:
+# - **N4SID** (Numerical algorithms for Subspace State Space System IDentification, Van
+#   Overschee & De Moor).
+# - **MOESP** (Multivariable Output-Error State sPace, Verhaegen & Dewilde).
+#
+# Both are standard in control-systems texts and available in packages like `SIPPY` and
+# MATLAB's `n4sid`; they are worth trying when Ho-Kalman's finite-sample estimates come out
+# unstable.
 #
 # **Back to the core track:** the linear-Gaussian story ends here. When observations are
 # Poisson spikes, the E-step posterior is no longer Gaussian in closed form, and we turn to
