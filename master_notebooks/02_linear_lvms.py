@@ -34,7 +34,10 @@ except ImportError:
     _in_colab = False
 
 if _in_colab:
-    # !git clone --recurse-submodules https://github.com/catniplab/latent_dynamics_workshop.git
+    # This notebook only needs the xfads submodule, so we init just that one
+    # (not --recurse-submodules, which would also pull nlb_tools/neurofisherSNR).
+    # !git clone https://github.com/catniplab/latent_dynamics_workshop.git
+    # !cd latent_dynamics_workshop && git submodule update --init external/xfads
     # !pip install -e latent_dynamics_workshop/external/xfads/
     pass
 
