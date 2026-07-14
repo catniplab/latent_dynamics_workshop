@@ -98,10 +98,10 @@ and \texttt{07} are optional companions that deepen a nearby idea.
     \item[\texttt{04\_variational\_inference}] ELBO, KL, and reparameterized
         optimization when conjugacy breaks; read \cref{sec:vi,sec:amortized}.
     \item[\texttt{05\_xfads\_ring\_attractor}] XFADS on a synthetic nonlinear
-        flow; read \cref{sec:xfads}.
+        flow; read \cref{sec:xfads,sec:xfads-lfads}.
     \item[\texttt{06\_xfads\_mc\_maze}] XFADS on real spikes with smoothing,
         filtering, forecasting, and Poisson read-out; read
-        \cref{sec:expfam,sec:smoothing,sec:xfads}.
+        \cref{sec:expfam,sec:smoothing,sec:xfads,sec:xfads-lfads}.
     \item[\texttt{07\_decoding\_and\_evaluation}] Optional model evaluation:
         decoding, k-step prediction, and predictive likelihood; use it as the
         empirical check on the forecasting and read-out ideas in
@@ -1706,6 +1706,89 @@ R^{-1} C$ and $h_t = h_t^- + C\trp R^{-1}\vy_t$---the information-form Kalman
 update, equivalent to \eqref{eq:kf-update} (Woodbury converts between covariance
 and information forms).
 \end{solution}
+
+\section{XFADS versus LFADS}\label{sec:xfads-lfads}
+
+LFADS \parencite{Pandarinath2018-lfads} and XFADS are both sequential VAEs for
+population spike trains, but they put the dynamical state and the approximate
+posterior in different places. Translating LFADS notation into the notation of
+these notes:
+\[
+    \text{LFADS spikes } \bm{x}_t \leftrightarrow \vy_t,
+    \qquad
+    \text{LFADS factors } \bm{f}_t \leftrightarrow \vz_t,
+    \qquad
+    W^{\mathrm{rate}} \leftrightarrow C,\quad
+    \text{rate bias} \leftrightarrow \vb .
+\]
+The closest match to our latent $\vz_t$ is the LFADS \emph{factor} $\bm f_t$,
+not the full recurrent generator state $\bm g_t$: the factor is the
+low-dimensional signal read out to firing rates.
+
+\begin{genmodel}{LFADS (notation translated)}
+\begin{align}
+    \bm g_0 &\sim p(\bm g_0), \qquad
+        \bm u_t \sim p(\bm u_t) \quad \text{(optional inferred input)}, \\
+    \bm g_t &= \mathrm{GRU}_{\mathrm{gen}}(\bm g_{t-1}, \bm u_t), \\
+    \bm f_t &= W_{\mathrm{fac}}\bm g_t, \\
+    \bm{\lambda}_t &= \exp(C\bm f_t + \vb), \\
+    \vy_t &\sim \mathrm{Poisson}(\Delta\,\bm{\lambda}_t) .
+\end{align}
+\end{genmodel}
+
+Thus LFADS puts a powerful deterministic recurrent generator between the
+stochastic trial variables and the Poisson read-out. Without inferred inputs, the
+trial is generated from a sampled initial condition $\bm g_0$ and then rolled
+forward autonomously. With inferred inputs, the latent variables are
+$\{\bm g_0,\bm u_{1:T}\}$, and the inputs act as time-varying corrections
+to the generator. The inputs carry an autoregressive AR(1) Gaussian prior, which
+keeps them temporally smooth and small, so the autonomous generator is pressed to
+explain as much of the trial as it can and the inputs absorb only what it cannot.
+
+The LFADS inference network reflects that choice. A bidirectional encoder reads
+the whole trial and outputs a diagonal-Gaussian approximate posterior
+\[
+    q_{\phi}(\bm g_0 \mid \vy_{1:T})
+\]
+for the generator initial condition. If inferred inputs are used, a second
+bidirectional encoder and a forward controller RNN output diagonal-Gaussian
+posteriors
+\[
+    q_{\phi}(\bm u_t \mid \bm u_{1:t-1}, \bm g_0, \vy_{1:T}) .
+\]
+The controller also receives the previous factor $\bm f_{t-1}$, so it knows
+what the generator is already producing before deciding whether to supply an
+input.
+
+This inference structure is acausal. The bidirectional encoders read
+$\vy_{1:T}$, so the inferred factor at an early time can depend on spikes from
+later times. That is appropriate for offline denoising and smoothing, but it is
+not the same object as a causal filter $q(\vz_t\mid\vy_{1:t})$. This matters for
+online decoding, forecasting from partial trials, and causal analyses where the
+estimate at time $t$ should not depend on future observations. AutoLFADS
+\parencite{Keshtkaran2019-autolfads} improves LFADS-style models through
+hyperparameter optimization, sample validation, and coordinated dropout, but it
+does not by itself turn the standard bidirectional LFADS inference network into a
+causal filter.
+
+XFADS makes a different design choice. Its latent variable is the state trajectory
+itself, with an explicit nonlinear Gaussian transition
+\[
+    \vz_t = f_{\theta}(\vz_{t-1}) + \ve_t,
+\]
+and its inference network parameterizes a structured Gaussian smoother
+$q_{\phi}(\vz_{1:T}\mid\vy_{1:T})$ in information form. The local and backward
+encoders supply natural-parameter terms that add to the dynamics term, as in
+\eqref{eq:xf-additive}. In short: LFADS amortizes inference over a generator
+initial condition and optional inferred inputs; XFADS amortizes a full smoothing
+posterior over the latent trajectory.
+
+This is the distinction to keep straight when comparing the two models. LFADS is
+often excellent for denoising and extracting factors, but its posterior is not a
+Kalman-style Gaussian smoother over $\vz_{1:T}$. XFADS is closer to the state-space
+notation used throughout these notes: the latent trajectory is explicit, the
+transition model is explicit, and the encoder is organized as an information-form
+smoother.
 
 \printbibliography
 
