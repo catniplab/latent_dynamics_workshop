@@ -44,21 +44,12 @@
 % override catniplab's default "manuscript in preparation" running header
 \setheadercenter{Linear-Gaussian latent variable models}
 
-\title{Latent Dynamics: Lecture Notes}
+\title{Latent Neural Dynamics Lecture}
 \author{I.~Memming Park}
 \date{\today}
 
 \begin{document}
 \maketitle
-
-\begin{abstract}
-Notes on two classical linear-Gaussian latent variable models---probabilistic
-PCA \parencite{Tipping1999-cv} and factor analysis---with the Gaussian identities
-their derivations rely on, plus a final section that carries the same toolkit
-into time to derive the Kalman filter. Throughout, $\vy \in \reals^m$ is the observed vector, $\vz \in \reals^d$
-the latent vector ($m \geq d$, typically $d \ll m$), and $C \in \reals^{m
-\times d}$ the loading matrix.
-\end{abstract}
 
 \paragraph{How to read these notes.}
 The sections are roughly self-contained, so skip any whose results you already
@@ -67,8 +58,9 @@ know---most readers can jump straight to probabilistic PCA
 reference to consult as needed; each fun fact comes with its one-dimensional
 special case for intuition. These notes complement the standard textbook
 treatment in Bishop's \emph{Pattern Recognition and Machine Learning}
-(ch.~12)~\parencite{Bishop2006-to}, which also covers the fully Bayesian version of
-PCA.
+\parencite{Bishop2006-to}.
+
+In section \ref{sec:xfads}, we will get to advanced nonlinear state-space modeling.
 
 \section{Notation, from scratch}\label{sec:notation}
 
@@ -235,7 +227,8 @@ tells us.
 
 \section{Probabilistic PCA}\label{sec:ppca}
 
-Probabilistic PCA \parencite{Tipping1999-cv} explains the observed vector as a
+Probabilistic principal components analysis (PPCA) \parencite{Tipping1999-cv} is an
+alternative interpretation of PCA. The vector observations are treated as
 low-dimensional latent cause seen through a linear map, corrupted by isotropic
 noise. Assume the data has been centered (the sample mean subtracted), so all
 means are zero. The \emph{generative model} is
@@ -244,13 +237,13 @@ means are zero. The \emph{generative model} is
     \vy &= C\vz + \veta, \qquad \veta \sim \Normal(\mathbf 0, \sigma^2 I_m),
         \label{eq:ppca-obs}
 \end{align}
-with $\vz$ and $\veta$ independent. The latent $\vz \in \reals^d$ is a handful of
-hidden factors; the loading matrix $C \in \reals^{m\times d}$ maps them into the
+with $\vz$ and $\veta$ independent. The latent $\vz \in \reals^d$ are
+latent factors; the loading matrix $C \in \reals^{m\times d}$ maps them into the
 $m$ observed dimensions; and every observed coordinate gets the \emph{same}
 noise variance $\sigma^2$---the ``isotropic'' assumption that distinguishes
 PPCA from factor analysis later.
 
-Writing out the shapes makes the dimensionality reduction visible. The model
+Writing out the shapes makes the \textit{dimensionality reduction} visible. The model
 only requires $m \geq d$, but the regime of interest is $d \ll m$: a handful of
 latent factors driving many observed coordinates. The loading $C$ is then tall
 and thin,
@@ -802,8 +795,8 @@ overflow numerically for large $\theta_i$. A common alternative is the
     \bm{\lambda} = \log\!\big(\mathbf 1 + \exp(C\vz + \vb)\big) \quad\text{(elementwise)},
 \end{equation}
 still monotone and positive but with gentler, linear tails; it is non-canonical,
-so the tidy $A'$/$A''$ moment identities no longer hold exactly. Notebook 00 uses
-$\exp$; notebook 04 compares $\exp$ against softplus emissions. The same
+so the tidy $A'$/$A''$ moment identities no longer hold exactly. Notebook 00
+compares $\exp$ against softplus emissions. The same
 exponential-family read-out reappears on top of the latent-dynamics machinery in
 the sections that follow.
 
@@ -954,7 +947,7 @@ as natural. \emph{Smoothing} uses the \emph{whole} record, $p(\vz_t \mid
 of learning. \emph{Forecasting} looks the other way, $p(\vz_{T+h} \mid
 \vy_{1:T})$, $h$ steps past the last observation. Both fall straight out of the
 same fun facts and the filter quantities already in hand; nothing new to compute
-but a backward sweep and a repeated predict. (Notebook 01's \texttt{rts\_smoother}
+but a backward sweep and a repeated predict. (Notebook 02's \texttt{rts\_smoother}
 is exactly this section; ``look how much smoother the samples are'' is the payoff
 below.)
 
@@ -1002,7 +995,7 @@ gives
 \end{equation}
 The gain $J_t$ is the backward analogue of the Kalman gain $K_t$ of
 \eqref{eq:kf-update}---how much of the downstream news to trust---and is a
-different object (do not confuse it with the information matrix notebook 01 calls
+different object (do not confuse it with the information matrix notebook 02 calls
 \texttt{J\_update}).
 
 \paragraph{Closing the recursion.} Now average the backward conditional
@@ -1153,7 +1146,7 @@ representatives of these families.
 
 \section{Optional: learning the dynamics (Ho--Kalman)}\label{sec:hokalman}
 
-\emph{Optional reading, tied to notebook~01.} The filter above assumed the system
+\emph{Optional reading, tied to notebook~03.} The filter above assumed the system
 $(A, C, Q, R)$ was known. Where do those come from? One route is
 probabilistic---EM, exactly as for factor analysis. The other is a fast algebraic
 trick from control theory, \emph{subspace identification}; its classic form is the
@@ -1208,7 +1201,7 @@ $\Gamma_0 = C P_\infty C\trp + R$, i.e.\ $R = \Gamma_0 - C P_\infty C\trp$.
 dynamical system. But it only matches moments---it never touches the
 likelihood---so it is statistically less efficient than the EM/ML fit and can
 even return an unstable estimate. The usual practice: run Ho--Kalman for a fast,
-initialization-free guess, then polish it with EM. Notebook~01 fits both and
+initialization-free guess, then polish it with EM. Notebook~03 fits both and
 compares the eigenvalues of the learned $A$.
 
 \section{Variational inference: when the posterior is no longer Gaussian}\label{sec:vi}
@@ -1230,7 +1223,7 @@ p(\vy)$ with evidence
 Off conjugacy---non-Gaussian observations (spike counts, \cref{sec:expfam}) or
 nonlinear dynamics---the pair $(\vz,\vy)$ is no longer jointly Gaussian, the
 integral \eqref{eq:vi-evidence} has no closed form, and the posterior is
-intractable. Notebook 02 makes the non-conjugacy visible with a 1-D toy (a
+intractable. Notebook 04 makes the non-conjugacy visible with a 1-D toy (a
 Gaussian likelihood times a Laplace prior) evaluated on a grid; grid evaluation is
 a luxury of one dimension and dies exponentially as $d$ grows. The strategy: stop
 computing $p(\vz\mid\vy)$ exactly and \emph{approximate it by optimization}.
@@ -1274,7 +1267,7 @@ same amount, so
     \arg\max_{\vphi}\mathcal{L}(\vphi) = \arg\min_{\vphi}\mathrm{KL}\!\big(q(\vz;\vphi)\Vert p(\vz\mid\vy)\big) .
 \end{equation}
 Inference has become optimization. Dropping the $\vphi$-constant $\log p(\vy)$, the
-objective coded in notebook 02 is $\E_q[\log p(\vy\mid\vz) + \log p(\vz)] + H(q)$,
+objective coded in notebook 04 is $\E_q[\log p(\vy\mid\vz) + \log p(\vz)] + H(q)$,
 with $H(q)$ the entropy of $q$.
 
 \paragraph{Monte Carlo and the reparameterization trick.} The ELBO needs the
@@ -1316,7 +1309,7 @@ Gaussian posterior over the whole trajectory $\vz_{1:T}$, an amortized recogniti
 network, a nonlinear dynamics prior $p(\vz_t\mid\vz_{t-1})$, and a (possibly
 Poisson) observation model, all trained by maximizing the ELBO through
 reparameterization---is the Kalman world of \cref{sec:kalman} unshackled from
-linearity and Gaussianity (\cref{sec:xfads}). Notebooks 03--04 fit a ring
+linearity and Gaussianity (\cref{sec:xfads}). Notebooks 05--06 fit a ring
 attractor and MC-Maze reaching.
 
 \begin{exercise}[ELBO decomposition]
@@ -1365,7 +1358,7 @@ p(\cdot\mid\vy))$. The ELBO identity \eqref{eq:vi-decomp} gives $\log p(\vy) =
 \mathcal{L} + \mathrm{KL} \geq \mathcal{L}$: the ELBO lower-bounds the evidence, and
 maximizing it both fits $q$ to the posterior and bounds the marginal likelihood for
 learning the generative parameters. Its reconstruction-minus-KL form is
-\eqref{eq:vi-elbo}. Notebook 02 does exactly this, numerically, for a 1-D toy
+\eqref{eq:vi-elbo}. Notebook 04 does exactly this, numerically, for a 1-D toy
 posterior. The foundational treatments are \parencite{Jordan1999-vi,
 Blei2017-vi}; note the reverse KL is \emph{mode-seeking}, so $q$ prefers to cover
 one mode tightly rather than smear across several.
@@ -1406,7 +1399,7 @@ decoder/encoder parameters,
 \end{equation}
 and jointly maximizing it over encoder $\phi$ and decoder $\theta$ by stochastic
 gradient ascent gives the \emph{variational autoencoder}
-\parencite{KingmaWelling2014-vae, Rezende2014-sbp}. Notebook 02 ends precisely at
+\parencite{KingmaWelling2014-vae, Rezende2014-sbp}. Notebook 04 ends precisely at
 this $q_{\phi}(\vz\mid\vy)$ bridge.
 
 \paragraph{Reconnecting to the linear-Gaussian thread.} The encoder is learning to
@@ -1422,7 +1415,7 @@ Kalman/FA inference. For a moving latent (\cref{sec:kalman}) one amortizes over
 sequences, $q_{\phi}(\vz_{1:T}\mid\vy_{1:T})$: the recognition network plays the
 Kalman filter/smoother's role, but learned and usable under nonlinear dynamics and
 non-Gaussian observations. This is LFADS \parencite{Pandarinath2018-lfads} and
-XFADS \parencite{Dowling2024-xfads}, notebooks 03--04. The recurring caveat
+XFADS \parencite{Dowling2024-xfads}, notebooks 05--06. The recurring caveat
 persists: the latent is identifiable only up to an invertible reparameterization
 (\cref{sec:rotation}).
 
@@ -1463,7 +1456,7 @@ model is nonlinear.
 Recall the arc. The Kalman filter (\cref{sec:kalman}) kept a Gaussian belief exact
 because every arrow was linear-Gaussian; Ho--Kalman (\cref{sec:hokalman}) recovered
 the linear system. Two things break for real neural data: the latent dynamics are
-\emph{nonlinear} (ring attractors, limit cycles---notebooks 03--04), and spike
+\emph{nonlinear} (ring attractors, limit cycles---notebooks 05--06), and spike
 counts are \emph{non-Gaussian} (Poisson, not $\vy = C\vz + \text{noise}$). XFADS
 \parencite{Dowling2024-xfads} keeps as much of the Kalman/Gaussian structure as it
 can while relaxing both. One-line framing: a variational autoencoder whose decoder
@@ -1556,7 +1549,7 @@ at $t$ is the sum \eqref{eq:xf-additive}, sampled by reparameterization.
 \end{equation}
 the expected exponential-family log-likelihood minus the KL between the structured
 Gaussian posterior and the nonlinear Gaussian prior, Monte Carlo estimated with
-reparameterized samples (notebook 02's ELBO, now over trajectories). All of
+reparameterized samples (notebook 04's ELBO, now over trajectories). All of
 $f_{\theta}$, $C$, $\vb$, $Q$, and the two encoders are trained jointly by
 stochastic gradient ascent---``amortized'' because the encoders replace
 per-sequence optimization with a single forward pass.
@@ -1568,8 +1561,8 @@ networks \parencite{Johnson2016-svae}, deep Kalman filters
 \parencite{Krishnan2017-dkf}, and LFADS \parencite{Pandarinath2018-lfads}. Its
 contribution is to keep a genuinely structured (block-tridiagonal) Gaussian
 smoothing posterior while scaling to large latent and neuron counts through
-low-rank natural-parameter encoders. Notebook 03 recovers a ring attractor's flow
-field; notebook 04 fits MC-Maze spikes.
+low-rank natural-parameter encoders. Notebook 05 recovers a ring attractor's flow
+field; notebook 06 fits MC-Maze spikes.
 
 \begin{exercise}[Gaussian products add in natural coordinates]
 Two Gaussian factors over $\vz\in\reals^d$, proportional to $\exp(-\tfrac12
