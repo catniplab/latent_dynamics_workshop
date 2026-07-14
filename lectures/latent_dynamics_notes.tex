@@ -26,7 +26,7 @@
 \crefname{funfact}{fun fact}{fun facts}
 \Crefname{funfact}{Fun fact}{Fun facts}
 
-% local notation (math_preamble already provides \vx \vy \cov \trp \vPsi \identity)
+% local notation (math_preamble already provides \vx \vy \cov \trp \vPsi)
 \newcommand{\E}{\mathbb{E}}
 \newcommand{\veta}{\bm{\eta}}
 \newcommand{\Normal}{\mathcal{N}}
@@ -38,6 +38,19 @@
 \newcommand*{\clapp}[1]{\hbox to 0pt{\hss#1\hss}}
 \newcommand*{\subdims}[3]{\clapp{\raisebox{#1}[0pt][0pt]{$\scriptstyle(#2 \times #3)$}}}
 \setlength{\fboxrule}{1pt}
+
+% colored box for generative-model equation blocks (reused across sections)
+% zero the display skips so only the box's own (uniform) padding sets the margins
+\newtcolorbox{genmodel}{%
+    colframe=darkblue!75!black,
+    colback=darkblue!5,
+    boxrule=0.5pt,
+    left=8pt, right=8pt, top=8pt, bottom=8pt,
+    before upper={\setlength{\abovedisplayskip}{0pt}%
+                  \setlength{\belowdisplayskip}{0pt}%
+                  \setlength{\abovedisplayshortskip}{0pt}%
+                  \setlength{\belowdisplayshortskip}{0pt}},
+}
 
 \addbibresource{references.bib}
 
@@ -60,13 +73,44 @@ special case for intuition. These notes complement the standard textbook
 treatment in Bishop's \emph{Pattern Recognition and Machine Learning}
 \parencite{Bishop2006-to}.
 
-In section \ref{sec:xfads}, we will get to advanced nonlinear state-space modeling.
+The notebooks are the active part of the course; these notes explain the
+derivations behind them. The core path is notebooks \texttt{00}, \texttt{02},
+\texttt{04}, \texttt{05}, and \texttt{06}. Notebooks \texttt{01}, \texttt{03},
+and \texttt{07} are optional companions that deepen a nearby idea.
+
+\begin{description}
+    \item[\texttt{00\_state\_space\_intuition}] Poisson spike counts from latent
+        trajectories; read \cref{sec:expfam} for the observation model and
+        \cref{sec:kalman} for the latent-dynamics framing.
+    \item[\texttt{01\_snr\_and\_loading\_geometry}] Fisher-information SNR and
+        loading geometry; read the SNR part of \cref{sec:expfam} and the
+        rotation/scale cautions in \cref{sec:rotation,sec:scale}.
+    \item[\texttt{02\_linear\_lvms}] PCA, factor analysis, Kalman filtering, RTS
+        smoothing, and forecasting; read
+        \cref{sec:ppca,sec:fa,sec:kalman,sec:smoothing}.
+    \item[\texttt{03\_system\_id\_and\_em}] Optional linear-system learning; read
+        \cref{sec:hokalman}.
+    \item[\texttt{04\_variational\_inference}] ELBO, KL, and reparameterized
+        optimization when conjugacy breaks; read \cref{sec:vi,sec:amortized}.
+    \item[\texttt{05\_xfads\_ring\_attractor}] XFADS on a synthetic nonlinear
+        flow; read \cref{sec:xfads}.
+    \item[\texttt{06\_xfads\_mc\_maze}] XFADS on real spikes with smoothing,
+        filtering, forecasting, and Poisson read-out; read
+        \cref{sec:expfam,sec:smoothing,sec:xfads}.
+    \item[\texttt{07\_decoding\_and\_evaluation}] Optional model evaluation:
+        decoding, k-step prediction, and predictive likelihood; use it as the
+        empirical check on the forecasting and read-out ideas in
+        \cref{sec:smoothing,sec:expfam}.
+\end{description}
 
 \section{Notation, from scratch}\label{sec:notation}
 
 A \emph{vector} $\vx = (x_1, \dots, x_d)$ is just a list of $d$ numbers; we write
 $\vx \in \reals^d$. Bold lowercase letters ($\vx, \vy, \veta$) are vectors,
 capital letters ($C, \Sigma$) are matrices, and $A\trp$ is the transpose of $A$.
+We write $I_n$ for the $n \times n$ \emph{identity matrix} (ones on the diagonal,
+zeros elsewhere); the subscript names its size, e.g.\ $I_m$ and $I_d$ below. A
+bare $I$ means the identity whose size is fixed by context.
 
 The star of these notes is the \emph{Gaussian} (a.k.a.\ \emph{normal})
 distribution---the bell curve. In one dimension, a random number $x$ with mean
@@ -232,11 +276,13 @@ alternative interpretation of PCA. The vector observations are treated as
 low-dimensional latent cause seen through a linear map, corrupted by isotropic
 noise. Assume the data has been centered (the sample mean subtracted), so all
 means are zero. The \emph{generative model} is
+\begin{genmodel}
 \begin{align}
     \vz &\sim \Normal(\mathbf 0, I_d), \label{eq:ppca-latent}\\
     \vy &= C\vz + \veta, \qquad \veta \sim \Normal(\mathbf 0, \sigma^2 I_m),
         \label{eq:ppca-obs}
 \end{align}
+\end{genmodel}
 with $\vz$ and $\veta$ independent. The latent $\vz \in \reals^d$ are
 latent factors; the loading matrix $C \in \reals^{m\times d}$ maps them into the
 $m$ observed dimensions; and every observed coordinate gets the \emph{same}
@@ -420,18 +466,20 @@ analysis, the subject of the next section.
 
 \section{Factor analysis}\label{sec:fa}
 
-Factor analysis keeps everything about PPCA except the noise: rather than one
+Factor analysis (FA) keeps everything about PPCA except the noise: rather than one
 shared variance $\sigma^2$, every observed coordinate gets its own $\sigma_i^2$.
 The generative model is
-\begin{equation}\label{eq:fa-latent}
-    \vz \sim \Normal(\mathbf 0, I_d), \qquad \vy = C\vz + \veta,
-\end{equation}
-with $\vz$ and $\veta$ independent, where the noise is zero-mean Gaussian with a
+\begin{genmodel}
+\begin{align}
+    \vz &\sim \Normal(\mathbf 0, I_d), \qquad \vy = C\vz + \veta, \label{eq:fa-latent}\\
+    \veta &\sim \Normal(\mathbf 0,\ \Sigma_{\veta}), \qquad
+    \Sigma_{\veta} = \diag(\sigma_1^2, \dots, \sigma_m^2). \label{eq:fa-obs}
+\end{align}
+\end{genmodel}
+Here $\vz$ and $\veta$ are independent and the noise is zero-mean Gaussian with a
 \emph{diagonal} covariance,
-\begin{equation}\label{eq:fa-obs}
-    \veta \sim \Normal(\mathbf 0,\ \Sigma_{\veta}),
-    \qquad
-    \Sigma_{\veta} = \diag(\sigma_1^2, \dots, \sigma_m^2) =
+\begin{equation}
+    \Sigma_{\veta} =
     \begin{bmatrix}
         \sigma_1^2 & 0 & \cdots & 0 \\
         0 & \sigma_2^2 & \cdots & 0 \\
@@ -586,7 +634,7 @@ known covariates (a stimulus, behavior, or condition) through post-hoc
 regression. ``What factor $k$ represents'' is always a statement about that
 external choice, not about the latent model alone.
 
-\section{Units and scale: PCA versus factor analysis}\label{sec:scale}
+\section{Units and scale: PCA versus FA}\label{sec:scale}
 
 A second difference between the two models is subtler than the noise floor but
 just as consequential: what happens when you change the \emph{units} of the
@@ -622,38 +670,65 @@ units, comparable scales), PCA and PPCA are natural. When they are not (differen
 sensors, different neurons, heterogeneous features), factor analysis---by soaking
 each coordinate's scale into its own $\sigma_i^2$---is the better-posed model.
 
-\section{Beyond Gaussian observations: exponential-family and Poisson models}\label{sec:expfam}
+\section{Non-Gaussian observations: Poisson FA}\label{sec:expfam}
 
 So far the observation was a linear-Gaussian image of the latent: $\vy = C\vz +
 \veta$ with Gaussian noise. That is fine for real-valued measurements, but it
 fails the moment the data are counts. Spike trains, the currency of the neural
-notebooks (00, 04), are non-negative integers---a neuron in a time bin fires
-$0,1,2,\dots$ times. A Gaussian read-out puts probability mass on negative and
+notebooks, are non-negative integers---a neuron in a time bin fires $0,1,2,\dots$ times.
+A Gaussian read-out puts probability mass on negative and
 fractional $y$, which no count can take. We need an emission that lives on the
-integers and stays non-negative. The plan is surgical: keep the linear
-latent-to-parameter map $C\vz + \vb$, swap only the Gaussian emission for a
+integers and stays non-negative.
+We keep the linear latent-to-parameter map $C\vz + \vb$, swap only the Gaussian emission for a
 Poisson one, and watch which pieces of the linear-Gaussian machinery survive.
+
+Technically, any simple point process can be fully characterized by its conditional intensity function,
+and further it can be approximated as a Poisson distribution given small enough bin size.
+
+\subsection{Poisson distribution}
+
+A \emph{Poisson} random variable $y \in \{0, 1, 2, \dots\}$ counts events that
+occur independently at a constant expected rate over a fixed interval. Its
+probability mass function has a single parameter $\mu > 0$, the expected count,
+\begin{equation}\label{eq:poisson-pmf}
+    P(y = k) = \frac{\mu^k\, e^{-\mu}}{k!}, \qquad k = 0, 1, 2, \dots
+\end{equation}
+
+\begin{funfact}[Poisson mean equals variance]\label{fact:poisson-moments}
+For $y \sim \mathrm{Poisson}(\mu)$,
+\begin{equation}\label{eq:poisson-moments}
+    \E[y] = \var(y) = \mu .
+\end{equation}
+The one parameter $\mu$ sets both the location and the spread; the Fano factor
+$\var(y)/\E[y]$ is exactly $1$. There is no separate noise scale to choose---the
+crux of \cref{ex:poisson-noise}.
+\end{funfact}
+
+This is also why, for count data, a factor-analysis mindset is better posed than
+PCA. Because $\var(y_i) = \mu_i$ scales with each coordinate's rate, the
+observation noise is inherently \emph{heteroscedastic}: a high-rate neuron is
+noisier, in absolute terms, than a low-rate one. PCA's isotropic $\sigma^2 I_m$
+(\cref{sec:scale}) cannot represent that, whereas factor analysis's
+per-coordinate $\sigma_i^2$ can. The Poisson emission below sidesteps the choice
+entirely by tying the noise to the rate directly.
 
 \subsection{The model}
 
 The latent keeps its standard-Gaussian prior, exactly as in PPCA and factor
-analysis,
-\begin{equation}\label{eq:expfam-latent}
-    \vz \sim \Normal(\mathbf 0, I_d).
-\end{equation}
-The affine image of the latent is now read as a vector of \emph{log firing
-rates}---the ``natural'' parameter of the emission---and exponentiating gives a
-strictly positive rate,
-\begin{equation}\label{eq:expfam-rate}
-    \bm{\theta} = C\vz + \vb, \qquad \bm{\lambda} = \exp(\bm{\theta}) = \exp(C\vz + \vb)
-    \quad\text{(elementwise)} .
-\end{equation}
-The log link $\lambda_i = e^{\theta_i}$ guarantees $\lambda_i > 0$ no matter what
-the latent does. Over a bin of width $\Delta$, the observed counts are
+analysis. The affine image $C\vz + \vb$ is now read as a vector of \emph{log
+firing rates}---the ``natural'' parameter of the emission---exponentiated to a
+strictly positive rate, and over a bin of width $\Delta$ the observed counts are
 conditionally independent Poisson,
-\begin{equation}\label{eq:expfam-obs}
-    y_i \mid \vz \sim \mathrm{Poisson}(\Delta\,\lambda_i), \qquad i = 1, \dots, m .
-\end{equation}
+\begin{genmodel}
+\begin{align}
+    \vz &\sim \Normal(\mathbf 0, I_d), \label{eq:expfam-latent}\\
+    \bm{\theta} &= C\vz + \vb, \qquad \bm{\lambda} = \exp(\bm{\theta}) = \exp(C\vz + \vb)
+        \quad\text{(elementwise)}, \label{eq:expfam-rate}\\
+    y_i \mid \vz &\sim \mathrm{Poisson}(\Delta\,\lambda_i), \qquad i = 1, \dots, m . \label{eq:expfam-obs}
+\end{align}
+\end{genmodel}
+The log link $\lambda_i = e^{\theta_i}$ guarantees $\lambda_i > 0$ no matter what
+the latent does.
 Elementwise this is a \emph{Poisson generalized linear model} (GLM) with a latent
 regressor: row $\vc_i\trp$ of $C$ is neuron $i$'s tuning vector, $b_i$ its
 baseline log-rate, and a step in the latent moves every neuron's rate
@@ -818,7 +893,7 @@ $\Delta\lambda_i > 0$, $C\trp\diag(\Delta\bm{\lambda})C \succeq 0$ and $I_d \suc
 its stationary point is the unique maximum.
 \end{solution}
 
-\begin{exercise}[Poisson has no free noise scale]
+\begin{exercise}[Poisson has no free noise scale]\label{ex:poisson-noise}
 Show that for the Poisson emission $\E[y_i\mid\vz] = \var(y_i\mid\vz) =
 \Delta\lambda_i$ (Fano factor $1$), and contrast with factor analysis, where the
 emission mean $\vc_i\trp\vz$ and noise variance $\sigma_i^2$ are separate free
@@ -843,11 +918,13 @@ the workhorse of latent \emph{dynamics}.
 
 Take the simplest case: one hidden state $z_t \in \reals$ that drifts, watched by
 a noisy scalar sensor,
+\begin{genmodel}
 \begin{equation}\label{eq:kf-model}
   z_t = a\,z_{t-1} + e_t, \quad e_t \sim \Normal(0, Q),
   \qquad
   y_t = z_t + v_t, \quad v_t \sim \Normal(0, R),
 \end{equation}
+\end{genmodel}
 with the process noise, sensor noise, and initial state all mutually independent.
 Here $Q$ is how unpredictably the state moves and $R$ how badly the sensor
 corrupts it; $a=1$ makes $z_t$ a random walk,
@@ -1465,17 +1542,17 @@ is a state-space model and whose encoder does structured Gaussian smoothing.
 \paragraph{The generative model: nonlinear Gaussian state space.} Replace the
 linear map $A\vz_{t-1}$ of \eqref{eq:kf-model} with a nonlinear mean function
 $f_{\theta}$ (a GRU \parencite{Cho2014-gru} or MLP), keeping Gaussian process
-noise,
-\begin{equation}\label{eq:xf-dyn}
-    \vz_t = f_{\theta}(\vz_{t-1}) + \ve_t, \quad \ve_t\sim\Normal(\mathbf 0, Q),
-    \qquad \vz_1\sim\Normal(\vm_0, P_0),
-\end{equation}
-and replace the Gaussian sensor with an exponential-family emission whose natural
-parameter is the linear read-out $C\vz_t + \vb$ of \cref{sec:expfam},
-\begin{equation}\label{eq:xf-obs}
-    \vy_t \sim p(\vy_t \mid \vz_t), \quad\text{e.g.}\quad
-    \vy_t \sim \mathrm{Poisson}\!\big(\exp(C\vz_t + \vb)\big) \text{ componentwise},
-\end{equation}
+noise, and replace the Gaussian sensor with an exponential-family emission whose
+natural parameter is the linear read-out $C\vz_t + \vb$ of \cref{sec:expfam},
+\begin{genmodel}
+\begin{align}
+    \vz_t &= f_{\theta}(\vz_{t-1}) + \ve_t, \quad \ve_t\sim\Normal(\mathbf 0, Q),
+        \qquad \vz_1\sim\Normal(\vm_0, P_0), \label{eq:xf-dyn}\\
+    \vy_t &\sim p(\vy_t \mid \vz_t), \quad\text{e.g.}\quad
+        \vy_t \sim \mathrm{Poisson}\!\big(\exp(C\vz_t + \vb)\big) \text{ componentwise},
+        \label{eq:xf-obs}
+\end{align}
+\end{genmodel}
 with the Gaussian case $\vy_t\sim\Normal(C\vz_t, R)$ recovering the Kalman sensor
 exactly. This is precisely the Kalman generative model with $A\vz_{t-1}$ swapped for
 $f_{\theta}(\vz_{t-1})$ and the Gaussian likelihood swapped for an exp-family one
