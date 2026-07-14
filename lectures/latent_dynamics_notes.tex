@@ -1022,20 +1022,36 @@ This is equivalent to the covariance update under the same model, but it exposes
 the ``evidence adds'' structure. That structure will reappear in XFADS, where the
 encoder learns data-dependent pseudo-observation terms in information form.
 
-\section{Smoothing and forecasting: using all the data, and running past it}\label{sec:smoothing}
+\section{Smoothing and forecasting}\label{sec:smoothing}
 
-The forward filter of \cref{sec:kalman} reports $p(\vz_t \mid \vy_{1:t})$: the
+The forward filter of \cref{sec:kalman} reports $p(\vz_t \mid \vy_{1:t})$, the
 belief about the state using only the past, up to now. Two other beliefs are just
-as natural. \emph{Smoothing} uses the \emph{whole} record, $p(\vz_t \mid
-\vy_{1:T})$ with $T \geq t$---the offline, retrospective estimate, and the E-step
-of learning. \emph{Forecasting} looks the other way, $p(\vz_{T+h} \mid
-\vy_{1:T})$, $h$ steps past the last observation. Both follow from the
+as natural:
+\begin{itemize}
+    \item \emph{Smoothing} uses the \emph{whole} record, $p(\vz_t \mid
+	\vy_{1:T})$ with $T \geq t$ (including the future).
+    \item \emph{Forecasting} looks the other way, $p(\vz_{T+h} \mid \vy_{1:T})$,
+	$h$ steps past the last observation.
+\end{itemize}
+Both follow from the
 same fun facts and the filter quantities already in hand; nothing new to compute
-but a backward sweep and a repeated predict. (Notebook 02's \texttt{rts\_smoother}
-is exactly this section; the comparison below shows how much smoothing changes
-the samples.)
+but a backward sweep and a repeated predict, at least for the Kalman filter model.
 
-\subsection{RTS smoothing: a backward pass}
+\subsection{Optional: Rauch--Tung--Striebel (RTS) smoothing}
+
+\emph{Optional.} A reader who only needs the forward filter can skip to
+forecasting; the backward smoother matters mainly for EM learning
+(\cref{sec:hokalman}).
+
+For a linear-Gaussian model the smoothed posterior $p(\vz_t\mid\vy_{1:T})$ can be
+computed several equivalent ways: the RTS backward recursion below, a two-filter
+scheme (a forward filter combined with a backward \emph{information} filter), or a
+single batch solve of the whole-trajectory block-tridiagonal precision
+\parencite{Sarkka2013-bfs}. All three give the same answer. We take the RTS route
+because it drops straight out of Gaussian conditioning (\cref{fact:cond}) with the
+filter quantities already in hand; the information-form view, where the backward
+pass \emph{adds natural parameters}, is the one \cref{sec:xfads} carries into the
+nonlinear setting.
 
 The forward pass produces, at each $t$, the filtered belief $\vz_t \mid \vy_{1:t}
 \sim \Normal(\vmu_t, P_t)$ and the predicted belief $\vz_{t+1} \mid \vy_{1:t} \sim
@@ -1107,9 +1123,9 @@ mirroring the filter's $P_t \le P_t^-$. In scalars ($a$ scalar) the gain is $J_t
 a P_t / P_{t+1}^-$, the same shape. The lagged covariance \eqref{eq:sm-cross} is
 the second moment $\E[\vz_t \vz_{t+1}\trp \mid \vy_{1:T}]$ that the M-step of EM
 needs (the EM route mentioned in \cref{sec:hokalman}); it is what
-\texttt{rts\_smoother} returns as \texttt{P\_tp1\_t\_s}. This is the
-Rauch--Tung--Striebel smoother \parencite{Rauch1965-rts}; equivalent
-forward--backward and two-filter forms exist \parencite{Sarkka2013-bfs}.
+\texttt{rts\_smoother} returns as \texttt{P\_tp1\_t\_s}, and notebook~02 shows how
+much the backward pass tightens the single-trial samples. This is the RTS smoother
+\parencite{Rauch1965-rts}.
 
 \subsection{Forecasting: the filter with the sensor unplugged}
 
@@ -1287,6 +1303,15 @@ likelihood---so it is statistically less efficient than the EM/ML fit and can
 even return an unstable estimate. The usual practice: run Ho--Kalman for a fast,
 initialization-free guess, then refine it with EM. Notebook~03 fits both and
 compares the eigenvalues of the learned $A$.
+
+\paragraph{Relation to DMD.} Dynamic mode decomposition (DMD) is a close cousin:
+given state snapshots, it fits a linear operator to pairs, $\vz_{t+1} \approx
+A\vz_t$, by least squares or a low-rank SVD projection. Standard DMD is not a
+probabilistic state-space model: noise appears only as residual error, not as
+explicit process and observation covariances. Ho--Kalman/subspace identification
+instead works from impulse-response or lagged-covariance structure, recovers a
+state-space realization up to a change of latent basis, and in stochastic variants
+can estimate the noise structure under additional assumptions.
 
 \section{Variational inference: when the posterior is no longer Gaussian}\label{sec:vi}
 
