@@ -920,7 +920,9 @@ overdispersion parameter), not from a separable additive noise term.
 
 So far the latent was static---one hidden cause per observation. Let it now
 \emph{evolve in time}. The same linear-Gaussian machinery, made sequential, is
-the workhorse of latent \emph{dynamics}.
+the workhorse of latent \emph{dynamics}; for a full treatment see the standard
+references on linear estimation and Bayesian filtering
+\parencite{Kailath2000-le,Sarkka2013-bfs}.
 
 Take the simplest case: one hidden state $z_t \in \reals$ that drifts, watched by
 a noisy scalar sensor,
@@ -1030,7 +1032,8 @@ equivalent but numerically safer forms: the \emph{Joseph form}
     P_t = (I - K_tC)P_t^-(I - K_tC)\trp + K_t R K_t\trp ,
 \end{equation}
 or square-root/Cholesky/UD factorizations that propagate a factor of $P_t$
-rather than $P_t$ itself. These change the arithmetic, not the Gaussian posterior.
+rather than $P_t$ itself \parencite{Bierman1977-fm,Kailath2000-le,Sarkka2013-bfs}.
+These change the arithmetic, not the Gaussian posterior.
 
 A different but related parameterization is the \emph{information form}: store the
 precision $J_t = P_t^{-1}$ and information vector $h_t = J_t\vmu_t$. Then a
