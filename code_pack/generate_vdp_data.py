@@ -1,4 +1,5 @@
 import h5py
+import argparse
 import torch
 import random
 import pathlib
@@ -58,10 +59,15 @@ def generate_poisson_observations_softplus(states_torch, C, b):
     return rates
 
 
-def main():
+def main(force=False):
+    """Return the van der Pol HDF5 path, generating it if needed."""
     repo_root = pathlib.Path(__file__).resolve().parents[1]
     data_path = repo_root / 'vanderpol' / 'data' / 'poisson_obs.h5'
     data_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if data_path.exists() and not force:
+        print(f"Using existing data at {data_path}")
+        return data_path
 
     torch.manual_seed(1234)
     random.seed(1234)
@@ -148,7 +154,11 @@ def main():
     f.create_dataset('scale', data=system_parameters['scale'])
 
     f.close()
-    print("Data saved")
+    print(f"Data saved to {data_path}")
+    return data_path
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--force", action="store_true", help="Regenerate even if the HDF5 already exists.")
+    args = parser.parse_args()
+    main(force=args.force)

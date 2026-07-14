@@ -170,6 +170,43 @@ plt.plot(tr, z2); plt.ylabel('second latent dim'); plt.xlabel('time (s)')
 # the latent space (all dimensions at once, or one axis each). That loading
 # geometry - and how much information the population carries about $z$ - is the
 # subject of the optional companion `01_snr_and_loading_geometry.ipynb`.
+#
+# > **Exercise (fill one or two lines):** create a loading matrix `C` and a baseline `b` such that the
+# population response visually reflects latents. Try different values. **
+
+# %%
+plt.figure(figsize=(5, 5))
+# YOUR CODE HERE
+raise NotImplementedError()
+assert C.shape[1] == dLatent, "C must have dLatent columns to load onto the latent space"
+assert C.shape[0] == nNeuron, "C must have nNeuron rows to load onto the population"
+
+plt.scatter(C[:, 0], C[:, 1], alpha=0.5)
+plt.grid(); plt.axis('equal'); plt.xlabel('loading on latent dim 1'); plt.ylabel('loading on latent dim 2')
+
+# %%
+y = rng.poisson(np.exp(Z @ C.T + b) * dt)
+
+fig, axs = plt.subplots(3, 1, figsize=(10, 15))
+plot_raster(axs[0], y, "raster plot", dt=dt)
+
+plot_raster(
+    axs[1],
+    y,
+    "raster plot (sorted by drive on latent dim 1)",
+    dt=dt,
+    order=sort_by_loading_dim(C, 0),
+    ylabel="sorted neurons",
+)
+
+plot_raster(
+    axs[2],
+    y,
+    "raster plot (sorted by drive on latent dim 2)",
+    dt=dt,
+    order=sort_by_loading_dim(C, 1),
+    ylabel="sorted neurons",
+)
 
 # %% [markdown]
 # ## A dynamical law governing the latent states
@@ -182,39 +219,29 @@ plt.plot(tr, z2); plt.ylabel('second latent dim'); plt.xlabel('time (s)')
 # smoothing / forecasting machinery exploits.
 
 # %% [markdown]
-# The van der Pol HDF5 is generated below before loading. The file is large and
-# is not committed to the repo, so fresh Colab sessions must create it.
-
-# %% [markdown]
 # ### van der Pol oscillator
 #
 # The van der Pol oscillator is a 2-D first-order system with state
 # $(z_1, z_2)$:
 # $$ \dot{z}_1 = z_2, \qquad \dot{z}_2 = \mu\,(1 - z_1^2)\, z_2 - z_1. $$
-# (We rename the two state coordinates $z_1, z_2$ to avoid clashing with $y$, the
-# spike counts.)
 #
 # For simulation we Euler-integrate a *noisy* version on a discrete time grid
-# ($\mu=1.5$). The exact discrete update - including a coordinate rescaling and
-# the transition-noise scaling - lives in `code_pack/generate_vdp_data.py`, which
-# is the source of truth. The generator uses fixed seeds, so rerunning it is
-# deterministic.
+# ($\mu=1.5$).
 
 # %% jupyter={"outputs_hidden": false}
 import h5py
-from pathlib import Path
+import importlib
 
-from code_pack.generate_vdp_data import main as generate_vdp_data, generate_noisy_van_der_pol
+import code_pack.generate_vdp_data as vdp_data
 
-# Regenerate the deterministic HDF5 each run; Colab clones do not include it.
-generate_vdp_data()
-file_name = Path("vanderpol/data/poisson_obs.h5")
+# Generate the deterministic HDF5 if needed; Colab clones do not include it.
+file_name = vdp_data.main()
 
 # Read once into memory (f[key][()] pulls a dataset off disk); the `with` block
 # closes the file. X: latent trajectories, Y / Y_softplus: spikes under the two
 # inverse-links, system_parameters: the van der Pol dynamics constants.
 with h5py.File(file_name, "r") as f:
-    X = f["X"][()]
+    Z = f["X"][()]
     Y = f["Y"][()]
     Y_softplus = f["Y_softplus"][()]
     C = f["C"][()]  # loading matrix, used to sort neurons in the raster
@@ -227,16 +254,29 @@ with h5py.File(file_name, "r") as f:
 # %% jupyter={"outputs_hidden": false}
 # plotting trajectories of the dataset
 fig, ax = plt.subplots(1, 1, figsize=(5, 5))
-_ = ax.plot(X[0, :, 0], X[0, :, 1])
-ax.scatter(X[0, 0, 0], X[0, 0, 1], marker='o', color='red', zorder=10, s=100, label='start')
-ax.scatter(X[0, -1, 0], X[0, -1, 1], marker='x', color='red', zorder=10, s=100, label='end')
+_ = ax.plot(Z[0, :, 0], Z[0, :, 1])
+ax.scatter(Z[0, 0, 0], Z[0, 0, 1], marker='o', color='red', zorder=10, s=100, label='start')
+ax.scatter(Z[0, -1, 0], Z[0, -1, 1], marker='x', color='red', zorder=10, s=100, label='end')
 
 # overlay the (noise-free) vector field so the trajectory sits on its flow
 system_parameters['sigma'] = 0.0
-dynamics_func = lambda inp: generate_noisy_van_der_pol(inp, np.array([0.0, 5e-3]), system_parameters)
+dynamics_func = lambda inp: vdp_data.generate_noisy_van_der_pol(inp, np.array([0.0, 5e-3]), system_parameters)
 axs_range = {'x_min':-1.5, 'x_max':1.5, 'y_min':-1.5, 'y_max':1.5}
 plot_two_d_vector_field_from_data(dynamics_func, ax, axs_range)
 ax.set_title('sample trajectory (true state)'); ax.legend()
+
+# %%
+# Plot the population raster
+fig, axs = plt.subplots(1, 2, figsize=(10, 4), sharex=True, sharey=True)
+plot_raster(axs[0], Y[0, :], "raster plot", dt=dt)
+plot_raster(
+    axs[1],
+    Y[0, :],
+    "raster plot (sorted by drive)",
+    dt=dt,
+    order=sort_by_loading_dim(C, 0),
+    ylabel="sorted neurons",
+)
 
 # %% [markdown]
 # ### Optional: effect of the tuning (inverse-link) function
@@ -283,3 +323,5 @@ plot_raster(axs[1], Y_softplus[0], r'softplus$()$', dt=delta, order=order, ylabe
 #   axis-aligned loadings shape the raster.
 # - **Next core notebook:** *Latent Variable Models* - the inverse problem, i.e.
 #   inferring the latent and the model from the spikes alone.
+
+# %%
