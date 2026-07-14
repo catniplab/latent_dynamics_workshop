@@ -18,9 +18,12 @@
 #
 # [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/catniplab/latent_dynamics_workshop/blob/main/02_linear_lvms.ipynb)
 #
-# **Takeaway:** on the same spiral latent dynamical system, each richer linear-Gaussian
+# A progressively richer linear-Gaussian
 # model (PCA -> Factor Analysis -> Kalman/RTS smoother) recovers the hidden state trajectory better,
-# because it accounts for more **structure**: spatial structure, observation noise, and temporal structure.
+# because it accounts for more **structure**:
+#  - spatial structure
+#  - observation noise structure
+#  - temporal structure
 
 # %% [markdown]
 # ## Setup (Colab)
