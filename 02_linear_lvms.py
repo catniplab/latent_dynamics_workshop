@@ -19,18 +19,8 @@
 # [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/catniplab/latent_dynamics_workshop/blob/main/02_linear_lvms.ipynb)
 #
 # **Takeaway:** on the same spiral latent dynamical system, each richer linear-Gaussian
-# model (PCA -> Factor Analysis -> Kalman/RTS smoother) recovers the hidden state better,
-# because it accounts for more structure: observation noise, then temporal dynamics.
-#
-# **Where this sits.**
-# - *Optional companion:* [`03_system_id_and_em`](03_system_id_and_em.ipynb) learns the
-#   dynamics from data (Ho-Kalman subspace ID and EM) instead of assuming them known.
-# - *Next core notebook:* variational inference, once the observations become
-#   non-Gaussian (Poisson spikes) and the tidy closed forms below stop applying.
-#
-# The math lives in the lecture notes; here we *do* it. Relevant sections are
-# Probabilistic PCA, factor analysis, the rotation and scale ambiguities, the
-# Kalman filter, and RTS smoothing and forecasting.
+# model (PCA -> Factor Analysis -> Kalman/RTS smoother) recovers the hidden state trajectory better,
+# because it accounts for more **structure**: spatial structure, observation noise, and temporal structure.
 
 # %% [markdown]
 # ## Setup (Colab)
@@ -43,13 +33,11 @@ try:
 except ImportError:
     _in_colab = False
 
-# %%
 if _in_colab:
     # !git clone --recurse-submodules https://github.com/catniplab/latent_dynamics_workshop.git
     # !pip install -e latent_dynamics_workshop/external/xfads/
     pass
 
-# %%
 import os
 import sys
 
@@ -58,7 +46,6 @@ if _in_colab:
     sys.path.append(os.path.join(cwd, "latent_dynamics_workshop"))
     sys.path.append(os.path.join(cwd, "latent_dynamics_workshop/external/xfads"))
 
-# %%
 import torch
 import matplotlib.pyplot as plt
 import pytorch_lightning as pl
@@ -73,31 +60,21 @@ from xfads.prob_utils import (
     align_latent_variables,
 )
 
-# %%
+from code_pack.plotting import plot_rotated_latents
+
 # Minimal config: 2 latent dimensions, run on CPU unless a GPU is available.
 n_latents = 2
-seed = 20270712
+seed = 20270714
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 pl.seed_everything(seed, workers=True)
 torch.set_default_dtype(torch.float32)
 
-
-# %% [markdown]
-# ### One plotting helper (reused below)
-# The four inference sections all draw the same figure: posterior samples (gray),
-# the posterior mean, and the ground-truth latent, one panel per dimension. We
-# define it once so the concept cells stay short.
-
-# %%
-from code_pack.plotting import plot_rotated_latents
-
 # %% [markdown]
 # ## Show the object: a spiral latent dynamical system
 #
-# We simulate a 2D latent that spirals inward, read out linearly into 50 noisy
-# "neurons". The generative model (the one Kalman/RTS below will invert) is a
-# linear-Gaussian state-space model:
+# We simulate a 2D latent that spirals inward (stable), read out linearly into 50 noisy
+# "neurons". The generative model of the data is a linear-Gaussian state-space model:
 #
 # $$
 # \begin{aligned}
@@ -108,9 +85,6 @@ from code_pack.plotting import plot_rotated_latents
 # \mathbf{v}_t &\sim \mathcal{N}(0, \mathbf{R}).
 # \end{aligned}
 # $$
-#
-# We keep the latent named `z` throughout (matching the `xfads` code and the notes'
-# `z`-convention). Full derivations of everything below are in the lecture notes.
 
 # %%
 # Simulation parameters
@@ -217,8 +191,10 @@ rot_pca, m_rot_pca = align_latent_variables(z_valid, m_pca)
 fig, axs = plt.subplots(1, 1)
 axs.set_title("rotated latent trajectory (dim 1)")
 axs.set_box_aspect(0.6)
-axs.plot(m_rot_pca[0, :, 0], label="pca rotated")
-axs.plot(z_valid[0, :, 0], label="true")
+axs.plot(m_rot_pca[0, :, 0], label="pca rotated 1")
+axs.plot(m_rot_pca[0, :, 1], label="pca rotated 2")
+axs.plot(z_valid[0, :, 0], label="true dim 1", alpha=0.5)
+axs.plot(z_valid[0, :, 1], label="true dim 2", alpha=0.5)
 axs.legend()
 axs.set_xlabel("time")
 plt.tight_layout()
@@ -337,7 +313,8 @@ J_update = J_update.expand(y_valid.shape[0], n_time_bins, n_latents, n_latents)
 
 m_f, P_f, m_p, P_p = kalman_information_filter(h_update, J_update, mean_fn.A, Q_infer, m_0, Q_0_diag)
 m_s, P_s, P_tp1_t_s, z_s = rts_smoother(m_p, P_p, m_f, P_f, mean_fn.A, n_samples=n_samples)
-rot_s, m_rot_s = align_latent_variables(z_valid, m_s)
+rot_f, m_rot_f = align_latent_variables(z_valid, m_f)  # filtered: uses y_{1:t} only
+rot_s, m_rot_s = align_latent_variables(z_valid, m_s)  # smoothed: uses all y_{1:T}
 z_rot_s = bmv(rot_s, z_s)
 
 # %%
@@ -364,6 +341,40 @@ plt.legend()
 plt.grid(True)
 
 # %% [markdown]
+# ### How much of the latent is recovered?
+# The line above is one trial and one dimension. To summarise the whole validation set
+# in a single number per model, we use $R^2$ between the aligned estimate and the truth,
+# pooled over all trials, time bins and both latent dimensions:
+# $R^2 = 1 - \sum (\mathbf{z} - \hat{\mathbf{z}})^2 / \sum (\mathbf{z} - \bar{\mathbf{z}})^2$.
+# $R^2 = 1$ is perfect recovery; $R^2 = 0$ is no better than predicting the mean.
+# We include both Kalman variants: the **filter** ($p(\mathbf{z}_t\mid\mathbf{y}_{1:t})$,
+# causal, past-only) and the **smoother** ($p(\mathbf{z}_t\mid\mathbf{y}_{1:T})$, using
+# all data). The smoother should win, since it conditions on future observations too.
+
+# %%
+def latent_r2(z_true, z_est):
+    ss_res = (z_true - z_est).pow(2).sum()
+    ss_tot = (z_true - z_true.mean()).pow(2).sum()
+    return (1 - ss_res / ss_tot).item()
+
+r2_scores = {
+    "PCA": latent_r2(z_valid, m_rot_pca),
+    "Factor Analysis": latent_r2(z_valid, m_rot_fa),
+    "Kalman (filtered)": latent_r2(z_valid, m_rot_f),
+    "Kalman (smoothed)": latent_r2(z_valid, m_rot_s),
+}
+
+plt.figure(figsize=(7, 4))
+bars = plt.bar(r2_scores.keys(), r2_scores.values(), color=["C1", "C2", "C3", "C4"])
+plt.bar_label(bars, fmt="%.3f")
+plt.ylabel(r"latent $R^2$")
+plt.ylim(0, 1)
+plt.title("Latent recovery across the validation set")
+plt.xticks(rotation=15)
+plt.tight_layout()
+plt.show()
+
+# %% [markdown]
 # ## You can now...
 #
 # ...take a high-dimensional noisy recording, fit PCA / Factor Analysis / a Kalman-RTS
@@ -379,3 +390,4 @@ plt.grid(True)
 #   `C`, `Q`, `R`; there we learn the dynamics from data (Ho-Kalman ID, EM).
 # - *Core:* variational inference, for when the observations are Poisson spikes rather
 #   than Gaussian and these closed forms no longer exist.
+# %%
