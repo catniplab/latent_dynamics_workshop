@@ -18,8 +18,9 @@
 #
 # [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/catniplab/latent_dynamics_workshop/blob/main/03_system_id_and_em.ipynb)
 #
-# In [`02_linear_lvms`](02_linear_lvms.ipynb) we *knew* the system
-# $(\mathbf{A},\mathbf{C},\mathbf{Q},\mathbf{R})$; here we *estimate* the linear
+# In [`02_linear_lvms`](02_linear_lvms.ipynb) the Kalman/RTS smoother used the true
+# dynamics $(\mathbf{A},\mathbf{Q})$ and readout $(\mathbf{C},\mathbf{R})$ (FA there
+# learned $\mathbf{C},\mathbf{R}$, but not the dynamics); here we *estimate* the linear
 # dynamics straight from the observations - non-iteratively with the Ho-Kalman
 # subspace method, and probabilistically with one EM M-step.
 #

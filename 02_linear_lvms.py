@@ -58,7 +58,7 @@ import pytorch_lightning as pl
 
 import xfads.utils as utils
 import xfads.plot_utils as plot_utils
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, FactorAnalysis
 from xfads.linalg_utils import bmv, chol_bmv_solve, triangular_inverse
 from xfads.prob_utils import (
     kalman_information_filter,
@@ -107,7 +107,12 @@ C.bias.data = torch.zeros_like(C.weight[:, 0])
 
 Q_diag = 3e-2 * torch.ones(2)     # process-noise variance
 Q_0_diag = 1.0 * torch.ones(2)    # initial-state variance
-R_diag = 0.5 + 0.5 * torch.rand(n_neurons)  # per-neuron observation-noise variance (non-constant!)
+# Per-neuron observation-noise variance, log-uniform over ~1 decade (0.6 .. 6). The
+# heteroscedasticity - some neurons noisier than others - is what a noise model (FA)
+# exploits and PCA (isotropic noise) cannot, so PCA stays the weakest. The overall level
+# is high enough that FA, which treats each time bin independently, is left middling -
+# only borrowing strength across time (the Kalman smoother) recovers the latent well.
+R_diag = 0.6 * (10.0 ** torch.rand(n_neurons))
 m_0 = torch.zeros(2)
 
 z = utils.sample_gauss_z(mean_fn, Q_diag, m_0, Q_0_diag, n_trials, n_time_bins)
@@ -222,13 +227,18 @@ plt.show()
 # $$
 #
 # The factor-analysis derivation in the lecture notes highlights the key term:
-# $\mathbf{R}^{-1}$. Because `R_diag` is non-constant here, each neuron is weighted
-# by its *precision* (inverse noise).
+# $\mathbf{R}^{-1}$. Because the noise is non-constant across neurons here, each neuron
+# is weighted by its *precision* (inverse noise).
+#
+# Unlike the Kalman section below, we do **not** hand FA the true $\mathbf{C}$ and
+# $\mathbf{R}$. We *learn* them from the training data with scikit-learn's
+# `FactorAnalysis` (maximum likelihood via EM) - exactly as we called `.fit()` for PCA -
+# and only then run the analytic posterior with the learned parameters.
 
 # %% [markdown]
-# > **Micro-exercise (fill one line).** Complete the precision-weighted readout below.
-# > First **predict**: should a noisier neuron (larger `R_diag`) count *more* or *less*
-# > toward the latent estimate? Then fill the `# YOUR CODE HERE`.
+# > **Micro-exercise (fill one line).** In `fa_posterior` below, complete the
+# > precision-weighted readout. First **predict**: should a noisier neuron (larger `R`)
+# > count *more* or *less* toward the latent estimate? Then fill the `# YOUR CODE HERE`.
 # >
 # > <details>
 # > <summary>Solution</summary>
@@ -237,22 +247,41 @@ plt.show()
 # > precision $1/R$):
 # >
 # > ```python
-# > readout = bmv(C.weight.mT, (y_valid - C.bias) / R_diag)
+# > readout = bmv(C.mT, (y - b) / R)
 # > ```
-# > Try deleting `/ R_diag` and re-running the alignment plot: the estimate degrades
+# > Try deleting `/ R` and re-running the alignment plot: the estimate degrades
 # > because loud, noisy neurons then dominate the latent.
 # >
 # > </details>
 
 # %%
-# Posterior precision J = I + C^T R^{-1} C, then P = J^{-1}.
-J_fa = (C.weight.mT / R_diag) @ C.weight + torch.eye(n_latents)
-J_fa_chol = torch.linalg.cholesky(J_fa)
-P_fa_chol = triangular_inverse(J_fa_chol).mT
+# Learn the observation model by maximum likelihood (EM), using only the training data.
+fa = FactorAnalysis(n_components=n_latents, random_state=seed)
+fa.fit(y_train.reshape(-1, n_neurons))
 
-# Posterior mean m = P C^T R^{-1} (y - b): the readout must be precision-weighted.
-readout = bmv(C.weight.mT, (y_valid - C.bias) / R_diag)  # YOUR CODE HERE (the / R_diag)
-m_fa = chol_bmv_solve(J_fa_chol, readout)
+# Learned loadings C, per-neuron noise variance R, and offset b (torch, float32).
+C_fa = torch.tensor(fa.components_.T, dtype=torch.float32)    # (n_neurons, n_latents)
+R_fa = torch.tensor(fa.noise_variance_, dtype=torch.float32)  # (n_neurons,)
+b_fa = torch.tensor(fa.mean_, dtype=torch.float32)            # (n_neurons,)
+
+# %% [markdown]
+# `bmv(A, x)` is the batched matrix-vector product `(A @ x[..., None]).squeeze(-1)` from
+# `xfads.linalg_utils`: it applies `A` to the last axis of `x` while broadcasting over all
+# the leading (sample / trial / time) batch axes. Read `bmv(M, v)` as "`M @ v`, batched."
+
+# %%
+def fa_posterior(C, R, b, y):
+    """Gaussian FA posterior for y = C z + b + noise, prior z ~ N(0, I).
+    Returns the posterior mean m and the Cholesky factor of the covariance P."""
+    J = (C.mT / R) @ C + torch.eye(n_latents)  # precision J = I + C^T R^{-1} C, P = J^{-1}
+    J_chol = torch.linalg.cholesky(J)
+    P_chol = triangular_inverse(J_chol).mT
+    # Posterior mean m = P C^T R^{-1} (y - b): the readout must be precision-weighted.
+    readout = bmv(C.mT, (y - b) / R)  # YOUR CODE HERE (the / R)
+    return chol_bmv_solve(J_chol, readout), P_chol
+
+# Inference with the *learned* observation model.
+m_fa, P_fa_chol = fa_posterior(C_fa, R_fa, b_fa, y_valid)
 z_fa = m_fa.unsqueeze(0) + bmv(
     P_fa_chol, torch.randn((n_samples, n_valid, n_time_bins, n_latents))
 )
@@ -265,9 +294,21 @@ z_rot_fa = bmv(rot_fa, z_fa)
 plot_rotated_latents(z_rot_fa, m_rot_fa, z_valid, label="factor analysis", n_samples=n_samples)
 
 # %% [markdown]
-# Much better than PCA: modelling per-neuron observation noise sharpens the estimate.
-# But the posterior samples are jagged - FA has no notion of time, so it cannot
-# borrow strength from neighbouring bins. That is exactly what the Kalman filter adds.
+# Better than PCA: modelling per-neuron observation noise sharpens the estimate. But it
+# is still only middling - the posterior samples are jagged, because FA has no notion of
+# time and cannot borrow strength from neighbouring bins. That is exactly what the Kalman
+# filter adds, and where the bigger jump in recovery will come from.
+
+# %% [markdown]
+# ### Did learning the observation model cost us anything?
+# Everything above used *estimated* `C_fa, R_fa`. As a control, feed the ground-truth
+# `C, R` (an oracle no real experiment has) through the *same* `fa_posterior` and compare.
+# The two land almost on top of each other: FA's advantage over PCA is the noise model,
+# not privileged knowledge of the parameters - the ML fit recovers what matters.
+
+# %%
+m_fa_true, _ = fa_posterior(C.weight, R_diag, C.bias, y_valid)
+_, m_rot_fa_true = align_latent_variables(z_valid, m_fa_true)
 
 # %% [markdown]
 # ## 3. Kalman filter and RTS smoother
@@ -331,14 +372,14 @@ plot_rotated_latents(z_rot_s, m_rot_s, z_valid, label="kalman (smoothed)", n_sam
 
 # %% [markdown]
 # ## Comparison
-# Same trial, three models. Each added assumption (noise model, then dynamics) moves
-# the estimate closer to the truth.
+# Same trial, three models (FA shown with its learned parameters). Each added assumption
+# (noise model, then dynamics) moves the estimate closer to the truth.
 
 # %%
 plt.figure(figsize=(10, 5))
 plt.plot(z_valid[0, :, 0], label="Ground truth", linewidth=2)
 plt.plot(m_rot_pca[0, :, 0], label="PCA", linestyle="--")
-plt.plot(m_rot_fa[0, :, 0], label="Factor Analysis", linestyle="--")
+plt.plot(m_rot_fa[0, :, 0], label="FA (learned)", linestyle="--")
 plt.plot(m_rot_s[0, :, 0], label="Kalman (smoothed)", linestyle="--")
 plt.title("Latent dimension 1: true vs. estimated")
 plt.xlabel("Time")
@@ -365,13 +406,14 @@ def latent_r2(z_true, z_est):
 
 r2_scores = {
     "PCA": latent_r2(z_valid, m_rot_pca),
-    "Factor Analysis": latent_r2(z_valid, m_rot_fa),
+    "FA (learned C, R)": latent_r2(z_valid, m_rot_fa),
+    "FA (true C, R)": latent_r2(z_valid, m_rot_fa_true),
     "Kalman (filtered)": latent_r2(z_valid, m_rot_f),
     "Kalman (smoothed)": latent_r2(z_valid, m_rot_s),
 }
 
-plt.figure(figsize=(7, 4))
-bars = plt.bar(r2_scores.keys(), r2_scores.values(), color=["C1", "C2", "C3", "C4"])
+plt.figure(figsize=(8, 4))
+bars = plt.bar(r2_scores.keys(), r2_scores.values(), color=["C1", "C2", "C2", "C3", "C4"])
 plt.bar_label(bars, fmt="%.3f")
 plt.ylabel(r"latent $R^2$")
 plt.ylim(0, 1)
@@ -392,8 +434,9 @@ plt.show()
 # for your recording - modelling per-neuron noise (FA) or temporal smoothing (Kalman)?
 #
 # **Next.**
-# - *Optional:* [`03_system_id_and_em`](03_system_id_and_em.ipynb) - here we *knew* `A`,
-#   `C`, `Q`, `R`; there we learn the dynamics from data (Ho-Kalman ID, EM).
+# - *Optional:* [`03_system_id_and_em`](03_system_id_and_em.ipynb) - FA learned `C`, `R`
+#   here, but the Kalman section still used the true dynamics `A`, `Q`; there we learn the
+#   dynamics from data (Ho-Kalman ID, EM).
 # - *Core:* variational inference, for when the observations are Poisson spikes rather
 #   than Gaussian and these closed forms no longer exist.
 # %%
