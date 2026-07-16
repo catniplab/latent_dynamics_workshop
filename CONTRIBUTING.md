@@ -12,11 +12,20 @@ feel like parts of one course, not separate demos with different conventions.
 
 ## Authoring model
 
-Master notebooks live in `master_notebooks/*.py`. Edit only those source files,
-then run `./sync_notebooks.sh [name.py]` to generate the root-level student
-`.py` and `.ipynb` copies. Commit the master source and generated student
-copies. To execute a master `.py` directly, run it from the repo root with
-`PYTHONPATH=.`. Do not hand-edit generated root notebooks unless asked.
+**The only editable notebook sources are `master_notebooks/*.py`. Never edit the
+root-level `NN_*.py` or `NN_*.ipynb` by hand - they are generated and your edits
+will be overwritten on the next sync.**
+
+Workflow:
+
+1. Edit `master_notebooks/NN_*.py`.
+2. Run `./sync_notebooks.sh [name.py]` to regenerate the root-level student `.py`
+   and `.ipynb`. The sync strips `# BEGIN/END SOLUTION` and `# BEGIN/END HIDDEN
+   TESTS` blocks, replacing solutions with `# YOUR CODE HERE` and
+   `raise NotImplementedError()`.
+3. Commit the master source and the generated student copies together.
+
+To execute a master `.py` directly, run it from the repo root with `PYTHONPATH=.`.
 
 ---
 
